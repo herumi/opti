@@ -46,10 +46,13 @@
 >perf --version
 perf version 0.0.2.PERF
 >perf stat -e L1-icache-load-misses ./a.out 0
-       24167921  L1-icache-load-misses    #      0.000 M/sec
+       24166341  L1-icache-load-misses    #      0.000 M/sec
 
 >perf stat -e L1-icache-load-misses ./a.out 1
-      340693380  L1-icache-load-misses    #      0.000 M/sec
+      239641246  L1-icache-load-misses    #      0.000 M/sec
+
+>perf stat -e L1-icache-load-misses ./a.out 2
+      342195755  L1-icache-load-misses    #      0.000 M/sec
 
 */
 #include <stdio.h>
