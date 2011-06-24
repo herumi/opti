@@ -1,7 +1,6 @@
 /*
 	benchmark of sequential code and random jmp code
 	require Xbyak : http://homepage1.nifty.com/herumi/soft/xbyak_e.html
-	% g++ -O3 -fno-operator-names icache.cpp && ./a.out
 [sequential]
  count  clk   code size(Kbyte)
      1 : 0.922,    0.020
@@ -42,6 +41,16 @@
  32768 :12.092,  262.161
  65536 :12.121,  524.305
 131072 :12.146, 1048.593
+
+>g++ -O3 -fno-operator-names icache.cpp && ./a.out
+>perf --version
+perf version 0.0.2.PERF
+>perf stat -e L1-icache-load-misses ./a.out 0
+       24167921  L1-icache-load-misses    #      0.000 M/sec
+
+>perf stat -e L1-icache-load-misses ./a.out 1
+      340693380  L1-icache-load-misses    #      0.000 M/sec
+
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,9 +68,16 @@ struct Code : Xbyak::CodeGenerator {
 		xor(eax, eax);
 	L(".lp");
 		for (int i = 0; i < count; i++) {
-			if (mode == 0) {
+			switch (mode) {
+			case 0:
 				add(eax, 1);
-			} else {
+				break;
+			case 1:
+				add(eax, 1);
+				jmp("@f");
+				L("@@");
+				break;
+			case 2:
 				L(Label::toStr(i).c_str());
 				add(eax, 1);
 				int to = 0;
@@ -106,9 +122,14 @@ int main(int argc, char *argv[])
 	argc--, argv++;
 	const int sel = argc > 0 ? atoi(*argv) : -1;
 
-	for (int mode = 0; mode < 2; mode++) {
+	static const char nameTbl[][16] = {
+		"sequential",
+		"seq jmp",
+		"random jmp",
+	};
+	for (int mode = 0; mode < 3; mode++) {
 		if (sel != -1 && sel != mode) continue;
-		printf("[%s]\n", mode == 0 ? "sequential" : "random");
+		printf("[%s]\n", nameTbl[mode]);
 		printf(" count  clk   code size(Kbyte)\n");
 		int count = 1;
 		for (int i = 0; i < 18; i++) {
