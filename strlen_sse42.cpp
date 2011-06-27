@@ -10,9 +10,10 @@
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 	ave           1.98   4.96   6.76   9.75  11.60  15.23  18.86  28.65  51.63  84.67 127.23 175.75 197.63
-	strlenLIBC   11.62   5.66   4.62   3.55   3.10   2.49   2.10   1.41   0.70   0.47   0.37   0.30   0.29
-	strlenC      13.96   6.86   5.48   4.30   3.90   3.34   3.03   2.52   2.03   1.75   1.59   1.49   1.47
-	strlenSSE42  12.62   5.27   4.13   3.28   2.96   2.59   2.31   1.53   0.81   0.52   0.39   0.32   0.29
+	strlenLIBC   11.68   5.67   4.60   3.61   3.11   2.54   2.14   1.43   0.72   0.46   0.36   0.30   0.30
+	strlenC      14.47   6.95   5.55   4.37   3.94   3.42   3.07   2.56   2.07   1.76   1.60   1.51   1.46
+	strlenSSE2   12.30   5.74   4.58   3.42   2.97   2.35   1.92   1.26   0.71   0.40   0.30   0.24   0.23
+	strlenSSE42  12.56   5.26   4.12   3.29   2.95   2.59   2.31   1.56   0.83   0.52   0.39   0.32   0.29
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +22,61 @@
 #include <vector>
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
+#ifdef _WIN32
+	#include <intrin.h>
+	#define ALIGN(x) __declspec(align(x))
+	#define bsf(x) (_BitScanForward(&x, x), x)
+	#define bsr(x) (_BitScanReverse(&x, x), x)
+#else
+	#include <xmmintrin.h>
+	#define ALIGN(x) __attribute__((aligned(x)))
+	#define bsf(x) __builtin_ctz(x)
+#endif
+
+size_t strlenSSE2(const char *p)
+{
+	const char *const top = p;
+	__m128i c16 = _mm_set1_epi8(0);
+	/* 16 byte alignment */
+	size_t ip = reinterpret_cast<size_t>(p);
+	size_t n = ip & 15;
+	if (n > 0) {
+		ip &= ~15;
+		__m128i x = *(const __m128i*)ip;
+		__m128i a = _mm_cmpeq_epi8(x, c16);
+		unsigned long mask = _mm_movemask_epi8(a);
+		mask &= 0xffffffffUL << n;
+		if (mask) {
+			return bsf(mask) - n;
+		}
+		p += 16 - n;
+	}
+	/*
+		thanks to egtra-san
+	*/
+	assert((reinterpret_cast<size_t>(p) & 15) == 0);
+	if (reinterpret_cast<size_t>(p) & 31) {
+		__m128i x = *(const __m128i*)&p[0];
+		__m128i a = _mm_cmpeq_epi8(x, c16);
+		unsigned long mask = _mm_movemask_epi8(a);
+		if (mask) {
+			return p + bsf(mask) - top;
+		}
+		p += 16;
+	}
+	assert((reinterpret_cast<size_t>(p) & 31) == 0);
+	for (;;) {
+		__m128i x = *(const __m128i*)&p[0];
+		__m128i y = *(const __m128i*)&p[16];
+		__m128i a = _mm_cmpeq_epi8(x, c16);
+		__m128i b = _mm_cmpeq_epi8(y, c16);
+		unsigned long mask = (_mm_movemask_epi8(b) << 16) | _mm_movemask_epi8(a);
+		if (mask) {
+			return p + bsf(mask) - top;
+		}
+		p += 32;
+	}
+}
 
 struct StrlenSSE42 : Xbyak::CodeGenerator {
 	StrlenSSE42()
@@ -127,6 +183,7 @@ int main(int argc, char *argv[])
 	} funcTbl[] = {
 		{ "strlenLIBC ", strlen },
 		{ "strlenC    ", strlenC },
+		{ "strlenSSE2 ", strlenSSE2 },
 		{ "strlenSSE42", strlenSSE42 },
 	};
 	Result rv[NUM_OF_ARRAY(funcTbl)][NUM_OF_ARRAY(aveTbl)];
