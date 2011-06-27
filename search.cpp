@@ -84,11 +84,11 @@ memchrSSE2 1671.9  750.6  570.6  409.6  348.4  270.7  224.4  158.0   97.6   61.7
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6(64bit)
 ave             2      5      7     10     12     16     20     32     64    128    256    512   1024
-strlenANSI   500.4  202.0  160.4  123.7  111.0   91.1   79.0   55.8   32.8   21.1   14.1   10.4    9.5
-strlenSSE2   531.8  254.8  201.0  149.7  129.1  102.5   85.8   60.7   36.8   22.0   13.7    9.2    8.0
-strlenSSE42  421.9  176.5  139.4  111.8  102.3   88.4   78.3   56.8   32.8   20.8   13.4    9.4    8.4
-memchrANSI   411.4  202.9  162.9  126.7  113.8   94.1   81.9   57.1   33.5   20.3   13.0    9.2    8.2
-memchrSSE2   493.7  245.3  192.2  141.4  120.8   94.6   78.8   55.5   33.7   19.9   13.1    9.1    8.0
+strlenANSI   531.3  202.3  160.6  124.1  111.4   90.9   78.6   55.7   33.1   21.4   14.3   10.5    9.5
+strlenSSE2   532.0  255.1  200.7  149.1  129.8  102.8   86.1   61.2   36.9   22.2   14.1    9.3    8.1
+strlenSSE42  380.1  152.1  124.7  103.7   96.1   84.0   75.7   55.3   32.1   20.8   13.6    9.6    8.5
+memchrANSI   411.7  205.2  163.1  127.2  113.9   94.7   81.9   57.5   33.9   20.2   13.1    9.3    8.3
+memchrSSE2   484.2  231.6  179.6  132.3  113.4   89.6   75.5   54.2   33.6   20.2   13.3    9.3    8.3
 
 Core i7-2600 3.40GHz + Linux 2.6.35 + gcc 4.4.5(64bit)
 ave             2      5      7     10     12     16     20     32     64    128    256    512   1024
@@ -241,9 +241,18 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		mov(eax, 0xff01);
 		movd(xm2, eax);
 
-		mov(a, p1);
+#if 0 // slow
 		xor(c, c);
-		sub(a, 16);
+		mov(a, p1);
+	L("@@");
+		add(a, c);
+		pcmpistri(xm2, ptr [a], 0x14);
+		jnz("@b");
+		add(a, c);
+		ret();
+#else
+		xor(c, c);
+		lea(a, ptr [p1 - 16]);
 	L("@@");
 		add(a, 16);
 		pcmpistri(xm2, ptr [a], 0x14);
@@ -251,6 +260,7 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		add(a, c);
 //		sub(a, p1);
 		ret();
+#endif
 	}
 } strlenSSE42_code;
 size_t (*p_strlenSSE42)(const char*) = (size_t (*)(const char*))strlenSSE42_code.getCode();
