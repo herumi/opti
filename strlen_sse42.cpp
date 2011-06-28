@@ -4,10 +4,11 @@
 
 	Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 	ave           1.98   4.96   6.76   9.75  11.60  15.23  18.86  28.65  51.63  84.67 127.23 175.75 197.63
-	strlenLIBC   11.78   5.00   4.06   3.22   2.92   2.42   2.12   1.58   1.02   0.71   0.51   0.38   0.34
-	strlenC      14.06   8.40   6.96   5.59   4.95   4.26   3.83   3.27   2.71   2.46   2.31   2.19   2.19
-	strlenSSE2   12.77   6.40   5.11   3.92   3.42   2.77   2.35   1.73   1.15   0.79   0.52   0.33   0.28
-	strlenSSE42   9.26   3.98   3.23   2.70   2.50   2.24   2.03   1.59   1.01   0.69   0.51   0.35   0.31
+	strlenLIBC     12.14   5.01   4.07   3.21   2.89   2.42   2.13   1.59   1.01   0.71   0.51   0.39   0.33
+	strlenC        14.16   8.43   6.93   5.45   5.03   4.26   3.88   3.23   2.70   2.47   2.31   2.22   2.16
+	strlenSSE2     12.86   6.42   5.14   3.91   3.42   2.77   2.36   1.72   1.14   0.77   0.51   0.32   0.28
+	strlenSSE42     9.26   3.99   3.23   2.71   2.51   2.24   2.03   1.59   1.01   0.70   0.51   0.36   0.31
+	strlenSSE42_C   8.85   3.81   3.14   2.66   2.50   2.25   2.03   1.59   1.03   0.75   0.57   0.43   0.38
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 	ave           1.98   4.96   6.76   9.75  11.60  15.23  18.86  28.65  51.63  84.67 127.23 175.75 197.63
@@ -109,17 +110,35 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		mov(edx, ptr [esp + 4]);
 #endif
 		mov(eax, 0xff01);
-		movd(xm2, eax);
+		movd(xm0, eax);
 
-		lea(a, ptr [p1 - 16]);
+#if 0 // generated code by gcc 4.6.0
+		inLocalLabel();
+		lea(rdx, ptr [p1 - 16]);
 		xor(c, c);
+		jmp(".skip");
+		align(16);
 	L("@@");
-		add(a, 16);
-		pcmpistri(xm2, ptr [a], 0x14);
+		mov(rdx, rax);
+	L(".skip");
+		lea(rax, ptr [edx + 16]);
+		pcmpistri(xm0, ptr [edx + 16], 0x14);
 		jnz("@b");
 		add(a, c);
 		sub(a, p1);
 		ret();
+		outLocalLabel();
+#else
+		lea(a, ptr [p1 - 16]);
+		xor(c, c);
+	L("@@");
+		add(a, 16);
+		pcmpistri(xm0, ptr [a], 0x14);
+		jnz("@b");
+		add(a, c);
+		sub(a, p1);
+		ret();
+#endif
 	}
 } strlenSSE42_code;
 
