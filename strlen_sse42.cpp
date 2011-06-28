@@ -93,6 +93,7 @@ size_t strlenSSE2(const char *p)
 struct StrlenSSE42 : Xbyak::CodeGenerator {
 	StrlenSSE42()
 	{
+		inLocalLabel();
 		using namespace Xbyak;
 #if defined(XBYAK64_WIN)
 		const Reg64& p1 = rdx;
@@ -113,7 +114,6 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		movd(xm0, eax);
 
 #if 0 // generated code by gcc 4.6.0
-		inLocalLabel();
 		lea(rdx, ptr [p1 - 16]);
 		xor(c, c);
 		jmp(".skip");
@@ -127,7 +127,6 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		add(a, c);
 		sub(a, p1);
 		ret();
-		outLocalLabel();
 #else
 		lea(a, ptr [p1 - 16]);
 		xor(c, c);
@@ -139,6 +138,7 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		sub(a, p1);
 		ret();
 #endif
+		outLocalLabel();
 	}
 } strlenSSE42_code;
 
