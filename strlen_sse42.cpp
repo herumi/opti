@@ -123,6 +123,18 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 	}
 } strlenSSE42_code;
 
+size_t strlenSSE42_C(const char* top)
+{
+	const __m128i im = _mm_set1_epi32(0xff01);
+	const char *p = top - 16;
+	do {
+		p += 16;
+	} while (!_mm_cmpistrz(im, *(__m128i*)p, 0x14));
+	p += _mm_cmpistri(im, *(__m128i*)p, 0x14);
+	return p - top;
+}
+
+
 struct Result {
 	int hit;
 	double len;
@@ -192,10 +204,11 @@ int main(int argc, char *argv[])
 		const char *name;
 		size_t (*func)(const char*);
 	} funcTbl[] = {
-		{ "strlenLIBC ", strlen },
-		{ "strlenC    ", strlenC },
-		{ "strlenSSE2 ", strlenSSE2 },
-		{ "strlenSSE42", strlenSSE42 },
+		{ "strlenLIBC   ", strlen },
+		{ "strlenC      ", strlenC },
+		{ "strlenSSE2   ", strlenSSE2 },
+		{ "strlenSSE42  ", strlenSSE42 },
+		{ "strlenSSE42_C", strlenSSE42_C },
 	};
 	Result rv[NUM_OF_ARRAY(funcTbl)][NUM_OF_ARRAY(aveTbl)];
 
