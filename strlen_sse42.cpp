@@ -39,6 +39,7 @@
 	#define bsr(x) (_BitScanReverse(&x, x), x)
 #else
 	#include <xmmintrin.h>
+	#include <smmintrin.h>
 	#define ALIGN(x) __attribute__((aligned(x)))
 	#define bsf(x) __builtin_ctz(x)
 #endif
