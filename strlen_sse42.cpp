@@ -11,12 +11,12 @@
 	strlenSSE42_C   8.85   3.81   3.14   2.66   2.50   2.25   2.03   1.59   1.03   0.75   0.57   0.43   0.38
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
-	ave           1.98   4.96   6.76   9.75  11.60  15.23  18.86  28.65  51.63  84.67 127.23 175.75 197.63
-	strlenLIBC   11.68   5.67   4.60   3.61   3.11   2.54   2.14   1.43   0.72   0.46   0.36   0.30   0.30
-	strlenC      14.47   6.95   5.55   4.37   3.94   3.42   3.07   2.56   2.07   1.76   1.60   1.51   1.46
-	strlenSSE2   12.30   5.74   4.58   3.42   2.97   2.35   1.92   1.26   0.71   0.40   0.30   0.24   0.23
-	strlenSSE42  12.56   5.26   4.12   3.29   2.95   2.59   2.31   1.56   0.83   0.52   0.39   0.32   0.29
-
+	ave             1.98   4.96   6.76   9.75  11.60  15.23  18.86  28.65  51.63  84.67 127.23 175.75 197.63
+	strlenLIBC     11.64   5.66   4.60   3.58   3.17   2.52   2.15   1.41   0.70   0.47   0.36   0.30   0.29
+	strlenC        14.25   6.96   5.59   4.36   3.93   3.41   3.08   2.57   2.07   1.78   1.61   1.51   1.50
+	strlenSSE2     12.34   5.78   4.56   3.42   2.96   2.34   1.92   1.25   0.70   0.41   0.30   0.24   0.23
+	strlenSSE42    12.27   5.09   4.01   3.24   2.92   2.55   2.28   1.55   0.84   0.53   0.39   0.32   0.30
+	strlenSSE42_C  12.56   5.23   4.10   3.30   3.01   2.66   2.36   1.56   0.86   0.56   0.42   0.33   0.31
 
 	Core i7-2600 CPU 3.40GHz + Windows 7 + VC2010
 	ave           2.01   5.01   6.97  10.04  12.00  16.11  19.92  31.48  64.47 135.69 263.85 490.20 877.19
@@ -127,10 +127,13 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		sub(a, p1);
 		ret();
 #else
-		lea(a, ptr [p1 - 16]);
+//		lea(a, ptr [p1 - 16]);
+		mov(a, p1);
 		xor(c, c);
+		jmp(".in");
 	L("@@");
 		add(a, 16);
+	L(".in");
 		pcmpistri(xm0, ptr [a], 0x14);
 		jnz("@b");
 		add(a, c);
@@ -144,11 +147,18 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 size_t strlenSSE42_C(const char* top)
 {
 	const __m128i im = _mm_set1_epi32(0xff01);
+#if 1
+	const char *p = top;
+	while (!_mm_cmpistrz(im, *(const __m128i*)p, 0x14)) {
+		p += 16;
+	}
+#else
 	const char *p = top - 16;
 	do {
 		p += 16;
-	} while (!_mm_cmpistrz(im, *(__m128i*)p, 0x14));
-	p += _mm_cmpistri(im, *(__m128i*)p, 0x14);
+	} while (!_mm_cmpistrz(im, *(const __m128i*)p, 0x14));
+#endif
+	p += _mm_cmpistri(im, *(const __m128i*)p, 0x14);
 	return p - top;
 }
 
