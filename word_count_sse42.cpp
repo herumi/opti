@@ -173,13 +173,17 @@ void test(const char *text, size_t (*countFunc)(const char *))
 	printf("count=%d, clock=%.3fKclk\n", (int)c / N, clk.getClock() / (double)N * 1e-3);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+	argc--, argv++;
+	const char *file = "test.txt";
+	if (argc) file = *argv;
+	fprintf(stderr, "load %s\n", file);
 	for (int i = 0; i < 256; i++) {
 		alnumTbl2[i] = (i == '\'') || ('0' <= i && i <= '9') || ('a' <= i && i <= 'z') || ('A' <= i && i <= 'Z');
 	}
 	std::string textBuf;
-	const char *text = LoadFile(textBuf, "test.txt");
+	const char *text = LoadFile(textBuf, file);
 	if (text == 0) return 1;
 	test(text, countWord_C);
 	test(text, countWord_C2);
