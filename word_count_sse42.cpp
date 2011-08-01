@@ -1,3 +1,9 @@
+/*
+	i7-2600 CPU @ 3.40GHz
+	count=13428, clock=452.275Kclk
+	count=13428, clock=42.932Kclk
+	count=13428, clock=32.130Kclk
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
@@ -186,7 +192,7 @@ int main()
 		int a = countWord_C(src);
 		int b = countWord_SSE42(src);
 		if (a != b) {
-			printf("pos=%d, a=%d, b=%d\n", i, a, b);
+			printf("pos=%d, a=%d, b=%d\n", (int)i, a, b);
 			printf("[%s]\n", src);
 		}
 	}
