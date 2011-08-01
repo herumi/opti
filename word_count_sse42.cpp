@@ -111,18 +111,18 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		inLocalLabel();
 		using namespace Xbyak;
 #if defined(XBYAK64_WIN)
-		const Reg64& p = rdx;
+		const Reg64& p = rcx;
 		const Reg64& a = rax;
-		const Reg64& c = rcx;
+		const Reg64& d = rdx;
 #elif defined(XBYAK64_GCC)
 		const Reg64& p = rdi;
 		const Reg64& a = rax;
-		const Reg64& c = rcx;
+		const Reg64& d = rdx;
 #else
-		const Reg32& p = edx;
+		const Reg32& p = ecx;
 		const Reg32& a = eax;
-		const Reg32& c = ecx;
-		mov(edx, ptr [esp + 4]);
+		const Reg32& d = edx;
+		mov(p, ptr [esp + 4]);
 #endif
 		mov(a, (size_t)alnumTbl);
 		pxor(xm3, xm3);
@@ -136,10 +136,10 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		movdqa(xm3, xm0);
 		pxor(xm4, xm0);
 		psrld(xm3, 15);
-		movd(Reg32(c.getIdx()), xm4);
-		popcnt(c, c);
+		movd(Reg32(d.getIdx()), xm4);
+		popcnt(d, d);
 		add(p, 16);
-		add(a, c);
+		add(a, d);
 	L(".in");
 		movdqa(xm1, ptr [p]);
 		pcmpistrm(xm2, xm1, 4);
@@ -150,9 +150,9 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		movdqa(xm3, xm0);
 		pxor(xm4, xm0);
 		psrld(xm3, 15);
-		movd(Reg32(c.getIdx()), xm4);
-		popcnt(c, c);
-		add(a, c);
+		movd(Reg32(d.getIdx()), xm4);
+		popcnt(d, d);
+		add(a, d);
 		shr(a, 1);
 		ret();
 		outLocalLabel();
@@ -185,9 +185,18 @@ int main(int argc, char *argv[])
 	std::string textBuf;
 	const char *text = LoadFile(textBuf, file);
 	if (text == 0) return 1;
+	printf("intel C version          :");
 	test(text, countWord_C);
+	printf("optimized intel C version:");
 	test(text, countWord_C2);
+	Xbyak::util::Cpu cpu;
+	if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
+		fprintf(stderr, "SSE42 is not supported\n");
+		return 1;
+	}
+	printf("SSE4.2 intrinsic version :");
 	test(text, countWord_SSE42);
+	printf("SSE4.2 Xbyak version     :");
 	test(text, countWord_SSE42asm);
 #if 0
 	MIE_ALIGN(16) const char src[] = "ute address DS";
