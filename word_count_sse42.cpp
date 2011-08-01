@@ -1,8 +1,15 @@
 /*
-	i7-2600 CPU @ 3.40GHz
-	count=13428, clock=452.275Kclk
-	count=13428, clock=42.932Kclk
-	count=13428, clock=32.130Kclk
+	Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
+	count=13429, clock=1718.840Kclk
+	count=13429, clock=874.175Kclk
+	count=13429, clock=89.033Kclk
+	count=13429, clock=67.827Kclk
+
+	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
+	count=13428, clock=1354.544Kclk
+	count=13428, clock=454.740Kclk
+	count=13428, clock=42.938Kclk
+	count=13428, clock=32.096Kclk
 */
 #include <stdio.h>
 #include <stdlib.h>
