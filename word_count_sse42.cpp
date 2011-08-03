@@ -20,6 +20,7 @@
 #include <string>
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
+#include "cpu.h"
 #ifdef _WIN32
 #include <intrin.h>
 #else
@@ -151,7 +152,7 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		pcmpistrm(xm2, xm1, 4);
 		jnz("@b");
 		shr(a, 1);
-#else
+#else // faster on i7(43clk vs 32clk)
 	L("@@");
 		movdqa(xm4, xm0);
 		psllw(xm4, 1);
@@ -230,6 +231,9 @@ int main(int argc, char *argv[])
 	std::string textBuf;
 	const char *text = LoadFile(textBuf, file);
 	if (text == 0) return 1;
+	VersionInfo vi;
+	printf("type=%02xh, model=%02xh, family=%02xh, stepping=%02xh\n", vi.type, vi.model, vi.family, vi.stepping);
+	printf("extModel=%02x, extFamily=%02x\n", vi.extModel, vi.extFamily);
 	printf("intel C version          :");
 	test(text, countWord_C);
 	printf("optimized intel C version:");
