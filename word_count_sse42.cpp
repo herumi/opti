@@ -1,9 +1,12 @@
 /*
 	Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
-	count=13429, clock=1718.840Kclk
-	count=13429, clock=874.175Kclk
-	count=13429, clock=89.033Kclk
-	count=13429, clock=67.827Kclk
+	type=00h, model=0ch, family=06h, stepping=02h
+	extModel=02, extFamily=00
+	intel C version          :count=13428, clock=1714.922Kclk
+	optimized intel C version:count=13428, clock=874.378Kclk
+	SSE4.2 intrinsic version :count=13428, clock=46.510Kclk
+	SSE4.2 Xbyak version0    :count=13428, clock=44.439Kclk
+	SSE4.2 Xbyak version1    :count=13428, clock=53.375Kclk
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 	intel C version          :count=13428, clock=876.438Kclk
@@ -107,7 +110,7 @@ size_t countWord_SSE42(const char *p)
 }
 
 struct CountWordSSE42 : Xbyak::CodeGenerator {
-	CountWordSSE42()
+	explicit CountWordSSE42(int mode)
 	{
 		inLocalLabel();
 		using namespace Xbyak;
@@ -130,61 +133,72 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		movdqa(xm2, ptr [a]);
 		xor(a, a);
 		jmp(".in");
-#if 0 // faster on Xeon(43.5clk vs 53.3clk)
+		switch (mode) {
+		case 0:
+		// faster on Xeon(43.5clk vs 53.3clk)
 	L("@@");
 		add(p, 16);
 	L(".in");
-		movdqa(xm1, ptr [p]);
-		pcmpistrm(xm2, xm1, 4);
-		movdqa(xm4, xm0);
-		psllw(xm4, 1);
-		por(xm4, xm3);
-		pxor(xm4, xm0);
-#ifdef XBYAK64
-		movq(d, xm4);
-#else
-		movd(d, xm4);
-#endif
-		movdqa(xm3, xm0);
-		popcnt(d, d);
-		add(a, d);
-		psrld(xm3, 15);
-		pcmpistrm(xm2, xm1, 4);
-		jnz("@b");
-		shr(a, 1);
-#else // faster on i7(43clk vs 32clk)
-	L("@@");
-		movdqa(xm4, xm0);
-		psllw(xm4, 1);
-		por(xm4, xm3);
-		movdqa(xm3, xm0);
-		pxor(xm4, xm0);
-		psrld(xm3, 15);
-#ifdef XBYAK64
-		movq(d, xm4);
-#else
-		movd(d, xm4);
-#endif
-		popcnt(d, d);
-		add(p, 16);
-		add(a, d);
-	L(".in");
-		pcmpistrm(xm2, ptr [p], 4);
-		jnz("@b");
-		movdqa(xm4, xm0);
-		psllw(xm4, 1);
-		por(xm4, xm3);
-		pxor(xm4, xm0);
-		movd(Reg32(d.getIdx()), xm4);
-		popcnt(d, d);
-		add(a, d);
-		shr(a, 1);
-#endif
+			movdqa(xm1, ptr [p]);
+			pcmpistrm(xm2, xm1, 4);
+			movdqa(xm4, xm0);
+			psllw(xm4, 1);
+			por(xm4, xm3);
+			pxor(xm4, xm0);
+	#ifdef XBYAK64
+			movq(d, xm4);
+	#else
+			movd(d, xm4);
+	#endif
+			movdqa(xm3, xm0);
+			popcnt(d, d);
+			add(a, d);
+			psrld(xm3, 15);
+			pcmpistrm(xm2, xm1, 4);
+			jnz("@b");
+			shr(a, 1);
+			break;
+		case 1:
+		// faster on i7(43clk vs 32clk)
+		L("@@");
+			movdqa(xm4, xm0);
+			psllw(xm4, 1);
+			por(xm4, xm3);
+			movdqa(xm3, xm0);
+			pxor(xm4, xm0);
+			psrld(xm3, 15);
+	#ifdef XBYAK64
+			movq(d, xm4);
+	#else
+			movd(d, xm4);
+	#endif
+			popcnt(d, d);
+			add(p, 16);
+			add(a, d);
+		L(".in");
+			pcmpistrm(xm2, ptr [p], 4);
+			jnz("@b");
+			movdqa(xm4, xm0);
+			psllw(xm4, 1);
+			por(xm4, xm3);
+			pxor(xm4, xm0);
+			movd(Reg32(d.getIdx()), xm4);
+			popcnt(d, d);
+			add(a, d);
+			shr(a, 1);
+			break;
+		default:
+			fprintf(stderr, "err mode=%d\n", mode);
+			break;
+		}
 		ret();
 		outLocalLabel();
 	}
-} countWordSSE42_code;
-size_t (*countWord_SSE42asm)(const char*) = (size_t (*)(const char*))countWordSSE42_code.getCode();
+};
+CountWordSSE42 countWordSSE42_code0(0);
+CountWordSSE42 countWordSSE42_code1(1);
+size_t (*countWord_SSE42asm0)(const char*) = (size_t (*)(const char*))countWordSSE42_code0.getCode();
+size_t (*countWord_SSE42asm1)(const char*) = (size_t (*)(const char*))countWordSSE42_code1.getCode();
 
 void check(size_t (*countFunc)(const char*))
 {
@@ -245,7 +259,9 @@ int main(int argc, char *argv[])
 	}
 	printf("SSE4.2 intrinsic version :");
 	test(text, countWord_SSE42);
-	printf("SSE4.2 Xbyak version     :");
-	test(text, countWord_SSE42asm);
+	printf("SSE4.2 Xbyak version0    :");
+	test(text, countWord_SSE42asm0);
+	printf("SSE4.2 Xbyak version1    :");
+	test(text, countWord_SSE42asm1);
 }
 
