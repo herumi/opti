@@ -9,10 +9,23 @@
 	SSE4.2 Xbyak version1    :count=13428, clock=53.375Kclk
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
-	intel C version          :count=13428, clock=876.438Kclk
-	optimized intel C version:count=13428, clock=455.425Kclk
-	SSE4.2 intrinsic version :count=13428, clock=43.932Kclk
-	SSE4.2 Xbyak version     :count=13428, clock=33.019Kclk
+	type=00h, model=0ah, family=06h, stepping=07h
+	extModel=02, extFamily=00
+	intel C version          :count=13428, clock=854.592Kclk
+	optimized intel C version:count=13428, clock=456.279Kclk
+	SSE4.2 intrinsic version :count=13428, clock=42.778Kclk
+	SSE4.2 Xbyak version0    :count=13428, clock=41.940Kclk
+	SSE4.2 Xbyak version1    :count=13428, clock=32.975Kclk
+
+	Core i7-2600 Cpu 3.40GHz + Windows 7(64bit) + VC2010
+	type=00h, model=0ah, family=06h, stepping=07h
+	extModel=02, extFamily=00
+	intel C version          :count=13428, clock=979.836Kclk
+	optimized intel C version:count=13428, clock=623.810Kclk
+	SSE4.2 intrinsic version :count=13428, clock=42.633Kclk
+	SSE4.2 Xbyak version0    :count=13428, clock=43.063Kclk
+	SSE4.2 Xbyak version1    :count=13428, clock=32.466Kclk
+
 */
 #include <stdio.h>
 #include <stdlib.h>
