@@ -129,6 +129,29 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		movdqa(xm2, ptr [a]);
 		xor(a, a);
 		jmp(".in");
+#if 0 // faster on Xeon(43.5clk vs 53.3clk)
+	L("@@");
+		add(p, 16);
+	L(".in");
+		movdqa(xm1, ptr [p]);
+		pcmpistrm(xm2, xm1, 4);
+		movdqa(xm4, xm0);
+		psllw(xm4, 1);
+		por(xm4, xm3);
+		pxor(xm4, xm0);
+#ifdef XBYAK64
+		movq(d, xm4);
+#else
+		movd(d, xm4);
+#endif
+		movdqa(xm3, xm0);
+		popcnt(d, d);
+		add(a, d);
+		psrld(xm3, 15);
+		pcmpistrm(xm2, xm1, 4);
+		jnz("@b");
+		shr(a, 1);
+#else
 	L("@@");
 		movdqa(xm4, xm0);
 		psllw(xm4, 1);
@@ -136,7 +159,11 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		movdqa(xm3, xm0);
 		pxor(xm4, xm0);
 		psrld(xm3, 15);
-		movd(Reg32(d.getIdx()), xm4);
+#ifdef XBYAK64
+		movq(d, xm4);
+#else
+		movd(d, xm4);
+#endif
 		popcnt(d, d);
 		add(p, 16);
 		add(a, d);
@@ -151,6 +178,7 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		popcnt(d, d);
 		add(a, d);
 		shr(a, 1);
+#endif
 		ret();
 		outLocalLabel();
 	}
