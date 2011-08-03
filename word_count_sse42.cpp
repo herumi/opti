@@ -6,10 +6,10 @@
 	count=13429, clock=67.827Kclk
 
 	Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
-	count=13428, clock=1354.544Kclk
-	count=13428, clock=454.740Kclk
-	count=13428, clock=42.938Kclk
-	count=13428, clock=32.096Kclk
+	intel C version          :count=13428, clock=876.438Kclk
+	optimized intel C version:count=13428, clock=455.425Kclk
+	SSE4.2 intrinsic version :count=13428, clock=43.932Kclk
+	SSE4.2 Xbyak version     :count=13428, clock=33.019Kclk
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,15 +141,12 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 		add(p, 16);
 		add(a, d);
 	L(".in");
-		movdqa(xm1, ptr [p]);
-		pcmpistrm(xm2, xm1, 4);
+		pcmpistrm(xm2, ptr [p], 4);
 		jnz("@b");
 		movdqa(xm4, xm0);
 		psllw(xm4, 1);
 		por(xm4, xm3);
-		movdqa(xm3, xm0);
 		pxor(xm4, xm0);
-		psrld(xm3, 15);
 		movd(Reg32(d.getIdx()), xm4);
 		popcnt(d, d);
 		add(a, d);
@@ -159,6 +156,25 @@ struct CountWordSSE42 : Xbyak::CodeGenerator {
 	}
 } countWordSSE42_code;
 size_t (*countWord_SSE42asm)(const char*) = (size_t (*)(const char*))countWordSSE42_code.getCode();
+
+void check(size_t (*countFunc)(const char*))
+{
+	for (int len = 1; len <= 20; len++) {
+		MIE_ALIGN(16) char str[32];
+		str[len] = '\0';
+		for (int ptn = 0; ptn < (1 << len); ptn++) {
+			for (int j = 0; j < len; j++) {
+				str[j] = ptn & (1 << j) ? 'a' : '.';
+			}
+			size_t a = countWord_C2(str);
+			size_t b = countFunc(str);
+			if (a != b) {
+				printf("err str='%s', a=%d, b=%d\n", str, (int)a, (int)b);
+				exit(1);
+			}
+		}
+	}
+}
 
 void test(const char *text, size_t (*countFunc)(const char *))
 {
@@ -171,6 +187,7 @@ void test(const char *text, size_t (*countFunc)(const char *))
 		clk.end();
 	}
 	printf("count=%d, clock=%.3fKclk\n", (int)c / N, clk.getClock() / (double)N * 1e-3);
+	check(countFunc);
 }
 
 int main(int argc, char *argv[])
@@ -198,23 +215,5 @@ int main(int argc, char *argv[])
 	test(text, countWord_SSE42);
 	printf("SSE4.2 Xbyak version     :");
 	test(text, countWord_SSE42asm);
-#if 0
-	MIE_ALIGN(16) const char src[] = "ute address DS";
-	int a = countWord_C(src);
-	int b = countWord_SSE42(src);
-	printf("a=%d, b=%d\n", a, b);
-#else
-	size_t len = strlen(text);
-	for (size_t i = 0; i < len; i += 16) {
-		MIE_ALIGN(16) char src[17];
-		memcpy(src, text + i, 16);
-		src[16] = 0;
-		int a = countWord_C(src);
-		int b = countWord_SSE42(src);
-		if (a != b) {
-			printf("pos=%d, a=%d, b=%d\n", (int)i, a, b);
-			printf("[%s]\n", src);
-		}
-	}
-#endif
 }
+
