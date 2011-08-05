@@ -127,18 +127,18 @@ struct Code : public Xbyak::CodeGenerator {
 	{
 		using namespace Xbyak;
 		inLocalLabel();
+		const Reg32& a = eax;
 #if defined(XBYAK64_WIN)
 		const Reg64& x = rcx;
 		const Reg64& n = rdx;
-		const Reg64& a = rax;
+		xor(rax, rax);
 #elif defined(XBYAK64_GCC)
 		const Reg64& x = rdi;
 		const Reg64& n = rsi;
-		const Reg64& a = rax;
+		xor(rax, rax);
 #else
 		const Reg32& x = ecx;
 		const Reg32& n = edx;
-		const Reg32& a = eax;
 		mov(x, ptr [esp + 4]);
 		mov(n, ptr [esp + 8]);
 #endif
@@ -165,7 +165,7 @@ struct Code : public Xbyak::CodeGenerator {
 		outLocalLabel();
 	}
 	/*
-		int getCountMax(const int *x, const int *y, size_t n); // n > 0
+		size_t getCountMax(const int *x, const int *y, size_t n); // n > 0
 		x[i] > y[i] となる個数を返す
 		mode = 0 : use jmp
 		       1 : use setg
@@ -180,17 +180,19 @@ struct Code : public Xbyak::CodeGenerator {
 		const Reg64& x = rcx;
 		const Reg64& y = r9;
 		const Reg64& n = r8;
-		const Reg64& t = rdx;
-		const Reg64& t2 = r10;
+		const Reg32& t = edx;
+		const Reg32& t2 = r10d;
 		const Reg64& a = rax;
 		mov(r9, rdx); // to use lower 8bit of t
+		xor(rdx, rdx);
 #elif defined(XBYAK64_GCC)
 		const Reg64& x = rdi;
 		const Reg64& y = rsi;
 		const Reg64& n = rdx;
-		const Reg64& t = rcx;
-		const Reg64& t2 = r8;
+		const Reg32& t = ecx;
+		const Reg32& t2 = r8d;
 		const Reg64& a = rax;
+		xor(rcx, rcx);
 #else
 		const Reg32& x = esi;
 		const Reg32& y = edx;
@@ -229,7 +231,11 @@ struct Code : public Xbyak::CodeGenerator {
 			mov(t, ptr [x + n * 4]);
 			cmp(t, ptr [y + n * 4]);
 			setg(low8);
+#ifdef XBYAK64
+			movzx(Reg64(t.getIdx()), low8);
+#else
 			movzx(t, low8);
+#endif
 			add(a, t);
 			break;
 		case 2:
