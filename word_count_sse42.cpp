@@ -1,4 +1,6 @@
 /*
+	require http://homepage1.nifty.com/herumi/soft/xbyak_e.html
+
 	Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 	type=00h, model=0ch, family=06h, stepping=02h
 	extModel=02, extFamily=00
