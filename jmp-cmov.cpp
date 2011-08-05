@@ -15,7 +15,7 @@ cmov 5.019  2.615  2.616  2.617
 STL    2.619  2.618  2.621  2.618  2.620
 jmp    2.616  8.383 12.493  9.616  1.861
 setg   2.619  2.625  2.618  2.618  2.618
-sbb    2.624  2.616  2.617  2.616  2.617
+adc    2.624  2.616  2.617  2.616  2.617
 setg2  2.625  2.627  2.624  2.634  2.626
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
@@ -29,7 +29,7 @@ cmov 2.741  2.718  2.747  2.751
 STL    2.774  2.762  2.748  2.748  2.747
 jmp    1.863  7.827 12.747  9.276  1.854
 setg   2.054  2.043  2.052  2.026  2.054
-sbb    1.818  1.838  1.849  1.828  1.822
+adc    1.818  1.838  1.849  1.828  1.822
 setg2  1.842  1.821  1.862  1.845  1.838
 
 Core i7-2600 Cpu 3.40GHz + Windows 7(64bit) + VC2010
@@ -43,8 +43,44 @@ cmov 2.729  2.729  2.748  2.715
 STL    1.857  6.172 11.025  7.935  1.818
 jmp    1.834  5.953 10.605  7.239  1.828
 setg   2.027  2.035  2.039  2.069  2.012
-sbb    1.857  1.866  1.860  1.804  1.820
+adc    1.857  1.866  1.860  1.804  1.820
 setg2  1.845  1.808  1.826  1.847  1.833
+
+PentiumD 2.8GHz + Windows Xp(32bit) + VC2008
+--- test1 ---
+name    rand  first    inc   inc2
+STL    14.077  13.654  14.065  14.066
+jmp    3.422  3.649  3.447  4.199
+cmov   10.053  10.047  10.073  10.045
+maxps  1.259  1.258  1.261  1.260
+pmaxsd
+maxps for int data:1.265Kclk
+maxps for valid float data:1.256Kclk
+--- test2 ---
+        0.00   0.25   0.50   0.75   1.00
+STL    4.394 17.740 24.018 18.779  4.098
+jmp    3.856 20.154 26.415 19.884  4.289
+setg   5.908  5.902  5.893  5.979  5.912
+adc    5.812  5.662  5.656  5.624  5.705
+setg2  5.122  5.141  5.131  5.124  5.121
+
+Core Duo T2300 1.6GHz + Linux(32bit) + gcc 4.6.0
+--- test1 ---
+name    rand  first    inc   inc2
+STL    4.354  4.358  4.264  4.301
+jmp    2.544  2.513  2.535  4.232
+cmov   3.604  3.593  3.687  3.635
+maxps  31.171  31.094  31.129  31.076
+pmaxsd
+maxps for int data:31.111Kclk
+maxps for valid float data:1.092Kclk
+--- test2 ---
+        0.00   0.25   0.50   0.75   1.00
+STL    4.495  4.440  4.434  4.442  4.552
+jmp    2.956  9.288 12.029  9.458  2.863
+setg   3.937  3.972  3.878  3.915  4.005
+adc    3.446  3.500  3.394  3.430  3.404
+setg2  3.473  3.491  3.420  3.470  3.536
 */
 #include <stdio.h>
 #include <vector>
@@ -151,7 +187,7 @@ static struct Func2Info {
 	{ "STL  ", countMax_C },
 	{ "jmp  ", 0 },
 	{ "setg ", 0 },
-	{ "sbb  ", 0 },
+	{ "adc  ", 0 },
 	{ "setg2", 0 },
 };
 
@@ -241,7 +277,7 @@ struct Code : public Xbyak::CodeGenerator {
 		x[i] > y[i] となる個数を返す
 		mode = 0 : use jmp
 		       1 : use setg
-		       2 : use sbb
+		       2 : use adc
 		       3 : use setg(wo. movzx)
 	*/
 	void genCountMax(int mode)
@@ -311,9 +347,9 @@ struct Code : public Xbyak::CodeGenerator {
 			add(a, t);
 			break;
 		case 2:
-			mov(t, ptr [x + n * 4]);
-			cmp(t, ptr [y + n * 4]);
-			sbb(a, -1);
+			mov(t, ptr [y + n * 4]);
+			cmp(t, ptr [x + n * 4]);
+			adc(a, 0);
 			break;
 		case 3:
 			mov(t2, ptr [x + n * 4]);
@@ -396,6 +432,7 @@ int main()
 			IntVec b;
 			int rate = i * 250;
 			Init(a, b, 8192, rate);
+			a[0] = b[0] = 5; // check equal
 
 			printf("rate=%d\n", rate);
 			for (size_t j = 0; j < NUM_OF_ARRAY(func2Tbl); j++) {
@@ -413,6 +450,19 @@ int main()
 				printf("%.3f  ", ret1[i][j]);
 			}
 			printf("\n");
+		}
+		{
+			AlignedArray<int> x;
+			x.resize(N);
+			InitRandom(x, N);
+			Xbyak::util::Clock clk;
+			int (*f)(const int*, size_t) = func1Tbl[3].f;
+			for (int i = 0; i < MaxCount; i++) {
+				clk.begin();
+				f(&x[0], N);
+				clk.end();
+			}
+			printf("maxps for int data:%.3fKclk\n", clk.getClock() / (double)(MaxCount * N));
 		}
 		{
 			AlignedArray<float> x;
