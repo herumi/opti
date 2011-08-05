@@ -96,16 +96,16 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		inLocalLabel();
 		using namespace Xbyak;
 #if defined(XBYAK64_WIN)
-		const Reg64& p1 = rdx;
+		const Reg64& p = rdx;
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
 		mov(rdx, rcx);
 #elif defined(XBYAK64_GCC)
-		const Reg64& p1 = rdi;
+		const Reg64& p = rdi;
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
 #else
-		const Reg32& p1 = edx;
+		const Reg32& p = edx;
 		const Reg32& c = ecx;
 		const Reg32& a = eax;
 		mov(edx, ptr [esp + 4]);
@@ -114,7 +114,7 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		movd(xm0, eax);
 
 #if 0 // generated code by gcc 4.6.0
-		lea(rdx, ptr [p1 - 16]);
+		lea(rdx, ptr [p - 16]);
 		xor(c, c);
 		jmp(".skip");
 		align(16);
@@ -125,20 +125,22 @@ struct StrlenSSE42 : Xbyak::CodeGenerator {
 		pcmpistri(xm0, ptr [edx + 16], 0x14);
 		jnz("@b");
 		add(a, c);
-		sub(a, p1);
+		sub(a, p);
 		ret();
 #else
-//		lea(a, ptr [p1 - 16]);
-		mov(a, p1);
-		xor(c, c);
+#if 0
+		lea(a, ptr [p - 16]);
+#else
+		mov(a, p);
 		jmp(".in");
+#endif
 	L("@@");
 		add(a, 16);
 	L(".in");
 		pcmpistri(xm0, ptr [a], 0x14);
 		jnz("@b");
 		add(a, c);
-		sub(a, p1);
+		sub(a, p);
 		ret();
 #endif
 		outLocalLabel();
@@ -223,7 +225,6 @@ int main(int argc, char *argv[])
 {
 	const size_t count = 4000;
 	const size_t N = 100000;
-	const int funcNum = 5;
 	std::vector<char> v(N);
 
 	char *begin = &v[0];
@@ -264,7 +265,7 @@ int main(int argc, char *argv[])
 		printf("%6.2f ", rv[0][i].len);
 	}
 	printf("\n");
-	for (int i = 0; i < NUM_OF_ARRAY(funcTbl); i++) {
+	for (size_t i = 0; i < NUM_OF_ARRAY(funcTbl); i++) {
 		printf("%s ", funcTbl[i].name);
 		for (size_t j = 0; j < NUM_OF_ARRAY(aveTbl); j++) {
 			printf("%6.2f ", rv[i][j].time);
