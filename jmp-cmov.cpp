@@ -6,31 +6,39 @@
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 --- test1 ---
-name  rand  first    inc   inc2
-STL  6.123  4.619  3.191  3.197
-jmp  3.412  1.746  1.747  3.483
-cmov 5.019  2.615  2.616  2.617
+name    rand  first    inc   inc2
+STL    5.016  2.615  2.615  2.615
+jmp    3.414  1.745  1.746  3.481
+cmov   5.008  2.613  2.612  2.653
+maxps  30.741  26.581  26.587  26.547
+pmaxsd 0.437  0.437  0.437  0.437
+maxps for int data:26.572Kclk
+maxps for valid float data:0.648Kclk
 --- test2 ---
         0.00   0.25   0.50   0.75   1.00
-STL    2.619  2.618  2.621  2.618  2.620
-jmp    2.616  8.383 12.493  9.616  1.861
-setg   2.619  2.625  2.618  2.618  2.618
-adc    2.624  2.616  2.617  2.616  2.617
-setg2  2.625  2.627  2.624  2.634  2.626
+STL    2.617  2.617  2.617  2.616  2.616
+jmp    2.622  8.426 12.539  9.709  1.859
+setg   2.652  2.618  2.616  2.624  2.617
+adc    2.614  2.614  2.620  2.649  2.620
+setg2  2.616  2.616  2.617  2.616  2.615
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 --- test1 ---
-name  rand  first    inc   inc2
-STL  2.762  2.718  2.759  2.747
-jmp  1.859  1.823  1.836  3.631
-cmov 2.741  2.718  2.747  2.751
+name    rand  first    inc   inc2
+STL    3.760  2.751  2.765  2.758
+jmp    1.880  1.829  1.850  3.617
+cmov   2.732  2.714  2.762  2.719
+maxps  0.686  0.689  0.677  0.687
+pmaxsd 0.276  0.279  0.287  0.273
+maxps for int data:0.696Kclk
+maxps for valid float data:0.713Kclk
 --- test2 ---
         0.00   0.25   0.50   0.75   1.00
-STL    2.774  2.762  2.748  2.748  2.747
-jmp    1.863  7.827 12.747  9.276  1.854
-setg   2.054  2.043  2.052  2.026  2.054
-adc    1.818  1.838  1.849  1.828  1.822
-setg2  1.842  1.821  1.862  1.845  1.838
+STL    2.749  2.754  2.755  2.725  2.718
+jmp    1.878  6.302 11.256  7.688  1.860
+setg   2.019  2.019  2.142  2.028  2.086
+adc    1.826  1.827  1.844  1.851  1.814
+setg2  1.818  1.818  1.863  1.844  1.842
 
 Core i7-2600 Cpu 3.40GHz + Windows 7(64bit) + VC2010
 --- test1 ---
@@ -148,7 +156,7 @@ void Test1(DoubleVec& dv, const IntVec& x, int f(const int*, size_t n))
 	}
 	double c = clk.getClock() / ((double)MaxCount * n);
 	dv.push_back(c);
-	printf("ret=%d, %fKclk\n", ret / MaxCount, c);
+	printf("ret=%d, %fclk\n", ret / MaxCount, c);
 }
 
 void Test2(DoubleVec& dv, const IntVec& a, const IntVec& b, size_t f(const int*, const int *, size_t n))
@@ -165,7 +173,7 @@ void Test2(DoubleVec& dv, const IntVec& a, const IntVec& b, size_t f(const int*,
 	}
 	double c = clk.getClock() / ((double)MaxCount * n);
 	dv.push_back(c);
-	printf("ret=%d, %fKclk\n", ret / MaxCount, c);
+	printf("ret=%d, %fclk\n", ret / MaxCount, c);
 }
 
 static struct Func1Info {
@@ -462,7 +470,7 @@ int main()
 				f(&x[0], N);
 				clk.end();
 			}
-			printf("maxps for int data:%.3fKclk\n", clk.getClock() / (double)(MaxCount * N));
+			printf("maxps for int data:%.3fclk\n", clk.getClock() / (double)(MaxCount * N));
 		}
 		{
 			AlignedArray<float> x;
@@ -475,7 +483,7 @@ int main()
 				f((int*)&x[0], N);
 				clk.end();
 			}
-			printf("maxps for valid float data:%.3fKclk\n", clk.getClock() / (double)(MaxCount * N));
+			printf("maxps for valid float data:%.3fclk\n", clk.getClock() / (double)(MaxCount * N));
 		}
 		puts("--- test2 ---");
 		printf("        0.00   0.25   0.50   0.75   1.00\n");
