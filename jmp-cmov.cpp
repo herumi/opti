@@ -53,6 +53,8 @@ setg2  1.845  1.808  1.826  1.847  1.833
 #include "xbyak/xbyak_util.h"
 #include "util.hpp"
 
+static const Xbyak::util::Cpu cpu;
+
 typedef AlignedArray<int> IntVec;
 typedef std::vector<double>DoubleVec;
 
@@ -73,12 +75,13 @@ void Init(IntVec& x, IntVec& y, size_t n, int rate)
 	}
 }
 
-void InitRandom(IntVec& x, size_t n)
+template<class T>
+void InitRandom(T& x, size_t n)
 {
 	XorShift128 r;
 	x.resize(n);
 	for (size_t i = 0; i < n; i++) {
-		x[i] = int(r.get() % 65537);
+		x[i] = typename T::value_type(r.get() % 65537);
 	}
 }
 
@@ -132,10 +135,13 @@ void Test2(DoubleVec& dv, const IntVec& a, const IntVec& b, size_t f(const int*,
 static struct Func1Info {
 	const char *name;
 	int (*f)(const int*, size_t);
+	bool useSSE4;
 } func1Tbl[] = {
-	{ "STL ", getMaxBySTL },
-	{ "jmp ", 0 },
-	{ "cmov", 0 },
+	{ "STL   ", getMaxBySTL, false },
+	{ "jmp   ", 0, false },
+	{ "cmov  ", 0, false },
+	{ "maxps ", 0, false },
+	{ "pmaxsd", 0, true },
 };
 
 static struct Func2Info {
@@ -151,7 +157,7 @@ static struct Func2Info {
 
 struct Code : public Xbyak::CodeGenerator {
 	// int getMax(const int *x, size_t n); // n > 0
-	void genGetMax(bool useCmov)
+	void genGetMax(int mode)
 	{
 		using namespace Xbyak;
 		inLocalLabel();
@@ -170,25 +176,63 @@ struct Code : public Xbyak::CodeGenerator {
 		mov(x, ptr [esp + 4]);
 		mov(n, ptr [esp + 8]);
 #endif
-		mov(a, ptr [x]);
-		cmp(n, 1);
-		je(".exit");
-		lea(x, ptr [x + n * 4]);
-		neg(n);
-		add(n, 1);
-	L("@@");
-		if (useCmov) {
-			cmp(a, ptr [x + n * 4]);
-			cmovl(a, ptr [x + n * 4]);
+		if (mode < 2) {
+			bool useCmov = mode == 1;
+			mov(a, ptr [x]);
+			cmp(n, 1);
+			je(".exit");
+			lea(x, ptr [x + n * 4]);
+			neg(n);
+			add(n, 1);
+		L("@@");
+			if (useCmov) {
+				cmp(a, ptr [x + n * 4]);
+				cmovl(a, ptr [x + n * 4]);
+			} else {
+				cmp(a, ptr [x + n * 4]);
+				jge(".skip");
+				mov(a, ptr [x + n * 4]);
+			L(".skip");
+			}
+			add(n, 1);
+			jne("@b");
+		L(".exit");
 		} else {
-			cmp(a, ptr [x + n * 4]);
-			jge(".skip");
-			mov(a, ptr [x + n * 4]);
-		L(".skip");
+			switch (mode) {
+			case 2:
+			case 3:
+				movdqa(xm0, ptr [x]);
+				lea(x, ptr [x + n * 4]);
+				neg(n);
+				add(n, 4);
+			L("@@");
+				if (mode == 2) {
+					maxps(xm0, ptr [x + n * 4]);
+				} else {
+					pmaxsd(xm0, ptr [x + n * 4]);
+				}
+				add(n, 4);
+				jnz("@b");
+				movhlps(xm1, xm0);
+				if (mode == 2) {
+					maxps(xm0, xm1);
+				} else {
+					pmaxsd(xm0, xm1);
+				}
+				movdqa(xm1, xm0);
+				psrldq(xm1, 4);
+				if (mode == 2) {
+					maxps(xm0, xm1);
+				} else {
+					pmaxsd(xm0, xm1);
+				}
+				movd(eax, xm0);
+				break;
+			default:
+				fprintf(stderr, "bad mode=%d\n", mode);
+				exit(1);
+			}
 		}
-		add(n, 1);
-		jne("@b");
-	L(".exit");
 		ret();
 		outLocalLabel();
 	}
@@ -296,6 +340,7 @@ struct Code : public Xbyak::CodeGenerator {
 void Test1All(std::vector<DoubleVec>& ret1, const IntVec& a)
 {
 	for (size_t i = 0; i < NUM_OF_ARRAY(func1Tbl); i++) {
+		if (func1Tbl[i].useSSE4 && !cpu.has(Xbyak::util::Cpu::tSSE41)) break;
 		Test1(ret1[i], a, func1Tbl[i].f);
 	}
 }
@@ -306,15 +351,15 @@ int main()
 		IntVec a;
 		Code code;
 		std::vector<DoubleVec> ret1(NUM_OF_ARRAY(func1Tbl));
-		func1Tbl[1].f = (int (*)(const int*, size_t))code.getCurr();
-		code.genGetMax(0);
-
-		code.align(16);
-		func1Tbl[2].f = (int (*)(const int*, size_t))code.getCurr();
-		code.genGetMax(1);
+		for (size_t i = 1; i < NUM_OF_ARRAY(func1Tbl); i++) {
+			code.align(16);
+			func1Tbl[i].f = (int (*)(const int*, size_t))code.getCurr();
+			code.genGetMax(i - 1);
+		}
 
 		/* 乱数 */
-		InitRandom(a, 8192);
+		const size_t N = 8192;
+		InitRandom(a, N);
 		printf("rand max pos=%d\n", int(std::max_element(a.begin(), a.end()) - a.begin()));
 		Test1All(ret1, a);
 		/* 最初が一番大きい */
@@ -361,13 +406,26 @@ int main()
 		puts("--- test1 ---");
 		// print ret1
 		// STL/jmp/cmov
-		printf("name  rand  first    inc   inc2\n");
+		printf("name    rand  first    inc   inc2\n");
 		for (size_t i = 0; i < NUM_OF_ARRAY(func1Tbl); i++) {
 			printf("%s ", func1Tbl[i].name);
 			for (size_t j = 0; j < ret1[i].size(); j++) {
 				printf("%.3f  ", ret1[i][j]);
 			}
 			printf("\n");
+		}
+		{
+			AlignedArray<float> x;
+			x.resize(N);
+			InitRandom(x, N);
+			Xbyak::util::Clock clk;
+			int (*f)(const int*, size_t) = func1Tbl[3].f;
+			for (int i = 0; i < MaxCount; i++) {
+				clk.begin();
+				f((int*)&x[0], N);
+				clk.end();
+			}
+			printf("maxps for valid float data:%.3fKclk\n", clk.getClock() / (double)(MaxCount * N));
 		}
 		puts("--- test2 ---");
 		printf("        0.00   0.25   0.50   0.75   1.00\n");

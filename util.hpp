@@ -77,6 +77,7 @@ struct AlignedArray {
 	size_t size() const { return n_; }
 	const T* begin() const { return p_; }
 	const T* end() const { return p_ + n_; }
+	typedef T value_type;
 private:
 	AlignedArray(const AlignedArray&);
 	void operator=(const AlignedArray&);
