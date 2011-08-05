@@ -295,6 +295,20 @@ struct FstrlenANSI {
 	}
 };
 
+size_t strlenC(const char *s)
+{
+	size_t len = 0;
+	while (s[len]) len++;
+	return len;
+}
+
+struct FstrlenC {
+	static inline const char *find(const char *p, size_t)
+	{
+		return strlenC(p) + p;
+	}
+};
+
 struct FmemchrANSI {
 	static inline const char *find(const char *p, size_t n)
 	{
@@ -315,16 +329,6 @@ struct FstrlenSSE2 {
 		return strlenSSE2(p) + p;
 	}
 };
-
-/*
-	http://canonical.org/~kragen/strlen-utf8.html
-*/
-int my_strlen(const char *s)
-{
-	int i = 0;
-	while (*s++) i++;
-	return i;
-}
 
 #define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(x[0]))
 
@@ -360,7 +364,7 @@ int main()
 #endif
 	const size_t count = 4000;
 	const size_t N = 100000;
-	const int funcNum = 4;
+	const int funcNum = 5;
 	std::vector<char> v(N);
 
 	typedef std::vector<Result> ResultVect;
@@ -386,23 +390,29 @@ int main()
 		rv[0].push_back(ret);
 		hit = ret.hit;
 
+		puts("strlenC   ");
+		ret = test<FstrlenC>(begin, N, count);
+		if (ret.hit != hit) { printf("ERROR!!! ok=%d, ng=%d\n", hit, ret.hit); }
+		ret.put();
+		rv[1].push_back(ret);
+
 		puts("strlenSSE2");
 		ret = test<FstrlenSSE2>(begin, N, count);
 		if (ret.hit != hit) { printf("ERROR!!! ok=%d, ng=%d\n", hit, ret.hit); }
 		ret.put();
-		rv[1].push_back(ret);
+		rv[2].push_back(ret);
 
 		puts("memchrANSI");
 		ret = test<FmemchrANSI>(begin, N, count);
 		if (ret.hit != hit) { printf("ERROR!!! ok=%d, ng=%d\n", hit, ret.hit); }
 		ret.put();
-		rv[2].push_back(ret);
+		rv[3].push_back(ret);
 
 		puts("memchrSSE2");
 		ret = test<FmemchrSSE2>(begin, N, count);
 		if (ret.hit != hit) { printf("ERROR!!! ok=%d, ng=%d\n", hit, ret.hit); }
 		ret.put();
-		rv[3].push_back(ret);
+		rv[4].push_back(ret);
 
 	}
 
@@ -413,7 +423,7 @@ int main()
 		printf("%6d ", aveTbl[i]);
 	}
 	printf("\n");
-	static const char nameTbl[funcNum][16] = { "strlenANSI ", "strlenSSE2 ", "memchrANSI ", "memchrSSE2 " };
+	static const char nameTbl[funcNum][16] = { "strlenANSI ", "strlenC    ", "strlenSSE2 ", "memchrANSI ", "memchrSSE2 " };
 	for (int i = 0; i < funcNum; i++) {
 		printf("%s ", nameTbl[i]);
 		for (size_t j = 0; j < NUM_OF_ARRAY(aveTbl); j++) {
