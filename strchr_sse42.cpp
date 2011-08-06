@@ -3,6 +3,14 @@
 	g++ -O3 -fomit-frame-pointer -march=core2 -msse4 -fno-operator-names strlen_sse42.cpp && ./a.out
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
+strchrLIBC
+ret=32132, 0.483
+strchr_C
+ret=32132, 3.260
+strchrSSE42_C
+ret=32132, 0.426
+strchrSSE42
+ret=32132, 0.412
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 
@@ -64,28 +72,28 @@ struct StrchrSSE42 : Xbyak::CodeGenerator {
 		add(a, 16);
 	L(".in");
 		pcmpistri(xm0, ptr [a], 0);
-		jc(".found");
-		jnz("@b");
-		xor(a, a);
-		ret();
-	L(".found");
+		ja("@b");
+		jnc(".notfound");
 		add(a, c);
+		ret();
+	L(".notfound");
+		xor(a, a);
 		ret();
 		outLocalLabel();
 	}
 } strchrSSE42_code;
 
-size_t strchrSSE42_C(const char* top)
+const char *strchrSSE42_C(const char* p, int c)
 {
-	const __m128i im = _mm_set1_epi32(0xff01);
-	const char *p = top;
-	while (!_mm_cmpistrz(im, *(const __m128i*)p, 0x14)) {
+	const __m128i im = _mm_set1_epi32(c & 0xff);
+	while (_mm_cmpistra(im, *(const __m128i*)p, 0)) {
 		p += 16;
 	}
-	p += _mm_cmpistri(im, *(const __m128i*)p, 0x14);
-	return p - top;
+	if (_mm_cmpistrc(im, *(const __m128i*)p, 0)) {
+		return p + _mm_cmpistri(im, *(const __m128i*)p, 0);
+	}
+	return 0;
 }
-
 
 void test(const char *str, const char *f(const char*, int))
 {
@@ -96,7 +104,7 @@ void test(const char *str, const char *f(const char*, int))
 		clk.begin();
 		for (int c = 1; c <= MaxChar; c++) {
 			const char *p = f(str, c);
-#if 0
+#if 1
 			const char *q = strchr(str, c);
 			if (p != q) {
 				printf("err, c=%d, p=%p(%d), q=%p(%d)\n", c, p, int(p - str), q, int(q - str));
@@ -130,6 +138,7 @@ int main(int argc, char *argv[])
 	} funcTbl[] = {
 		{ "strchrLIBC   ", strchr },
 		{ "strchr_C     ", strchr_C },
+		{ "strchrSSE42_C", strchrSSE42_C },
 		{ "strchrSSE42  ", strchrSSE42 },
 	};
 
