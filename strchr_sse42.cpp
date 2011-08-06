@@ -124,6 +124,15 @@ const char *findRange_C(const char* p, char c1, char c2)
 	return 0;
 }
 
+const char *findRange2_C(const char* p, char c1, char c2)
+{
+	while (*p) {
+		if ((unsigned char)(*p - c1) <= (unsigned char)(c2 - c1)) return p;
+		p++;
+	}
+	return 0;
+}
+
 void test(const char *str, const char *f(const char*, int))
 {
 	Xbyak::util::Clock clk;
@@ -207,6 +216,7 @@ int main(int argc, char *argv[])
 		const char *(*f)(const char*, char,char);
 	} funcTbl2[] = {
 		{ "findRange_C  ", findRange_C },
+		{ "findRange2_C  ", findRange2_C },
 		{ "findRange_SSE42  ", findRange_SSE42 },
 	};
 
