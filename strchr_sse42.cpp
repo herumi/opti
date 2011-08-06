@@ -118,7 +118,7 @@ const char *findRange_SSE42(const char* p, char c1, char c2)
 const char *findRange_C(const char* p, char c1, char c2)
 {
 	while (*p) {
-		if (c1 <= *p && *p <= c2) return p;
+		if ((unsigned char)c1 <= (unsigned char)*p && (unsigned char)*p <= (unsigned char)c2) return p;
 		p++;
 	}
 	return 0;
