@@ -14,13 +14,13 @@ ret=32132, 0.495
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 strchrLIBC
-ret=32132, 0.854
+ret=32132, 0.480
 strchr_C
-ret=32132, 3.759
+ret=32132, 3.255
 strchrSSE42_C
-ret=32132, 0.482
+ret=32132, 0.411
 strchrSSE42
-ret=32132, 0.492
+ret=32132, 0.416
 
 Core i7-2600 CPU 3.40GHz + Windows 7 + VC2010
 */
