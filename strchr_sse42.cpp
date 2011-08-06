@@ -4,15 +4,23 @@
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 strchrLIBC
-ret=32132, 0.483
+ret=32132, 0.851
 strchr_C
-ret=32132, 3.260
+ret=32132, 3.157
 strchrSSE42_C
-ret=32132, 0.426
+ret=32132, 0.479
 strchrSSE42
-ret=32132, 0.412
+ret=32132, 0.495
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
+strchrLIBC
+ret=32132, 0.854
+strchr_C
+ret=32132, 3.759
+strchrSSE42_C
+ret=32132, 0.482
+strchrSSE42
+ret=32132, 0.492
 
 Core i7-2600 CPU 3.40GHz + Windows 7 + VC2010
 */
@@ -99,7 +107,7 @@ void test(const char *str, const char *f(const char*, int))
 {
 	Xbyak::util::Clock clk;
 	int ret = 0;
-	const int count = 10000;
+	const int count = 30000;
 	for (int i = 0; i < count; i++) {
 		clk.begin();
 		for (int c = 1; c <= MaxChar; c++) {
