@@ -4,52 +4,56 @@
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 strchrLIBC
-ret=32132, 0.455
+ret=32132, 0.468
 strchr_C
 ret=32132, 2.526
 strchrSSE42_C
-ret=32132, 0.248
+ret=32132, 0.249
 strchrSSE42
-ret=32132, 0.247
-findRange_C
-ret=32132, 2.161
-findRange2_C
-ret=32132, 1.981
-findRange_SSE42
-ret=32132, 0.259
+ret=32132, 0.246
+aligned str      unaligned str
+findRange_C      findRange_C
+ret=32132, 2.185 ret=32132, 2.227
+findRange2_C     findRange2_C
+ret=32132, 1.980 ret=32132, 1.980
+findRangeSSE42_C findRangeSSE42_C
+ret=32132, 0.259 ret=32132, 0.256
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 strchrLIBC
-ret=32132, 0.251
+ret=32132, 0.261
 strchr_C
-ret=32132, 3.852
+ret=32132, 4.009
 strchrSSE42_C
-ret=32132, 0.222
+ret=32132, 0.238
 strchrSSE42
-ret=32132, 0.240
-findRange_C
-ret=32132, 2.344
-findRange2_C
-ret=32132, 2.030
-findRange_SSE42
-ret=32132, 0.214
+ret=32132, 0.276
+aligned str       unaligned str
+findRange_C       findRange_C
+ret=32132, 2.439  ret=32132, 2.441
+findRange2_C      findRange2_C
+ret=32132, 2.126  ret=32132, 2.131
+findRangeSSE42_C  findRangeSSE42_C
+ret=32132, 0.240  ret=32132, 0.243
+findRangeSSE42    findRangeSSE42
+ret=32132, 0.263  ret=32132, 0.265
 
 Core i7-2600 CPU 3.40GHz + Windows 7 + VC2010
 strchrLIBC
-ret=32132, 2.168
+ret=32132, 2.142
 strchr_C
-ret=32132, 2.102
+ret=32132, 2.228
 strchrSSE42_C
-ret=32132, 0.240
-strchrSSE42
-ret=32132, 0.233
-findRange_C
-ret=32132, 3.174
-findRange2_C
-ret=32132, 2.313
-findRange_SSE42
 ret=32132, 0.239
-
+strchrSSE42
+ret=32132, 0.218
+aligned str      unaligned str
+findRange_C      findRange_C
+ret=32132, 3.087 ret=32132, 3.083
+findRange2_C     findRange2_C
+ret=32132, 2.235 ret=32132, 2.247
+findRangeSSE42_C findRangeSSE42_C
+ret=32132, 0.231 ret=32132, 0.240
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,11 +63,6 @@ ret=32132, 0.239
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
 #include "util.hpp"
-#ifdef _WIN32
-	#include <intrin.h>
-#else
-	#include <x86intrin.h>
-#endif
 
 const int MaxChar = 254;
 
@@ -98,12 +97,11 @@ struct StrchrSSE42 : Xbyak::CodeGenerator {
 		movq(xm0, c1);
 		mov(a, p);
 #else
-		const Reg32& p = edx;
 		const Reg32& a = eax;
 		const Reg32& c = ecx;
 		movzx(eax, byte [esp + 8]);
 		movd(xm0, eax);
-		mov(p, ptr [esp + 4]);
+		mov(a, ptr [esp + 4]);
 #endif
 		jmp(".in");
 	L("@@");
@@ -124,23 +122,23 @@ struct StrchrSSE42 : Xbyak::CodeGenerator {
 const char *strchrSSE42_C(const char* p, int c)
 {
 	const __m128i im = _mm_set1_epi32(c & 0xff);
-	while (_mm_cmpistra(im, *(const __m128i*)p, 0)) {
+	while (_mm_cmpistra(im, _mm_loadu_si128((const __m128i*)p), 0)) {
 		p += 16;
 	}
-	if (_mm_cmpistrc(im, *(const __m128i*)p, 0)) {
-		return p + _mm_cmpistri(im, *(const __m128i*)p, 0);
+	if (_mm_cmpistrc(im, _mm_loadu_si128((const __m128i*)p), 0)) {
+		return p + _mm_cmpistri(im, _mm_loadu_si128((const __m128i*)p), 0);
 	}
 	return 0;
 }
 
-const char *findRange_SSE42(const char* p, char c1, char c2)
+const char *findRangeSSE42_C(const char* p, char c1, char c2)
 {
 	const __m128i im = _mm_set1_epi32(((unsigned char)c1) | (((unsigned char)c2) << 8));
-	while (_mm_cmpistra(im, *(const __m128i*)p, 4)) {
+	while (_mm_cmpistra(im, _mm_loadu_si128((const __m128i*)p), 4)) {
 		p += 16;
 	}
-	if (_mm_cmpistrc(im, *(const __m128i*)p, 4)) {
-		return p + _mm_cmpistri(im, *(const __m128i*)p, 4);
+	if (_mm_cmpistrc(im, _mm_loadu_si128((const __m128i*)p), 4)) {
+		return p + _mm_cmpistri(im, _mm_loadu_si128((const __m128i*)p), 4);
 	}
 	return 0;
 }
@@ -219,16 +217,69 @@ void test2(const char *str, const char *f(const char*, char,char))
 
 const char* (*strchrSSE42)(const char*, int) = (const char* (*)(const char*, int))strchrSSE42_code.getCode();
 
-int main()
+#ifdef _WIN32
+#include <windows.h>
+const char *getBoundary(bool canAccesss)
+{
+	DWORD old;
+	const int size = 4096;
+	char* top = (char*)VirtualAlloc(0, 8192, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	printf("access %s\n", canAccesss ? "ok" : "ng");
+	if (!canAccesss) {
+		VirtualProtect(top + size, size, PAGE_NOACCESS, &old);
+	}
+	char *const base = top + size - 16;
+	for (int i = 0; i < 15; i++) {
+		base[i] = 'x';
+	}
+	base[15] = '\0';
+	return base;
+}
+#else
+const char *getBoundary(bool)
+{
+	return 0;
+}
+#endif
+
+void checkBoundary(char c)
+{
+	const char *base = getBoundary(c == '0');
+	if (base == 0) return;
+
+	for (int i = 0; i < 15; i++) {
+		const char *p = strchrSSE42(base + i, 'x');
+		if (p != base + i) {
+			printf("err p=%p\n", p);
+		}
+		const char *q = strchrSSE42(base + i, 'y');
+		if (q != 0) {
+			printf("err q=%p\n", q);
+		}
+	}
+}
+
+int main(int argc, char *argv[])
 {
 	const Xbyak::util::Cpu cpu;
 	const bool hasSSE42 = cpu.has(Xbyak::util::Cpu::tSSE42);
 
-	char str[MaxChar + 1];
+	if (argc == 3 && strcmp(argv[1], "-check") == 0) {
+		checkBoundary(argv[2][0]);
+		return 0;
+	}
+
+	MIE_ALIGN(16) char str[MaxChar + 1];
 	for (int i = 1; i < MaxChar; i++) {
 		str[i - 1] = (char)i;
 	}
 	str[MaxChar] = '\0';
+	MIE_ALIGN(16) char str_p1[MaxChar + 2];
+	char *const str2 = str_p1 + 1;
+	for (int i = 1; i < MaxChar; i++) {
+		str2[i - 1] = (char)i;
+	}
+	str2[MaxChar] = '\0';
 
 	static const struct {
 		const char *name;
@@ -251,15 +302,22 @@ int main()
 		bool useSSE42;
 		const char *(*f)(const char*, char,char);
 	} funcTbl2[] = {
-		{ "findRange_C  ", false, findRange_C },
-		{ "findRange2_C  ", false, findRange2_C },
-		{ "findRange_SSE42  ", true, findRange_SSE42 },
+		{ "findRange_C", false, findRange_C },
+		{ "findRange2_C", false, findRange2_C },
+		{ "findRangeSSE42_C", true, findRangeSSE42_C },
 	};
 
+	puts("aligned str");
 	for (size_t j = 0; j < NUM_OF_ARRAY(funcTbl2); j++) {
 		if (funcTbl2[j].useSSE42 && !hasSSE42) continue;
 		puts(funcTbl2[j].name);
 		test2(str, funcTbl2[j].f);
+	}
+	puts("unaligned str");
+	for (size_t j = 0; j < NUM_OF_ARRAY(funcTbl2); j++) {
+		if (funcTbl2[j].useSSE42 && !hasSSE42) continue;
+		puts(funcTbl2[j].name);
+		test2(str2, funcTbl2[j].f);
 	}
 }
 
