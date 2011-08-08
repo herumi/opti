@@ -12,6 +12,15 @@ typedef unsigned char uint8_t;
 typedef signed char int8_t;
 #endif
 
+#ifdef _WIN32
+	#include <intrin.h>
+	#define bsf(x) (_BitScanForward(&x, x), x)
+	#define bsr(x) (_BitScanReverse(&x, x), x)
+#else
+	#include <x86intrin.h>
+	#define bsf(x) __builtin_ctz(x)
+#endif
+
 #ifdef _MSC_VER
 #include <malloc.h>
 #else

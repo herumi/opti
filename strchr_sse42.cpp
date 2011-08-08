@@ -4,25 +4,52 @@
 
 Xeon X5650 2.67GHz + Linux 2.6.32 + gcc 4.6.0
 strchrLIBC
-ret=32132, 0.851
+ret=32132, 0.455
 strchr_C
-ret=32132, 3.157
+ret=32132, 2.526
 strchrSSE42_C
-ret=32132, 0.479
+ret=32132, 0.248
 strchrSSE42
-ret=32132, 0.495
+ret=32132, 0.247
+findRange_C
+ret=32132, 2.161
+findRange2_C
+ret=32132, 1.981
+findRange_SSE42
+ret=32132, 0.259
 
 Core i7-2600 CPU 3.40GHz + Linux 2.6.35 + gcc 4.4.5
 strchrLIBC
-ret=32132, 0.480
+ret=32132, 0.251
 strchr_C
-ret=32132, 3.255
+ret=32132, 3.852
 strchrSSE42_C
-ret=32132, 0.411
+ret=32132, 0.222
 strchrSSE42
-ret=32132, 0.416
+ret=32132, 0.240
+findRange_C
+ret=32132, 2.344
+findRange2_C
+ret=32132, 2.030
+findRange_SSE42
+ret=32132, 0.214
 
 Core i7-2600 CPU 3.40GHz + Windows 7 + VC2010
+strchrLIBC
+ret=32132, 2.168
+strchr_C
+ret=32132, 2.102
+strchrSSE42_C
+ret=32132, 0.240
+strchrSSE42
+ret=32132, 0.233
+findRange_C
+ret=32132, 3.174
+findRange2_C
+ret=32132, 2.313
+findRange_SSE42
+ret=32132, 0.239
+
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,31 +77,34 @@ const char *strchr_C(const char *p, int c)
 }
 
 struct StrchrSSE42 : Xbyak::CodeGenerator {
+	// const char *strchr(const char *p, int c1);
 	StrchrSSE42()
 	{
 		inLocalLabel();
 		using namespace Xbyak;
+
+#ifdef XBYAK64
+
 #if defined(XBYAK64_WIN)
-		const Reg64& p = rdx;
-		const Reg64& c = rcx;
-		const Reg64& a = rax;
-		mov(rdx, rcx);
+		const Reg64& p = rcx;
+		const Reg64& c1 = rdx;
 #elif defined(XBYAK64_GCC)
 		const Reg64& p = rdi;
 		const Reg64& c1 = rsi;
+#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
+		and(c1, 0xff);
+		movq(xm0, c1);
+		mov(a, p);
 #else
 		const Reg32& p = edx;
-		const Reg32& c = ecx;
 		const Reg32& a = eax;
-		mov(edx, ptr [esp + 4]);
-#endif
-		mov(a, c1);
-		and(a, 0xff);
+		const Reg32& c = ecx;
+		movzx(eax, byte [esp + 8]);
 		movd(xm0, eax);
-
-		mov(a, p);
+		mov(p, ptr [esp + 4]);
+#endif
 		jmp(".in");
 	L("@@");
 		add(a, 16);
@@ -189,8 +219,11 @@ void test2(const char *str, const char *f(const char*, char,char))
 
 const char* (*strchrSSE42)(const char*, int) = (const char* (*)(const char*, int))strchrSSE42_code.getCode();
 
-int main(int argc, char *argv[])
+int main()
 {
+	const Xbyak::util::Cpu cpu;
+	const bool hasSSE42 = cpu.has(Xbyak::util::Cpu::tSSE42);
+
 	char str[MaxChar + 1];
 	for (int i = 1; i < MaxChar; i++) {
 		str[i - 1] = (char)i;
@@ -199,28 +232,32 @@ int main(int argc, char *argv[])
 
 	static const struct {
 		const char *name;
+		bool useSSE42;
 		const char *(*f)(const char*, int);
 	} funcTbl[] = {
-		{ "strchrLIBC   ", strchr },
-		{ "strchr_C     ", strchr_C },
-		{ "strchrSSE42_C", strchrSSE42_C },
-		{ "strchrSSE42  ", strchrSSE42 },
+		{ "strchrLIBC   ", false, strchr },
+		{ "strchr_C     ", false, strchr_C },
+		{ "strchrSSE42_C", true, strchrSSE42_C },
+		{ "strchrSSE42  ", true, strchrSSE42 },
 	};
 
 	for (size_t j = 0; j < NUM_OF_ARRAY(funcTbl); j++) {
+		if (funcTbl[j].useSSE42 && !hasSSE42) continue;
 		puts(funcTbl[j].name);
 		test(str, funcTbl[j].f);
 	}
 	static const struct {
 		const char *name;
+		bool useSSE42;
 		const char *(*f)(const char*, char,char);
 	} funcTbl2[] = {
-		{ "findRange_C  ", findRange_C },
-		{ "findRange2_C  ", findRange2_C },
-		{ "findRange_SSE42  ", findRange_SSE42 },
+		{ "findRange_C  ", false, findRange_C },
+		{ "findRange2_C  ", false, findRange2_C },
+		{ "findRange_SSE42  ", true, findRange_SSE42 },
 	};
 
 	for (size_t j = 0; j < NUM_OF_ARRAY(funcTbl2); j++) {
+		if (funcTbl2[j].useSSE42 && !hasSSE42) continue;
 		puts(funcTbl2[j].name);
 		test2(str, funcTbl2[j].f);
 	}
