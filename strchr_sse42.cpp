@@ -219,14 +219,28 @@ const char* (*strchrSSE42)(const char*, int) = (const char* (*)(const char*, int
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
+#include <sys/mman.h>
+#endif
 const char *getBoundary(bool canAccesss)
 {
-	DWORD old;
 	const int size = 4096;
-	char* top = (char*)VirtualAlloc(0, 8192, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	static char buf[size * 3];
+	char *const top = (char*)Xbyak::CodeArray::getAlignedAddress((Xbyak::uint8*)buf, size);
 	printf("access %s\n", canAccesss ? "ok" : "ng");
 	if (!canAccesss) {
-		VirtualProtect(top + size, size, PAGE_NOACCESS, &old);
+#ifdef _WIN32
+		DWORD old;
+		bool isOK = VirtualProtect(top + size, size, PAGE_NOACCESS, &old) != 0;
+#else
+		bool isOK = mprotect(top + size, size, PROT_NONE) == 0;
+#endif
+		if (!isOK) {
+			perror("protect");
+			fprintf(stderr, "can't change access mode\n");
+			exit(1);
+		}
 	}
 	char *const base = top + size - 16;
 	for (int i = 0; i < 15; i++) {
@@ -235,12 +249,6 @@ const char *getBoundary(bool canAccesss)
 	base[15] = '\0';
 	return base;
 }
-#else
-const char *getBoundary(bool)
-{
-	return 0;
-}
-#endif
 
 void checkBoundary(char c)
 {
@@ -248,14 +256,15 @@ void checkBoundary(char c)
 	if (base == 0) return;
 
 	for (int i = 0; i < 15; i++) {
-		const char *p = strchrSSE42(base + i, 'x');
-		if (p != base + i) {
-			printf("err p=%p\n", p);
-		}
-		const char *q = strchrSSE42(base + i, 'y');
-		if (q != 0) {
-			printf("err q=%p\n", q);
-		}
+		const char *p;
+		p = strchr(base + i, 'x');
+		printf("%2d strchr %s:", i, p == base + i ? "ok" : "ng"); fflush(stdout);
+		p = strchr(base + i, 'y');
+		printf(" %s ", p == 0 ? "ok" : "ng"); fflush(stdout);
+		p = strchrSSE42(base + i, 'x');
+		printf("stchrSSE42 %s:", p == base + i ? "ok" : "ng"); fflush(stdout);
+		p = strchrSSE42(base + i, 'y');
+		printf("%s\n", p == 0 ? "ok" : "ng"); fflush(stdout);
 	}
 }
 
