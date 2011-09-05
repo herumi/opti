@@ -1,4 +1,9 @@
 #pragma once
+
+#include <algorithm>
+#include <string>
+#include <fstream>
+
 #if !defined(_MSC_VER) || (_MSC_VER >= 1600)
 #include <stdint.h>
 #else
@@ -14,11 +19,11 @@ typedef signed char int8_t;
 
 #ifdef _WIN32
 	#include <intrin.h>
-	#define bsf(x) (_BitScanForward(&x, x), x)
-	#define bsr(x) (_BitScanReverse(&x, x), x)
+	#define my_bsf(x) (_BitScanForward(&x, x), x)
+//	#define my_bsr(x) (_BitScanReverse(&x, x), x)
 #else
 	#include <x86intrin.h>
-	#define bsf(x) __builtin_ctz(x)
+	#define my_bsf(x) __builtin_ctz(x)
 #endif
 
 #ifdef _MSC_VER
@@ -36,6 +41,8 @@ static inline void _aligned_free(void *p)
 	free(p);
 }
 #endif
+
+#define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(*x))
 
 struct XorShift128 {
 	uint32_t x;
@@ -80,7 +87,8 @@ struct AlignedArray {
 	void resize(size_t n)
 	{
 		_aligned_free(p_);
-		p_ = (T*)_aligned_malloc(n * sizeof(T), 16);
+		p_ = (T*)_aligned_malloc(n * sizeof(T) + 16, 16);
+		std::fill_n(p_ + n * sizeof(T), 16, 0);
 		n_ = n;
 	}
 	size_t size() const { return n_; }
@@ -92,4 +100,20 @@ private:
 	void operator=(const AlignedArray&);
 };
 
-#define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(*x))
+/*
+	read text data from fileName
+*/
+static inline bool LoadFile(AlignedArray<char>& textBuf, const std::string& fileName)
+{
+	std::ifstream ifs(fileName.c_str(), std::ios::binary);
+	if (!ifs) return false;
+	ifs.seekg(0, std::ifstream::end);
+	const size_t size = ifs.tellg();
+	ifs.seekg(0);
+	fprintf(stderr, "size=%d\n", (int)size);
+	textBuf.resize(size + 1);
+	ifs.read(&textBuf[0], size);
+	textBuf[size] = '\0';
+	return true;
+}
+

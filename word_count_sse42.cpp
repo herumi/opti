@@ -39,29 +39,25 @@
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
 #include "cpu.h"
-#ifdef _WIN32
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
-/*
-	read text from fileName and put it in textBuf and return aligned pointer to the data
-*/
-const char *LoadFile(std::string& textBuf, const std::string& fileName)
-{
-	std::ifstream ifs(fileName.c_str(), std::ios::binary);
-	if (!ifs) return 0;
-	ifs.seekg(0, std::ifstream::end);
-	const size_t size = ifs.tellg();
-	ifs.seekg(0);
-	printf("size=%d\n", (int)size);
-	textBuf.resize(size + 1 + 16);
-	char *p = (char*)Xbyak::CodeArray::getAlignedAddress((Xbyak::uint8*)&textBuf[0]);
-	ifs.read(p, size);
-	p[size] = '\0';
-	return p;
-}
+#include "util.hpp"
 
+#if defined(WITH_TOSHI_WC1) || defined(WITH_TOSHI_WC2)
+int wc_toshi(const char *buffer, int n);
+
+void test_toshi(const char *text)
+{
+	const int N = 100;
+	Xbyak::util::Clock clk;
+	size_t c = 0;
+	const int n = (int)strlen(text);
+	for (int i = 0; i < N; i++) {
+		clk.begin();
+		c += wc_toshi(text, n);
+		clk.end();
+	}
+	printf("count=%d, clock=%.3fKclk\n", (int)c / N, clk.getClock() / (double)N * 1e-3);
+}
+#endif
 
 size_t countWord_C(const char *p)
 {
@@ -103,7 +99,11 @@ size_t countWord_C2(const char *p)
 /*
 	see http://msirocoder.blog35.fc2.com/blog-entry-65.html
 */
+#ifdef WITH_TOSHI_WC1
+MIE_ALIGN(16) static const char alnumTbl[16] = { 1, 8, 14, 31, 33, 255, 0 };
+#else
 MIE_ALIGN(16) static const char alnumTbl[16] = { '\'', '\'', '0', '9', 'A', 'Z', 'a', 'z', '\0' };
+#endif
 size_t countWord_SSE42(const char *p)
 {
 	const __m128i im = *(const __m128i*)alnumTbl;
@@ -217,6 +217,9 @@ size_t (*countWord_SSE42asm1)(const char*) = (size_t (*)(const char*))countWordS
 
 void check(size_t (*countFunc)(const char*))
 {
+#if defined(WITH_TOSHI_WC1) || defined(WITH_TOSHI_WC2)
+	return;
+#endif
 	for (int len = 1; len <= 20; len++) {
 		MIE_ALIGN(16) char str[32];
 		str[len] = '\0';
@@ -250,16 +253,28 @@ void test(const char *text, size_t (*countFunc)(const char *))
 
 int main(int argc, char *argv[])
 {
+#if defined(WITH_TOSHI_WC1)
+	puts("WITH_TOSSHI_WC1 mode");
+#elif defined(WITH_TOSSHI_WC2)
+	puts("WITH_TOSSHI_WC1 mode");
+#endif
 	argc--, argv++;
 	const char *file = "test.txt";
 	if (argc) file = *argv;
 	fprintf(stderr, "load %s\n", file);
 	for (int i = 0; i < 256; i++) {
+#ifdef WITH_TOSHI_WC1
+		alnumTbl2[i] = (i != ' ') && !(8 < i && i < 14);
+#else
 		alnumTbl2[i] = (i == '\'') || ('0' <= i && i <= '9') || ('a' <= i && i <= 'z') || ('A' <= i && i <= 'Z');
+#endif
 	}
-	std::string textBuf;
-	const char *text = LoadFile(textBuf, file);
-	if (text == 0) return 1;
+	AlignedArray<char> textBuf;
+	if (!LoadFile(textBuf, file)) {
+		fprintf(stderr, "can't load\n");
+		return 1;
+	}
+	const char *text = &textBuf[0];
 	VersionInfo vi;
 	printf("type=%02xh, model=%02xh, family=%02xh, stepping=%02xh\n", vi.type, vi.model, vi.family, vi.stepping);
 	printf("extModel=%02x, extFamily=%02x\n", vi.extModel, vi.extFamily);
@@ -278,5 +293,13 @@ int main(int argc, char *argv[])
 	test(text, countWord_SSE42asm0);
 	printf("SSE4.2 Xbyak version1    :");
 	test(text, countWord_SSE42asm1);
+#if defined(WITH_TOSHI_WC1) || defined(WITH_TOSHI_WC2)
+#ifdef WITH_TOSHI_WC1
+	printf("toshi wc                 :");
+#else
+	printf("toshi wc(same as intel)  :");
+#endif
+	test_toshi(text);
+#endif
 }
 

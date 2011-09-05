@@ -35,17 +35,6 @@ strlenSSE42_C  12.39   5.08   3.98   3.24   2.98   2.62   2.35   1.59   0.73   0
 #include <xbyak/xbyak_util.h>
 #include "util.hpp"
 
-#ifdef _WIN32
-	#include <intrin.h>
-	#define ALIGN(x) __declspec(align(x))
-	#define bsf(x) (_BitScanForward(&x, x), x)
-	#define bsr(x) (_BitScanReverse(&x, x), x)
-#else
-	#include <x86intrin.h>
-	#define ALIGN(x) __attribute__((aligned(x)))
-	#define bsf(x) __builtin_ctz(x)
-#endif
-
 size_t strlenSSE2(const char *p)
 {
 	const char *const top = p;
@@ -60,7 +49,7 @@ size_t strlenSSE2(const char *p)
 		unsigned long mask = _mm_movemask_epi8(a);
 		mask &= 0xffffffffUL << n;
 		if (mask) {
-			return bsf(mask) - n;
+			return my_bsf(mask) - n;
 		}
 		p += 16 - n;
 	}
@@ -73,7 +62,7 @@ size_t strlenSSE2(const char *p)
 		__m128i a = _mm_cmpeq_epi8(x, c16);
 		unsigned long mask = _mm_movemask_epi8(a);
 		if (mask) {
-			return p + bsf(mask) - top;
+			return p + my_bsf(mask) - top;
 		}
 		p += 16;
 	}
@@ -85,7 +74,7 @@ size_t strlenSSE2(const char *p)
 		__m128i b = _mm_cmpeq_epi8(y, c16);
 		unsigned long mask = (_mm_movemask_epi8(b) << 16) | _mm_movemask_epi8(a);
 		if (mask) {
-			return p + bsf(mask) - top;
+			return p + my_bsf(mask) - top;
 		}
 		p += 32;
 	}

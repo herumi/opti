@@ -120,17 +120,7 @@ memchrSSE2   370.5  175.5  136.5  101.5   85.8   62.5   54.5   35.0   19.5    7.
 #include <memory.h>
 #include <vector>
 #include <xbyak/xbyak.h>
-
-#ifdef _WIN32
-	#include <intrin.h>
-	#define ALIGN(x) __declspec(align(x))
-	#define bsf(x) (_BitScanForward(&x, x), x)
-	#define bsr(x) (_BitScanReverse(&x, x), x)
-#else
-	#include <xmmintrin.h>
-	#define ALIGN(x) __attribute__((aligned(x)))
-	#define bsf(x) __builtin_ctz(x)
-#endif
+#include "util.hpp"
 
 void *memchrSSE2(const void *ptr, int c, size_t len)
 {
@@ -147,7 +137,7 @@ void *memchrSSE2(const void *ptr, int c, size_t len)
 			unsigned long mask = _mm_movemask_epi8(a);
 			mask &= 0xffffffffUL << n;
 			if (mask) {
-				return (void*)(ip + bsf(mask));
+				return (void*)(ip + my_bsf(mask));
 			}
 			n = 16 - n;
 			len -= n;
@@ -160,7 +150,7 @@ void *memchrSSE2(const void *ptr, int c, size_t len)
 			__m128i b = _mm_cmpeq_epi8(y, c16);
 			unsigned long mask = (_mm_movemask_epi8(b) << 16) | _mm_movemask_epi8(a);
 			if (mask) {
-				return (void*)(p + bsf(mask));
+				return (void*)(p + my_bsf(mask));
 			}
 			len -= 32;
 			p += 32;
@@ -188,7 +178,7 @@ size_t strlenSSE2(const char *p)
 		unsigned long mask = _mm_movemask_epi8(a);
 		mask &= 0xffffffffUL << n;
 		if (mask) {
-			return bsf(mask) - n;
+			return my_bsf(mask) - n;
 		}
 		p += 16 - n;
 	}
@@ -201,7 +191,7 @@ size_t strlenSSE2(const char *p)
 		__m128i a = _mm_cmpeq_epi8(x, c16);
 		unsigned long mask = _mm_movemask_epi8(a);
 		if (mask) {
-			return p + bsf(mask) - top;
+			return p + my_bsf(mask) - top;
 		}
 		p += 16;
 	}
@@ -213,7 +203,7 @@ size_t strlenSSE2(const char *p)
 		__m128i b = _mm_cmpeq_epi8(y, c16);
 		unsigned long mask = (_mm_movemask_epi8(b) << 16) | _mm_movemask_epi8(a);
 		if (mask) {
-			return p + bsf(mask) - top;
+			return p + my_bsf(mask) - top;
 		}
 		p += 32;
 	}
@@ -329,8 +319,6 @@ struct FstrlenSSE2 {
 		return strlenSSE2(p) + p;
 	}
 };
-
-#define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(x[0]))
 
 #ifdef _WIN32
 #include <windows.h>

@@ -73,12 +73,16 @@ struct Code : Xbyak::CodeGenerator {
 		for (int i = 0; i < count; i++) {
 			switch (mode) {
 			case 0:
-				add(eax, 1);
+///				add(eax, 1);
+				xor(eax, eax);
 				break;
 			case 1:
+				mov(rax, 0);
+#if 0
 				add(eax, 1);
 				jmp("@f");
 				L("@@");
+#endif
 				break;
 			case 2:
 				L(Label::toStr(i).c_str());
@@ -115,7 +119,7 @@ void test(int count, int mode)
 		sum += ((int (*)())code.getCode())();
 		clk.end();
 	}
-	if (sum != LP * N) printf("err sum=%d, %d\n", sum, LP * N);
+//	if (sum != LP * N) printf("err sum=%d, %d\n", sum, LP * N);
 	printf("%6.3f, %8.3f\n", clk.getClock() / (double)LP / N, code.getSize() / 1e3);
 }
 
@@ -130,7 +134,7 @@ int main(int argc, char *argv[])
 		"seq jmp",
 		"random jmp",
 	};
-	for (int mode = 0; mode < 3; mode++) {
+	for (int mode = 0; mode < 2; mode++) {
 		if (sel != -1 && sel != mode) continue;
 		printf("[%s]\n", nameTbl[mode]);
 		printf(" count  clk   code size(Kbyte)\n");
