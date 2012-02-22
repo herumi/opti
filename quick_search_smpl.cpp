@@ -1,3 +1,8 @@
+/*
+	compare strstr and quick search
+	require https://github.com/herumi/cybozulib
+	        https://github.com/herumi/xbyak
+*/
 #include <string>
 #include <vector>
 #include <stdio.h>
@@ -48,7 +53,7 @@ void test(const std::string& text, const std::string& key)
 	if (ret1 != ret2) {
 		fprintf(stderr, "err key=%s, ret1=%d, ret2=%d\n", key.c_str(), ret1, ret2);
 	}
-	printf("%20s ret=%8d, strstr:%8.3fK quick:%8.3fK (%5.2f)\n", key.c_str(), ret1 / N, time1, time2, time1 / time2);
+	printf("%30s ret=%8d, strstr:%8.3fK quick:%8.3fK (%5.2f)\n", key.c_str(), ret1 / N, time1, time2, time1 / time2);
 }
 
 int main(int argc, char *argv[])
@@ -89,6 +94,8 @@ int main(int argc, char *argv[])
 			"openssl", "const_iterator", "patch",
 			"a", "b", "c", "d", "ab", "xy", "ex", "std", "1234", "56789", "jit", "asm",
 			"asdfasdfasdf", "000000000000000", "?????",
+			"WARIXDFSKVJWSVFDVWESVF",
+			"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
 		};
 		for (size_t i = 0; i < CYBOZU_NUM_OF_ARRAY(tbl); i++) {
 			keyTbl.push_back(tbl[i]);
