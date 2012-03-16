@@ -64,8 +64,8 @@ void test(const std::string& text, const std::string& key)
 		fprintf(stderr, "err key=%s, (%d, %d), (%d, %d)\n", key.c_str(), num1, (int)len1, num2, (int)len2);
 	}
 	if (num1) len1 /= num1;
-	double ave1 = len1 ? time1 / len1 * 1e3 : 0;
-	double ave2 = len1 ? time2 / len1 * 1e3 : 0;
+	double ave1 = time1 / (len1 ? len1 : text.size()) * 1e3;
+	double ave2 = time2 / (len2 ? len2 : text.size()) * 1e3;
 	printf("%27s %6d %10.1f %8.2f %5.2f %8.2f %5.2f %4.2f\n", key.c_str(), num1, len1, time1, ave1, time2, ave2, time1 / time2);
 }
 
@@ -105,12 +105,22 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keyTbl;
 	if (key.empty()) {
 		const char tbl[][32] = {
-			"cybozu", "namespace", "atoi", "cybozu::ssl", "static_assert", "File",
-			"\xe3\x81\x93\xe3\x82\x8c\xe3\x81\xaf", /* ko-re-wa */
+			"a", "b", "c", "d",
+			"ab", "xy", "ex",
+			"std", "jit", "asm",
+			"atoi", "1234",
+			"File", "?????",
+			"patch", "56789",
 			"\xE3\x81\xA7\xE3\x81\x99", /* de-su */
-			"openssl", "const_iterator", "patch",
-			"a", "b", "c", "d", "ab", "xy", "ex", "std", "1234", "56789", "jit", "asm",
-			"asdfasdfasdf", "000000000000000", "?????",
+			"cybozu",
+			"openssl",
+			"namespace",
+			"\xe3\x81\x93\xe3\x82\x8c\xe3\x81\xaf", /* ko-re-wa */
+			"cybozu::ssl",
+			"asdfasdfasdf",
+			"static_assert",
+			"const_iterator",
+			"000000000000000",
 			"WARIXDFSKVJWSVFDVWESVF",
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
 		};

@@ -13,7 +13,16 @@
 	http://opensource.org/licenses/BSD-3-Clause
 */
 struct StrstrCode : Xbyak::CodeGenerator {
+	const void *ptr_;
 	StrstrCode()
+		: ptr_(0)
+	{
+		gen(false);
+		align(16);
+		ptr_ = (const void*)getCode();
+		gen(true);
+	}
+	void gen(bool isQs)
 	{
 		Xbyak::util::Cpu cpu;
 		if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
@@ -25,17 +34,28 @@ struct StrstrCode : Xbyak::CodeGenerator {
 		using namespace Xbyak;
 #ifdef XBYAK64
 	#ifdef XBYAK64_WIN
-		const Reg64& s1 = r8;
-		const Reg64& s2 = rdx;
-		const Reg64& t1 = r9;
-		const Reg64& t2 = r10;
+		const Reg64& s1 = r10; // 1st
+		const Reg64& s2 = rdx; // 2nd
+		const Reg64& t1 = r11;
+		const Reg64& t2 = r9;
+		const Reg64& len = r8; // 3rd
+		const Reg64& tbl = r12;
+		if (isQs) {
+			mov(ptr [rsp + 8], r12);
+			mov(tbl, r9); // 4th
+		}
 		mov(rax, rcx);
 	#else
-		const Reg64& s1 = rdi;
-		const Reg64& s2 = rsi;
+		const Reg64& s1 = rdi; // 1st
+		const Reg64& s2 = rsi; // 2nd
 		const Reg64& t1 = r8;
 		const Reg64& t2 = r9;
+		const Reg64& len = rdx; // 3rd
+		const Reg64& tbl = r10;
 		mov(rax, rdi);
+		if (isQs) {
+			mov(tbl, rcx); // 4th
+		}
 	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
@@ -90,7 +110,12 @@ struct StrstrCode : Xbyak::CodeGenerator {
 		add(t2, 16);
 		jmp(".tailCmp");
 	L(".next");
-		add(a, 1);
+		if (isQs) {
+			mov(Reg32(t1.getIdx()), ptr [a + len]);
+			add(a, dword [tbl + t1 * 4]);
+		} else {
+			add(a, 1);
+		}
 		jmp(".lp");
 	L(".notFound");
 		xor(eax, eax);
@@ -99,6 +124,10 @@ struct StrstrCode : Xbyak::CodeGenerator {
 		mov(esi, ptr [esp + 0]);
 		mov(edi, ptr [esp + 4]);
 		add(esp, P_);
+#elif defined(XBYAK64_WIN)
+		if (isQs) {
+			mov(r12, ptr [rsp + 8]);
+		}
 #endif
 		ret();
 		outLocalLabel();
@@ -107,3 +136,35 @@ struct StrstrCode : Xbyak::CodeGenerator {
 
 const char* (*strstr_sse42)(const char*,const char*) = (const char* (*)(const char*,const char*))s_strstrCode.getCode();
 
+const char* (*qs_find)(const char*,const char*,size_t,const int*) = (const char* (*)(const char*,const char*,size_t,const int*))s_strstrCode.ptr_;
+
+struct QuickSearch2 {
+	static const size_t SIZE = 256;
+	size_t len_;
+	int tbl_[SIZE];
+	std::string str_;
+	void init(const char *begin)
+	{
+		std::fill(tbl_, tbl_ + SIZE, static_cast<int>(len_ + 1));
+		for (size_t i = 0; i < len_; i++) {
+			tbl_[static_cast<unsigned char>(begin[i])] = len_ - i;
+		}
+	}
+public:
+	explicit QuickSearch2(const char *begin, const char *end = 0)
+		: len_(end ? end - begin : strlen(begin))
+		, str_(begin, len_)
+	{
+		init(begin);
+	}
+	explicit QuickSearch2(const std::string& key)
+		: len_(key.size())
+		, str_(key)
+	{
+		init(&key[0]);
+	}
+	const char *find(const char *begin) const
+	{
+		return qs_find(begin, &str_[0], len_, tbl_);
+	}
+};

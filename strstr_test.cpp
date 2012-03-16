@@ -29,6 +29,7 @@ double test(const std::string& text, const std::string& key)
 			while (p != end) {
 				clk.begin();
 				const char *q = strstr(p, key.c_str());
+//				const char *q = strstr_sse42(p, key.c_str());
 				clk.end();
 				if (q == 0) break;
 				num1++;
@@ -41,9 +42,13 @@ double test(const std::string& text, const std::string& key)
 			Xbyak::util::Clock clk;
 			const char *p = &text[0];
 			const char *const end = p + text.size();
+			QuickSearch2 qs(key);
+			const size_t len = key.size();
 			while (p != end) {
 				clk.begin();
-				const char *q = strstr_sse42(p, key.c_str());
+//				const char *q = strstr_sse42(p, key.c_str());
+//				const char *q = qs.find(p);
+				const char *q = qs_find(p, key.c_str(), len, qs.tbl_);
 				clk.end();
 				if (q == 0) break;
 				num2++;
@@ -63,6 +68,7 @@ double test(const std::string& text, const std::string& key)
 		fprintf(stderr, "err key=%s, (%d, %d), (%d, %d)\n", key.c_str(), num1, (int)len1, num2, (int)len2);
 	}
 	if (num1) len1 /= num1;
+	if (num2) len2 /= num2;
 	double ave1 = time1 / (len1 ? len1 : text.size()) * 1e3;
 	double ave2 = time2 / (len2 ? len2 : text.size()) * 1e3;
 	double rate = time1 / time2;
