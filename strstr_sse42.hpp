@@ -13,13 +13,13 @@
 	http://opensource.org/licenses/BSD-3-Clause
 */
 struct StrstrCode : Xbyak::CodeGenerator {
-	const void *ptr_;
+	const char* (*findFunc_)(const char*,const char*,size_t,const int*);
 	StrstrCode()
-		: ptr_(0)
+		: findFunc_(0)
 	{
 		gen(false);
 		align(16);
-		ptr_ = (const void*)getCode();
+		findFunc_ = (const char* (*)(const char*,const char*,size_t,const int*))getCurr();
 		gen(true);
 	}
 	void gen(bool isQs)
@@ -111,8 +111,9 @@ struct StrstrCode : Xbyak::CodeGenerator {
 		jmp(".tailCmp");
 	L(".next");
 		if (isQs) {
-			mov(Reg32(t1.getIdx()), ptr [a + len]);
-			add(a, dword [tbl + t1 * 4]);
+			movzx(Reg32(t1.getIdx()), byte [a + len]);
+			mov(Reg32(t1.getIdx()), ptr [tbl + t1 * 4]);
+			add(a, t1);
 		} else {
 			add(a, 1);
 		}
@@ -136,7 +137,7 @@ struct StrstrCode : Xbyak::CodeGenerator {
 
 const char* (*strstr_sse42)(const char*,const char*) = (const char* (*)(const char*,const char*))s_strstrCode.getCode();
 
-const char* (*qs_find)(const char*,const char*,size_t,const int*) = (const char* (*)(const char*,const char*,size_t,const int*))s_strstrCode.ptr_;
+const char* (*qs_find)(const char*,const char*,size_t,const int*) = s_strstrCode.findFunc_;
 
 struct QuickSearch2 {
 	static const size_t SIZE = 256;

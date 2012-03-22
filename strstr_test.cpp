@@ -9,7 +9,9 @@
 #include <vector>
 #include <stdio.h>
 #include <cybozu/file.hpp>
+#include <cybozu/quick_search.hpp>
 #include "strstr_sse42.hpp"
+
 #include <xbyak/xbyak_util.h>
 
 double test(const std::string& text, const std::string& key)
@@ -42,13 +44,14 @@ double test(const std::string& text, const std::string& key)
 			Xbyak::util::Clock clk;
 			const char *p = &text[0];
 			const char *const end = p + text.size();
+//			cybozu::QuickSearch qs(key);
 			QuickSearch2 qs(key);
 			const size_t len = key.size();
 			while (p != end) {
 				clk.begin();
-//				const char *q = strstr_sse42(p, key.c_str());
-//				const char *q = qs.find(p);
-				const char *q = qs_find(p, key.c_str(), len, qs.tbl_);
+				const char *q = strstr_sse42(p, key.c_str());
+//				const char *q = qs.find(p, end);
+//				const char *q = qs_find(p, key.c_str(), len, qs.tbl_);
 				clk.end();
 				if (q == 0) break;
 				num2++;
@@ -72,16 +75,30 @@ double test(const std::string& text, const std::string& key)
 	double ave1 = time1 / (len1 ? len1 : text.size()) * 1e3;
 	double ave2 = time2 / (len2 ? len2 : text.size()) * 1e3;
 	double rate = time1 / time2;
-	printf("%26s %6d%10.1f %8.2f %5.2f %8.2f %5.2f %4.2f\n", key.c_str(), num1, len1, time1, ave1, time2, ave2, rate);
+	printf("%26s %6d%10.1f %8.2f %5.2f %8.2f %5.2f %4.2f\n", key.substr(0,26).c_str(), num1, len1, time1, ave1, time2, ave2, rate);
 	return rate;
+}
+
+void simpleTest()
+{
+	std::string text;
+	for (int i = 0; i < 100000; i++) {
+		text += "0123456789abcdefghijkl";
+	}
+	test(text, "0123456789abcdefghijklm");
+	std::string text2;
+	for (int i = 0; i < 10000; i++) {
+		text2 += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU";
+	}
+	test(text2, "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU@");
 }
 
 int main(int argc, char *argv[])
 {
 	argc--, argv++;
 	if (argc < 1) {
-		fprintf(stderr, "cmd dir [key]\n");
-		return 1;
+		simpleTest();
+		return 0;
 	}
 	const std::string dir = argv[0];
 	const std::string key = argc == 2 ? argv[1] : "";
