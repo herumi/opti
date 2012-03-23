@@ -148,7 +148,7 @@ const char *strchr_range_C(const char *str, const char *key)
 {
 	while (*str) {
 		unsigned char c = (unsigned char)*str;
-		for (unsigned char *p = (unsigned char *)key; *p; p += 2) {
+		for (const unsigned char *p = (const unsigned char *)key; *p; p += 2) {
 			if (p[0] <= c && c <= p[1]) {
 				return str;
 			}

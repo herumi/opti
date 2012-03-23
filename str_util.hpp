@@ -599,5 +599,9 @@ inline const char *findStr(const char*begin, const char *end, const char *key, s
 {
 	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findStrOffset))(begin, end, key, keySize);
 }
+inline char *findStr(char*begin, const char *end, const char *key, size_t keySize)
+{
+	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findStrOffset))(begin, end, key, keySize);
+}
 
 } // mie

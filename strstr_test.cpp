@@ -251,13 +251,11 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%25s %6s %10s %8s %5s %8s %5s rate\n", "key", "count", "len", "C:Kclk", "clk/B", "asm:Kclk", "clk/B");
-#if 0
 	double score = 0;
 	for (size_t i = 0; i < keyTbl.size(); i++) {
 		score += test(text, keyTbl[i]);
 	}
 	printf("score rate=%f\n", score / keyTbl.size());
-#endif
 	for (size_t i = 0; i < keyTbl.size(); i++) {
 		test2(text, keyTbl[i]);
 	}
