@@ -3,7 +3,6 @@
 	string function for SSE4.2
 	@NOTE
 	all functions in this header will access max 16 bytes beyond the end of input string
-	assume string != '\0'
 
 	@author herumi
 	@note modified new BSD license
@@ -13,11 +12,36 @@
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
 
-namespace str_util {
+namespace str_util_impl {
 
 const size_t strstrOffset = 0;
-const size_t strchrOffset = 80;
+const size_t strchrOffset = strstrOffset + 96;
+const size_t strlenOffset = strchrOffset + 48;
+
 struct StringCode : Xbyak::CodeGenerator {
+	StringCode(char *buf, size_t size)
+		: Xbyak::CodeGenerator(size, buf)
+	{
+		Xbyak::CodeArray::protect(buf, size, true);
+		Xbyak::util::Cpu cpu;
+		if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
+			fprintf(stderr, "SSE4.2 is not supported\n");
+			::exit(1);
+		}
+		/* this check is adhoc */
+		const bool isSandyBridge = cpu.has(Xbyak::util::Cpu::tAVX);
+
+		gen_strstr(isSandyBridge);
+		printf("strstr size=%d\n", (int)getSize());
+
+		nextOffset(strchrOffset);
+		gen_strchr();
+		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
+
+		nextOffset(strlenOffset);
+		gen_strlen();
+		printf("strlen size=%d\n", (int)(getSize() - strlenOffset));
+	}
 private:
 	void nextOffset(size_t pos)
 	{
@@ -31,7 +55,7 @@ private:
 			cur++;
 		}
 	}
-	// char *strstr(text, key)
+	// char *strstr(str, key)
 	void gen_strstr(bool isSandyBridge)
 	{
 		inLocalLabel();
@@ -41,12 +65,12 @@ private:
 		const Reg64& key = rdx; // 2nd
 		const Reg64& t1 = r11;
 		const Reg64& t2 = r9;
-		mov(rax, rcx); // 1st:text
+		mov(rax, rcx); // 1st:str
 	#else
 		const Reg64& key = rsi; // 2nd
 		const Reg64& t1 = r8;
 		const Reg64& t2 = r9;
-		mov(rax, rdi); // 1st:text
+		mov(rax, rdi); // 1st:str
 	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
@@ -120,14 +144,13 @@ private:
 		using namespace Xbyak;
 
 #ifdef XBYAK64
-
-#if defined(XBYAK64_WIN)
+	#ifdef XBYAK64_WIN
 		const Reg64& p = rcx;
 		const Reg64& c1 = rdx;
-#elif defined(XBYAK64_GCC)
+	#else
 		const Reg64& p = rdi;
 		const Reg64& c1 = rsi;
-#endif
+	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
 		and(c1, 0xff);
@@ -154,23 +177,43 @@ private:
 		ret();
 		outLocalLabel();
 	}
-public:
-	StringCode(char *buf, size_t size)
-		: Xbyak::CodeGenerator(size, buf)
+	void gen_strlen()
 	{
-		Xbyak::CodeArray::protect(buf, size, true);
-		Xbyak::util::Cpu cpu;
-		if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
-			fprintf(stderr, "SSE4.2 is not supported\n");
-			::exit(1);
-		}
-		/* this check is adhoc */
-		const bool isSandyBridge = cpu.has(Xbyak::util::Cpu::tAVX);
-		gen_strstr(isSandyBridge);
-		printf("strstr size=%d\n", (int)getSize());
-		nextOffset(strchrOffset);
-		gen_strchr();
-		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
+		inLocalLabel();
+		using namespace Xbyak;
+#if defined(XBYAK64_WIN)
+		const Reg64& p = rdx;
+		const Reg64& c = rcx;
+		const Reg64& a = rax;
+		mov(rdx, rcx);
+#elif defined(XBYAK64_GCC)
+		const Reg64& p = rdi;
+		const Reg64& c = rcx;
+		const Reg64& a = rax;
+#else
+		const Reg32& p = edx;
+		const Reg32& c = ecx;
+		const Reg32& a = eax;
+		mov(edx, ptr [esp + 4]);
+#endif
+		mov(eax, 0xff01);
+		movd(xm0, eax);
+
+#if 0
+		lea(a, ptr [p - 16]);
+#else
+		mov(a, p);
+		jmp(".in");
+#endif
+	L("@@");
+		add(a, 16);
+	L(".in");
+		pcmpistri(xm0, ptr [a], 0x14);
+		jnz("@b");
+		add(a, c);
+		sub(a, p);
+		ret();
+		outLocalLabel();
 	}
 };
 
@@ -190,19 +233,36 @@ struct DummyCall {
 	DummyCall() { InstanceIsHere<>::code.getCode(); }
 };
 
-} // str_util
+} // str_util_impl
 
-inline const char *strstr_sse42(const char *text, const char *key)
+///////////////////////////////////////////////////////////////////////////////////////
+// functions like C
+// const version of strstr
+inline const char *strstr_sse42(const char *str, const char *key)
 {
-	return ((const char*(*)(const char*, const char*))(char*)str_util::InstanceIsHere<>::buf)(text, key);
-}
-inline char *strstr_sse42(char *text, const char *key)
-{
-	return ((char*(*)(char*, const char*))(char*)str_util::InstanceIsHere<>::buf)(text, key);
+	return ((const char*(*)(const char*, const char*))(char*)str_util_impl::InstanceIsHere<>::buf)(str, key);
 }
 
-inline const char *strchr_sse42(const char *text, int c)
+// non const version of strstr
+inline char *strstr_sse42(char *str, const char *key)
 {
-	return ((const char*(*)(const char*, int))((char*)str_util::InstanceIsHere<>::buf + str_util::strchrOffset))(text, c);
+	return ((char*(*)(char*, const char*))(char*)str_util_impl::InstanceIsHere<>::buf)(str, key);
+}
+
+// const version of strchr
+inline const char *strchr_sse42(const char *str, int c)
+{
+	return ((const char*(*)(const char*, int))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchrOffset))(str, c);
+}
+
+// non const version of strchr
+inline char *strchr_sse42(char *str, int c)
+{
+	return ((char*(*)(char*, int))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchrOffset))(str, c);
+}
+
+inline size_t strlen_sse42(const char *str)
+{
+	return ((size_t(*)(const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strlenOffset))(str);
 }
 

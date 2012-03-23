@@ -5,6 +5,7 @@
 #include "str_util.hpp"
 
 #define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(*x))
+#define TEST_EQUAL(a, b) { if ((a) != (b)) fprintf(stderr, "ERR %d: a=%d, b=%d\n", __LINE__, (int)(a), (int)(b)); exit(1); }
 
 double strstr_test1(const std::string& text, const std::string& key)
 {
@@ -67,6 +68,7 @@ double strstr_test1(const std::string& text, const std::string& key)
 
 void strstr_test()
 {
+	puts("strstr_test");
 	const int SIZE = 1024 * 1024 * 10;
 	struct {
 		const char *text;
@@ -113,6 +115,7 @@ void strchr_test1(const char *str, const char *f(const char*, int))
 
 void strchr_test()
 {
+	puts("strchr_test");
 	MIE_ALIGN(16) char str[MaxChar + 1];
 	for (int i = 1; i < MaxChar; i++) {
 		str[i - 1] = (char)i;
@@ -121,13 +124,32 @@ void strchr_test()
 	strchr_test1(str, strchr);
 	strchr_test1(str, strchr_sse42);
 }
+
+void strlen_test()
+{
+	puts("strlen_test");
+	std::string str;
+	for (int i = 0; i < 16; i++) {
+		str += 'a';
+		size_t a = strlen(str.c_str());
+		size_t b = strlen_sse42(str.c_str());
+		TEST_EQUAL(a, b);
+	}
+	str = "0123456789abcdefghijklmn\0";
+	for (int i = 0; i < 16; i++) {
+		size_t a = strlen(&str[i]);
+		size_t b = strlen(&str[i]);
+		TEST_EQUAL(a, b);
+	}
+	puts("ok");
+}
+
 int main()
 {
-	const char *p = strstr_sse42("abcdefg", "de");
-	printf("p=%p\n", p);
 	try {
 		strstr_test();
 		strchr_test();
+		strlen_test();
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
@@ -136,5 +158,3 @@ int main()
 	}
 	return 1;
 }
-
-
