@@ -251,33 +251,42 @@ private:
 	#ifdef XBYAK64_WIN
 		const Reg64& begin = r9;
 		const Reg64& end = r10;
-		const Reg64& c1 = r8; // 3rd
+		movzx(r8d, r8b); // c:3rd
+		movq(xm0, r8);
 		mov(begin, rcx); // 1st
 		mov(end, rdx); // 2nd
 	#else
-		const Reg64& p = rdi;
-		const Reg64& c1 = rsi;
+		const Reg64& begin = rdi; // 1st
+		const Reg64& end = rsi; // 2nd
+		movzx(edx, dl); // c:3rd
+		movq(xm0, rdx);
 	#endif
-		const Reg64& c = rcx;
 		const Reg64& a = rax;
+		const Reg64& c = rcx;
 		const Reg64& d = rdx;
-		and(c1, 0xff);
-		movq(xm0, c1);
-		mov(eax, 1);
-		mov(d, end);
-		sub(d, begin); // len
 #else
+		const Reg32& begin = esi;
+		const Reg32& end = edi;
 		const Reg32& a = eax;
 		const Reg32& c = ecx;
-		if (mode == M_strchr) {
-			movzx(eax, byte [esp + 8]);
-			movd(xm0, eax);
-		} else {
-			mov(eax, ptr [esp + 8]);
-			movdqu(xm0, ptr [eax]);
-		}
-		mov(a, ptr [esp + 4]);
+		const Reg32& d = edx;
+		push(esi);
+		push(edi);
+		const int P_ = 4 * 2;
+		mov(begin, ptr [esp + P_ + 4]);
+		mov(end, ptr [esp + P_ + 8]);
+		movzx(eax, byte [esp + P_ + 12]);
+		movd(xm0, eax);
 #endif
+		/*
+			input  : [begin, end), xm0 : char
+			output : a
+			destroy: a, c, d, begin
+		*/
+		xor(eax, eax);
+		inc(eax);
+		mov(d, end);
+		sub(d, begin); // len
 		jmp(".in");
 	L("@@");
 		add(begin, 16);
@@ -287,9 +296,17 @@ private:
 		ja("@b");
 		jnc(".notfound");
 		lea(a, ptr [begin + c]);
+#ifdef XBYAK32
+		pop(edi);
+		pop(esi);
+#endif
 		ret();
 	L(".notfound");
 		mov(a, end);
+#ifdef XBYAK32
+		pop(edi);
+		pop(esi);
+#endif
 		ret();
 		outLocalLabel();
 	}

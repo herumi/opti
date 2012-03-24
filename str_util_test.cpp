@@ -254,6 +254,25 @@ const char *findChar_C(const char *begin, const char *end, char c)
 	return std::find(begin, end, c);
 }
 
+template<class F>
+void findChar_bench(const std::string& str, F f)
+{
+	Xbyak::util::Clock clk;
+	const int count = 30000;
+	for (int i = 0; i < count; i++) {
+		clk.begin();
+		const char *p = &str[0];
+		const char *end = p + str.size();
+		for (;;) {
+			p = f(p, end, 'x');
+			if (p == end) break;
+			p++;
+		}
+		clk.end();
+	}
+	printf("%8.2f\n", clk.getClock() / (double)clk.getCount());
+}
+
 void findChar_test()
 {
 	puts("findChar_test");
@@ -280,6 +299,8 @@ void findChar_test()
 		}
 	}
 	puts("ok");
+	printf("findChar_C:"); findChar_bench(str, findChar_C);
+	printf("findChar  :"); findChar_bench(str, mie::findChar);
 }
 
 int main()
