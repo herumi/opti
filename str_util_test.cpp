@@ -238,8 +238,8 @@ void strchr_range_test()
 		const char *p2 = str.c_str();
 		const char *key = tbl[i];
 		for (;;) {
-			p1 = strchr_any_C(p1, key);
-			p2 = mie::strchr_any(p2, key);
+			p1 = strchr_range_C(p1, key);
+			p2 = mie::strchr_range(p2, key);
 			TEST_EQUAL(p1, p2);
 			if (p1 == 0) break;
 			p1++;
@@ -273,6 +273,12 @@ void findChar_bench(const std::string& str, F f)
 	printf("%8.2f\n", clk.getClock() / (double)clk.getCount());
 }
 
+const char *ref_strchr(const char *begin, const char *end, char c)
+{
+	const char *p = mie::strchr(begin, c);
+	if (p == 0) return end;
+	return p;
+}
 void findChar_test()
 {
 	puts("findChar_test");
@@ -282,25 +288,183 @@ void findChar_test()
 			str += (char)i;
 		}
 	}
-	str += "abcdefghijklmn\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+	str += "abcdefghijklmn";
 
 	const char *const begin = &str[0];
 	const char *const end = begin + str.size() - 16;
 	for (int c = 0; c < 256; c++) {
 		const char *p1 = begin;
-		const char *p2 = begin;
 		for (;;) {
 			p1 = findChar_C(p1, end, (char)c);
-			p2 = mie::findChar(p2, end, (char)c);
+			const char *p2 = mie::findChar(p1, end, (char)c);
 			TEST_EQUAL(p1, p2);
 			if (p1 == end) break;
 			p1++;
-			p2++;
 		}
 	}
 	puts("ok");
-	printf("findChar_C:"); findChar_bench(str, findChar_C);
-	printf("findChar  :"); findChar_bench(str, mie::findChar);
+	str = "abcdefghijklmaskjfalksjdflaksjflakesoirua93va3vnopasdfasdfaserxdf";
+	for (int i = 0; i < 5; i++) {
+		str += str;
+	}
+	str += '\0';
+	printf("findChar_C   :"); findChar_bench(str, findChar_C);
+	printf("findChar     :"); findChar_bench(str, (const char*(*)(const char*,const char*,char))mie::findChar);
+	printf("(mie::strstr):"); findChar_bench(str, ref_strchr);
+}
+
+const char *findChar_any_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin != end) {
+		unsigned char c = (unsigned char)*begin;
+		for (size_t i = 0; i < keySize; i++) {
+			if (c == key[i]) {
+				return begin;
+			}
+		}
+		begin++;
+	}
+	return end;
+}
+
+template<class F>
+void findChar_any_bench(const std::string& str, F f)
+{
+	Xbyak::util::Clock clk;
+	const int count = 30000;
+	for (int i = 0; i < count; i++) {
+		clk.begin();
+		const char *p = &str[0];
+		const char *end = p + str.size();
+		for (;;) {
+			p = f(p, end, "ax035ZU", 7);
+			if (p == end) break;
+			p++;
+		}
+		clk.end();
+	}
+	printf("%8.2f\n", clk.getClock() / (double)clk.getCount());
+}
+
+void findChar_any_test()
+{
+	puts("findChar_any_test");
+	std::string str = "123a456abcdefghijklmnob123aa3vnraw3nXbcdevra";
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0; i < 256; i++) {
+			str += (char)i;
+		}
+	}
+	str += "abcdefghYjklmn";
+
+	const char *const begin = &str[0];
+	const char *const end = begin + str.size() - 16;
+	const struct {
+		const char *key;
+		size_t keySize;
+	} tbl[] = {
+		{ "z", 1 },
+		{ "0123456789abcdef", 16 },
+		{ "XYZ", 3 },
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		const char *key = tbl[i].key;
+		size_t keySize = tbl[i].keySize;
+		for (int c = 0; c < 256; c++) {
+			const char *p1 = begin;
+			for (;;) {
+				p1 = findChar_any_C(p1, end, key, keySize);
+				const char *p2 = mie::findChar_any(p1, end, key, keySize);
+				TEST_EQUAL(p1, p2);
+				if (p1 == end) break;
+				p1++;
+			}
+		}
+	}
+	puts("ok");
+	str = "abcdefghijklmaskjfalksjdflaksjflakesoiruXa93va3vnopasdfasdfaserxdf";
+	for (int i = 0; i < 5; i++) {
+		str += str;
+	}
+	printf("findChar_any_C   :"); findChar_any_bench(str, findChar_any_C);
+	printf("findChar_any     :"); findChar_any_bench(str, (const char*(*)(const char*,const char*,const char*,size_t))mie::findChar_any);
+}
+
+const char *findChar_range_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin != end) {
+		unsigned char c = (unsigned char)*begin;
+		for (size_t i = 0; i < keySize; i += 2) {
+			if (key[i] <= c && c <= key[i + 1]) {
+				return begin;
+			}
+		}
+		begin++;
+	}
+	return end;
+}
+
+template<class F>
+void findChar_range_bench(const std::string& str, F f)
+{
+	Xbyak::util::Clock clk;
+	const int count = 30000;
+	for (int i = 0; i < count; i++) {
+		clk.begin();
+		const char *p = &str[0];
+		const char *end = p + str.size();
+		for (;;) {
+			p = f(p, end, "09afAF//..", 8);
+			if (p == end) break;
+			p++;
+		}
+		clk.end();
+	}
+	printf("%8.2f\n", clk.getClock() / (double)clk.getCount());
+}
+
+void findChar_range_test()
+{
+	puts("findChar_range_test");
+	std::string str = "123a456abcdefghijklmnob123aa3vnraw3nXbcdevra";
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0; i < 256; i++) {
+			str += (char)i;
+		}
+	}
+	str += "abcdefghYjklmn";
+
+	const char *const begin = &str[0];
+	const char *const end = begin + str.size() - 16;
+	const struct {
+		const char *key;
+		size_t keySize;
+	} tbl[] = {
+		{ "zz", 2 },
+		{ "09", 2 },
+		{ "az09", 4 },
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		const char *key = tbl[i].key;
+		size_t keySize = tbl[i].keySize;
+		for (int c = 0; c < 256; c++) {
+			const char *p1 = begin;
+			for (;;) {
+				p1 = findChar_range_C(p1, end, key, keySize);
+				const char *p2 = mie::findChar_range(p1, end, key, keySize);
+				TEST_EQUAL(p1, p2);
+				if (p1 == end) break;
+				p1++;
+			}
+		}
+	}
+	puts("ok");
+	str = "............!!f..!!!!!!!$$$$$$$$$$""!!!0()........A......../....Z";
+	for (int i = 0; i < 5; i++) {
+		str += str;
+	}
+	printf("findChar_range_C:"); findChar_range_bench(str, findChar_range_C);
+	printf("findChar_range  :"); findChar_range_bench(str, (const char*(*)(const char*,const char*,const char*,size_t))mie::findChar_range);
 }
 
 int main()
@@ -312,6 +476,8 @@ int main()
 		strchr_any_test();
 		strchr_range_test();
 		findChar_test();
+		findChar_any_test();
+		findChar_range_test();
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);

@@ -19,10 +19,13 @@ const size_t strlenOffset = strstrOffset + 96;
 const size_t strchrOffset = strlenOffset + 48;
 const size_t strchr_anyOffset = strchrOffset + 48;
 const size_t strchr_rangeOffset = strchr_anyOffset + 48;
-const size_t findCharOffset = strchr_rangeOffset + 48;
+const size_t findCharOffset = strchr_rangeOffset + 64;
+const size_t findChar_anyOffset = findCharOffset + 64;
+const size_t findChar_rangeOffset = findChar_anyOffset + 64;
 
 struct StringCode : Xbyak::CodeGenerator {
 	StringCode(char *buf, size_t size)
+		try
 		: Xbyak::CodeGenerator(size, buf)
 	{
 		Xbyak::CodeArray::protect(buf, size, true);
@@ -42,26 +45,37 @@ struct StringCode : Xbyak::CodeGenerator {
 		printf("strlen size=%d\n", (int)(getSize() - strlenOffset));
 
 		nextOffset(strchrOffset);
-		gen_strchr(M_strchr);
+		gen_strchr(M_one);
 		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
 
 		nextOffset(strchr_anyOffset);
-		gen_strchr(M_strchr_any);
+		gen_strchr(M_any);
 		printf("strchr_any size=%d\n", (int)(getSize() - strchr_anyOffset));
 
 		nextOffset(strchr_rangeOffset);
-		gen_strchr(M_strchr_range);
+		gen_strchr(M_range);
 		printf("strchr_range size=%d\n", (int)(getSize() - strchr_rangeOffset));
 
 		nextOffset(findCharOffset);
-		gen_findChar();
+		gen_findChar(M_one);
 		printf("findChar size=%d\n", (int)(getSize() - findCharOffset));
+
+		nextOffset(findChar_anyOffset);
+		gen_findChar(M_any);
+		printf("findChar_any size=%d\n", (int)(getSize() - findChar_anyOffset));
+
+		nextOffset(findChar_rangeOffset);
+		gen_findChar(M_range);
+		printf("findChar_range size=%d\n", (int)(getSize() - findChar_rangeOffset));
+	} catch (Xbyak::Error err) {
+		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
+		::exit(1);
 	}
 private:
 	enum {
-		M_strchr,
-		M_strchr_any,
-		M_strchr_range
+		M_one, /* match one char */
+		M_any, /* match any of key[0], key[1], ... */
+		M_range /* match range [key[0], key[1]], [key[2], key[3]], ... */
 	};
 	void nextOffset(size_t pos)
 	{
@@ -207,7 +221,7 @@ private:
 	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
-		if (mode == M_strchr) {
+		if (mode == M_one) {
 			and(c1, 0xff);
 			movq(xm0, c1);
 		} else {
@@ -217,7 +231,7 @@ private:
 #else
 		const Reg32& a = eax;
 		const Reg32& c = ecx;
-		if (mode == M_strchr) {
+		if (mode == M_one) {
 			movzx(eax, byte [esp + 8]);
 			movd(xm0, eax);
 		} else {
@@ -226,7 +240,7 @@ private:
 		}
 		mov(a, ptr [esp + 4]);
 #endif
-		const int v = mode == M_strchr_range ? 4 : 0;
+		const int v = mode == M_range ? 4 : 0;
 		jmp(".in");
 	L("@@");
 		add(a, 16);
@@ -241,7 +255,7 @@ private:
 		ret();
 		outLocalLabel();
 	}
-	void gen_findChar()
+	void gen_findChar(int mode)
 	{
 		// findChar(begin, end, c)
 		inLocalLabel();
@@ -251,15 +265,25 @@ private:
 	#ifdef XBYAK64_WIN
 		const Reg64& begin = r9;
 		const Reg64& end = r10;
-		movzx(r8d, r8b); // c:3rd
-		movq(xm0, r8);
+		if (mode == M_one) {
+			movzx(r8d, r8b); // c:3rd
+			movq(xm0, r8);
+		} else {
+			movdqu(xm0, ptr [r8]); // key:3rd
+			mov(rax, r9); // keySize:4th
+		}
 		mov(begin, rcx); // 1st
 		mov(end, rdx); // 2nd
 	#else
 		const Reg64& begin = rdi; // 1st
 		const Reg64& end = rsi; // 2nd
-		movzx(edx, dl); // c:3rd
-		movq(xm0, rdx);
+		if (mode == M_one) {
+			movzx(edx, dl); // c:3rd
+			movq(xm0, rdx);
+		} else {
+			movdqu(xm0, ptr [rdx]); // key:3rd
+			mov(rax, rcx); // keySize:4th
+		}
 	#endif
 		const Reg64& a = rax;
 		const Reg64& c = rcx;
@@ -275,16 +299,25 @@ private:
 		const int P_ = 4 * 2;
 		mov(begin, ptr [esp + P_ + 4]);
 		mov(end, ptr [esp + P_ + 8]);
-		movzx(eax, byte [esp + P_ + 12]);
-		movd(xm0, eax);
+		if (mode == M_one) {
+			movzx(eax, byte [esp + P_ + 12]);
+			movd(xm0, eax);
+		} else {
+			mov(eax, ptr [esp + P_ + 12]);
+			movdqu(xm0, ptr [eax]);
+			mov(eax, ptr [esp + P_ + 16]);
+		}
 #endif
+		if (mode == M_one) {
+			xor(eax, eax);
+			inc(eax); // eax = 1
+		}
 		/*
-			input  : [begin, end), xm0 : char
+			input  : [begin, end), xm0 : char(key)
 			output : a
 			destroy: a, c, d, begin
 		*/
-		xor(eax, eax);
-		inc(eax);
+		const int v = mode == M_range ? 4 : 0;
 		mov(d, end);
 		sub(d, begin); // len
 		jmp(".in");
@@ -292,7 +325,7 @@ private:
 		add(begin, 16);
 		sub(d, 16);
 	L(".in");
-		pcmpestri(xm0, ptr [begin], 0);
+		pcmpestri(xm0, ptr [begin], v);
 		ja("@b");
 		jnc(".notfound");
 		lea(a, ptr [begin + c]);
@@ -395,6 +428,38 @@ inline char *strchr_range(char *str, const char *key)
 inline const char *findChar(const char *begin, const char *end, char c)
 {
 	return ((const char *(*)(const char*, const char *, char c))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharOffset))(begin, end, c);
+}
+inline char *findChar(char *begin, const char *end, char c)
+{
+	return ((char *(*)(char*, const char *, char c))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharOffset))(begin, end, c);
+}
+
+/*
+	find any of key[0..keySize - 1] in [begin, end)
+	if char is not found then return end
+	@note keySize <= 16
+*/
+inline const char *findChar_any(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findChar_anyOffset))(begin, end, key, keySize);
+}
+inline char *findChar_any(char *begin, const char *end, const char *key, size_t keySize)
+{
+	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findChar_anyOffset))(begin, end, key, keySize);
+}
+
+/*
+	find character in range [key[0]..key[1]], [key[2]..key[3]], ... in [begin, end)
+	if char is not found then return end
+	@note keySize <= 16
+*/
+inline const char *findChar_range(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findChar_rangeOffset))(begin, end, key, keySize);
+}
+inline char *findChar_range(char *begin, const char *end, const char *key, size_t keySize)
+{
+	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findChar_rangeOffset))(begin, end, key, keySize);
 }
 
 } // mie
