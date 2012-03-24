@@ -17,8 +17,9 @@ namespace str_util_impl {
 const size_t strstrOffset = 0;
 const size_t strlenOffset = strstrOffset + 96;
 const size_t strchrOffset = strlenOffset + 48;
-const size_t findCharInOffset = strchrOffset + 48;
-const size_t findCharRangeOffset = findCharInOffset + 48;
+const size_t strchr_anyOffset = strchrOffset + 48;
+const size_t strchr_rangeOffset = strchr_anyOffset + 48;
+const size_t findCharOffset = strchr_rangeOffset + 48;
 
 struct StringCode : Xbyak::CodeGenerator {
 	StringCode(char *buf, size_t size)
@@ -44,19 +45,23 @@ struct StringCode : Xbyak::CodeGenerator {
 		gen_strchr(M_strchr);
 		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
 
-		nextOffset(findCharInOffset);
-		gen_strchr(M_findCharIn);
-		printf("findCharIn size=%d\n", (int)(getSize() - findCharInOffset));
+		nextOffset(strchr_anyOffset);
+		gen_strchr(M_strchr_any);
+		printf("strchr_any size=%d\n", (int)(getSize() - strchr_anyOffset));
 
-		nextOffset(findCharRangeOffset);
-		gen_strchr(M_findCharRange);
-		printf("findCharRange size=%d\n", (int)(getSize() - findCharRangeOffset));
+		nextOffset(strchr_rangeOffset);
+		gen_strchr(M_strchr_range);
+		printf("strchr_range size=%d\n", (int)(getSize() - strchr_rangeOffset));
+
+		nextOffset(findCharOffset);
+		gen_findChar();
+		printf("findChar size=%d\n", (int)(getSize() - findCharOffset));
 	}
 private:
 	enum {
 		M_strchr,
-		M_findCharIn,
-		M_findCharRange
+		M_strchr_any,
+		M_strchr_range
 	};
 	void nextOffset(size_t pos)
 	{
@@ -153,55 +158,6 @@ private:
 		ret();
 		outLocalLabel();
 	}
-	void gen_strchr(int mode)
-	{
-		inLocalLabel();
-		using namespace Xbyak;
-
-#ifdef XBYAK64
-	#ifdef XBYAK64_WIN
-		const Reg64& p = rcx;
-		const Reg64& c1 = rdx;
-	#else
-		const Reg64& p = rdi;
-		const Reg64& c1 = rsi;
-	#endif
-		const Reg64& c = rcx;
-		const Reg64& a = rax;
-		if (mode == M_strchr) {
-			and(c1, 0xff);
-			movq(xm0, c1);
-		} else {
-			movdqu(xm0, ptr [c1]);
-		}
-		mov(a, p);
-#else
-		const Reg32& a = eax;
-		const Reg32& c = ecx;
-		if (mode == M_strchr) {
-			movzx(eax, byte [esp + 8]);
-			movd(xm0, eax);
-		} else {
-			mov(eax, ptr [esp + 8]);
-			movdqu(xm0, ptr [eax]);
-		}
-		mov(a, ptr [esp + 4]);
-#endif
-		const int v = mode == M_findCharRange ? 4 : 0;
-		jmp(".in");
-	L("@@");
-		add(a, 16);
-	L(".in");
-		pcmpistri(xm0, ptr [a], v);
-		ja("@b");
-		jnc(".notfound");
-		add(a, c);
-		ret();
-	L(".notfound");
-		xor(a, a);
-		ret();
-		outLocalLabel();
-	}
 	void gen_strlen()
 	{
 		inLocalLabel();
@@ -236,6 +192,107 @@ private:
 		ret();
 		outLocalLabel();
 	}
+	void gen_strchr(int mode)
+	{
+		inLocalLabel();
+		using namespace Xbyak;
+
+#ifdef XBYAK64
+	#ifdef XBYAK64_WIN
+		const Reg64& p = rcx;
+		const Reg64& c1 = rdx;
+	#else
+		const Reg64& p = rdi;
+		const Reg64& c1 = rsi;
+	#endif
+		const Reg64& c = rcx;
+		const Reg64& a = rax;
+		if (mode == M_strchr) {
+			and(c1, 0xff);
+			movq(xm0, c1);
+		} else {
+			movdqu(xm0, ptr [c1]);
+		}
+		mov(a, p);
+#else
+		const Reg32& a = eax;
+		const Reg32& c = ecx;
+		if (mode == M_strchr) {
+			movzx(eax, byte [esp + 8]);
+			movd(xm0, eax);
+		} else {
+			mov(eax, ptr [esp + 8]);
+			movdqu(xm0, ptr [eax]);
+		}
+		mov(a, ptr [esp + 4]);
+#endif
+		const int v = mode == M_strchr_range ? 4 : 0;
+		jmp(".in");
+	L("@@");
+		add(a, 16);
+	L(".in");
+		pcmpistri(xm0, ptr [a], v);
+		ja("@b");
+		jnc(".notfound");
+		add(a, c);
+		ret();
+	L(".notfound");
+		xor(a, a);
+		ret();
+		outLocalLabel();
+	}
+	void gen_findChar()
+	{
+		// findChar(begin, end, c)
+		inLocalLabel();
+		using namespace Xbyak;
+
+#ifdef XBYAK64
+	#ifdef XBYAK64_WIN
+		const Reg64& begin = r9;
+		const Reg64& end = r10;
+		const Reg64& c1 = r8; // 3rd
+		mov(begin, rcx); // 1st
+		mov(end, rdx); // 2nd
+	#else
+		const Reg64& p = rdi;
+		const Reg64& c1 = rsi;
+	#endif
+		const Reg64& c = rcx;
+		const Reg64& a = rax;
+		const Reg64& d = rdx;
+		and(c1, 0xff);
+		movq(xm0, c1);
+		mov(eax, 1);
+		mov(d, end);
+		sub(d, begin); // len
+#else
+		const Reg32& a = eax;
+		const Reg32& c = ecx;
+		if (mode == M_strchr) {
+			movzx(eax, byte [esp + 8]);
+			movd(xm0, eax);
+		} else {
+			mov(eax, ptr [esp + 8]);
+			movdqu(xm0, ptr [eax]);
+		}
+		mov(a, ptr [esp + 4]);
+#endif
+		jmp(".in");
+	L("@@");
+		add(begin, 16);
+		sub(d, 16);
+	L(".in");
+		pcmpestri(xm0, ptr [begin], 0);
+		ja("@b");
+		jnc(".notfound");
+		lea(a, ptr [begin + c]);
+		ret();
+	L(".notfound");
+		mov(a, end);
+		ret();
+		outLocalLabel();
+	}
 };
 
 template<int dummy = 0>
@@ -256,51 +313,71 @@ struct DummyCall {
 
 } // str_util_impl
 
+namespace mie {
 ///////////////////////////////////////////////////////////////////////////////////////
 // functions like C
 // const version of strstr
-inline const char *strstr_sse42(const char *str, const char *key)
+inline const char *strstr(const char *str, const char *key)
 {
 	return ((const char*(*)(const char*, const char*))(char*)str_util_impl::InstanceIsHere<>::buf)(str, key);
 }
 
 // non const version of strstr
-inline char *strstr_sse42(char *str, const char *key)
+inline char *strstr(char *str, const char *key)
 {
 	return ((char*(*)(char*, const char*))(char*)str_util_impl::InstanceIsHere<>::buf)(str, key);
 }
 
-// const version of strchr
-inline const char *strchr_sse42(const char *str, int c)
+// const version of strchr(c != 0)
+inline const char *strchr(const char *str, int c)
 {
 	return ((const char*(*)(const char*, int))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchrOffset))(str, c);
 }
 
-// non const version of strchr
-inline char *strchr_sse42(char *str, int c)
+// non const version of strchr(c != 0)
+inline char *strchr(char *str, int c)
 {
 	return ((char*(*)(char*, int))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchrOffset))(str, c);
 }
 
-inline size_t strlen_sse42(const char *str)
+inline size_t strlen(const char *str)
 {
 	return ((size_t(*)(const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strlenOffset))(str);
 }
 
 /*
-	find key[0], key[1], ... in str
-	@note strlen(key) <= 16
+	find key[0] or key[1], ... in str
+	@note strlen(key) <= 16, key[i] != 0
 */
-inline const char *findCharIn(const char *str, const char *key)
+inline const char *strchr_any(const char *str, const char *key)
 {
-	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharInOffset))(str, key);
+	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchr_anyOffset))(str, key);
+}
+inline char *strchr_any(char *str, const char *key)
+{
+	return ((char *(*)(char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchr_anyOffset))(str, key);
 }
 
 /*
 	find c such that key[0] <= c && c <= key[1], key[2] <= c && c <= key[3], ... in str
-	@note strlen(key) <= 16
+	@note strlen(key) <= 16, key[i] != 0
 */
-inline const char *findCharRange(const char *str, const char *key)
+inline const char *strchr_range(const char *str, const char *key)
 {
-	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharRangeOffset))(str, key);
+	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchr_rangeOffset))(str, key);
 }
+inline char *strchr_range(char *str, const char *key)
+{
+	return ((char *(*)(char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strchr_rangeOffset))(str, key);
+}
+
+/*
+	find c in [begin, end)
+	if c is not found then return end
+*/
+inline const char *findChar(const char *begin, const char *end, char c)
+{
+	return ((const char *(*)(const char*, const char *, char c))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharOffset))(begin, end, c);
+}
+
+} // mie

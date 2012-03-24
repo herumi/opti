@@ -38,7 +38,7 @@ double strstr_test1(const std::string& text, const std::string& key)
 			const char *const end = p + text.size();
 			while (p != end) {
 				clk.begin();
-				const char *q = strstr_sse42(p, key.c_str());
+				const char *q = mie::strstr(p, key.c_str());
 				clk.end();
 				if (q == 0) break;
 				num2++;
@@ -122,7 +122,7 @@ void strchr_test()
 	}
 	str[MaxChar] = '\0';
 	strchr_test1(str, (const char*(*)(const char*,int))strchr);
-	strchr_test1(str, strchr_sse42);
+	strchr_test1(str, mie::strchr);
 }
 
 void strlen_test()
@@ -132,7 +132,7 @@ void strlen_test()
 	for (int i = 0; i < 16; i++) {
 		str += 'a';
 		size_t a = strlen(str.c_str());
-		size_t b = strlen_sse42(str.c_str());
+		size_t b = mie::strlen(str.c_str());
 		TEST_EQUAL(a, b);
 	}
 	str = "0123456789abcdefghijklmn\0";
@@ -144,7 +144,7 @@ void strlen_test()
 	puts("ok");
 }
 
-const char *findCharRange_C(const char *str, const char *key)
+const char *strchr_range_C(const char *str, const char *key)
 {
 	while (*str) {
 		unsigned char c = (unsigned char)*str;
@@ -158,7 +158,7 @@ const char *findCharRange_C(const char *str, const char *key)
 	return 0;
 }
 
-const char *findCharIn_C(const char *str, const char *key)
+const char *strchr_any_C(const char *str, const char *key)
 {
 	while (*str) {
 		unsigned char c = (unsigned char)*str;
@@ -172,9 +172,9 @@ const char *findCharIn_C(const char *str, const char *key)
 	return 0;
 }
 
-void findCharIn_test()
+void strchr_any_test()
 {
-	puts("findCharIn_test");
+	puts("strchr_any_test");
 	std::string str = "123a456abcdefghijklmnob123aa3vnrabcdefghijklmnopaw3nabcdevra";
 	for (int i = 1; i < 256; i++) {
 		str += (char)i;
@@ -203,8 +203,8 @@ void findCharIn_test()
 		const char *p2 = str.c_str();
 		const char *key = tbl[i];
 		for (;;) {
-			p1 = findCharIn_C(p1, key);
-			p2 = findCharIn(p2, key);
+			p1 = strchr_any_C(p1, key);
+			p2 = mie::strchr_any(p2, key);
 			TEST_EQUAL(p1, p2);
 			if (p1 == 0) break;
 			p1++;
@@ -214,9 +214,9 @@ void findCharIn_test()
 	puts("ok");
 }
 
-void findCharRange_test()
+void strchr_range_test()
 {
-	puts("findCharRange_test");
+	puts("strchr_range_test");
 	std::string str = "123a456abcdefghijklmnob123aa3vnraw3nabcdevra";
 	for (int i = 1; i < 256; i++) {
 		str += (char)i;
@@ -238,10 +238,43 @@ void findCharRange_test()
 		const char *p2 = str.c_str();
 		const char *key = tbl[i];
 		for (;;) {
-			p1 = findCharIn_C(p1, key);
-			p2 = findCharIn(p2, key);
+			p1 = strchr_any_C(p1, key);
+			p2 = mie::strchr_any(p2, key);
 			TEST_EQUAL(p1, p2);
 			if (p1 == 0) break;
+			p1++;
+			p2++;
+		}
+	}
+	puts("ok");
+}
+
+const char *findChar_C(const char *begin, const char *end, char c)
+{
+	return std::find(begin, end, c);
+}
+
+void findChar_test()
+{
+	puts("findChar_test");
+	std::string str = "123a456abcdefghijklmnob123aa3vnraw3nabcdevra";
+	for (int j = 0; j < 3; j++) {
+		for (int i = 0; i < 256; i++) {
+			str += (char)i;
+		}
+	}
+	str += "abcdefghijklmn\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
+	const char *const begin = &str[0];
+	const char *const end = begin + str.size() - 16;
+	for (int c = 0; c < 256; c++) {
+		const char *p1 = begin;
+		const char *p2 = begin;
+		for (;;) {
+			p1 = findChar_C(p1, end, (char)c);
+			p2 = mie::findChar(p2, end, (char)c);
+			TEST_EQUAL(p1, p2);
+			if (p1 == end) break;
 			p1++;
 			p2++;
 		}
@@ -255,8 +288,9 @@ int main()
 		strstr_test();
 		strchr_test();
 		strlen_test();
-		findCharIn_test();
-		findCharRange_test();
+		strchr_any_test();
+		strchr_range_test();
+		findChar_test();
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
