@@ -5,7 +5,7 @@
 #include "str_util.hpp"
 
 #define NUM_OF_ARRAY(x) (sizeof(x)/sizeof(*x))
-#define TEST_EQUAL(a, b) { if ((a) != (b)) fprintf(stderr, "ERR %d: a=%d, b=%d\n", __LINE__, (int)(a), (int)(b)); exit(1); }
+#define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err a=%lld, b=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
 double strstr_test1(const std::string& text, const std::string& key)
 {
@@ -96,7 +96,7 @@ const int MaxChar = 254;
 void strchr_test1(const char *str, const char *f(const char*, int))
 {
 	Xbyak::util::Clock clk;
-	int ret = 0;
+	size_t ret = 0;
 	const int count = 30000;
 	for (int i = 0; i < count; i++) {
 		clk.begin();
@@ -110,7 +110,7 @@ void strchr_test1(const char *str, const char *f(const char*, int))
 		}
 		clk.end();
 	}
-	printf("ret=%d, %.3f\n", ret / count, clk.getClock() / (double)ret);
+	printf("ret=%d, %.3f\n", (int)(ret / count), clk.getClock() / (double)ret);
 }
 
 void strchr_test()
@@ -121,7 +121,7 @@ void strchr_test()
 		str[i - 1] = (char)i;
 	}
 	str[MaxChar] = '\0';
-	strchr_test1(str, strchr);
+	strchr_test1(str, (const char*(*)(const char*,int))strchr);
 	strchr_test1(str, strchr_sse42);
 }
 
@@ -144,12 +144,119 @@ void strlen_test()
 	puts("ok");
 }
 
+const char *findCharRange_C(const char *str, const char *key)
+{
+	while (*str) {
+		unsigned char c = (unsigned char)*str;
+		for (unsigned char *p = (unsigned char *)key; *p; p += 2) {
+			if (p[0] <= c && c <= p[1]) {
+				return str;
+			}
+		}
+		str++;
+	}
+	return 0;
+}
+
+const char *findCharIn_C(const char *str, const char *key)
+{
+	while (*str) {
+		unsigned char c = (unsigned char)*str;
+		for (const unsigned char *p = (const unsigned char *)key; *p; p++) {
+			if (c == *p) {
+				return str;
+			}
+		}
+		str++;
+	}
+	return 0;
+}
+
+void findCharIn_test()
+{
+	puts("findCharIn_test");
+	std::string str = "123a456abcdefghijklmnob123aa3vnrabcdefghijklmnopaw3nabcdevra";
+	for (int i = 1; i < 256; i++) {
+		str += (char)i;
+	}
+	str += '\0';
+	const char tbl[][17] = {
+		"a",
+		"ab",
+		"abc",
+		"abcd",
+		"abcde",
+		"abcdef",
+		"abcdefg",
+		"abcdefgh",
+		"abcdefghi",
+		"abcdefghij",
+		"abcdefghijk",
+		"abcdefghijkl",
+		"abcdefghijklm",
+		"abcdefghijklmn",
+		"abcdefghijklmno",
+		"abcdefghijklmnop",
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		const char *p1 = str.c_str();
+		const char *p2 = str.c_str();
+		const char *key = tbl[i];
+		for (;;) {
+			p1 = findCharIn_C(p1, key);
+			p2 = findCharIn(p2, key);
+			TEST_EQUAL(p1, p2);
+			if (p1 == 0) break;
+			p1++;
+			p2++;
+		}
+	}
+	puts("ok");
+}
+
+void findCharRange_test()
+{
+	puts("findCharRange_test");
+	std::string str = "123a456abcdefghijklmnob123aa3vnraw3nabcdevra";
+	for (int i = 1; i < 256; i++) {
+		str += (char)i;
+	}
+	str += '\0';
+	const char tbl[][17] = {
+		"aa",
+		"az",
+		"09",
+		"az09AZ",
+		"acefgixz",
+		"acefgixz29",
+		"acefgixz29XY",
+		"acefgixz29XYAB",
+		"acefgixz29XYABRU",
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		const char *p1 = str.c_str();
+		const char *p2 = str.c_str();
+		const char *key = tbl[i];
+		for (;;) {
+			p1 = findCharIn_C(p1, key);
+			p2 = findCharIn(p2, key);
+			TEST_EQUAL(p1, p2);
+			if (p1 == 0) break;
+			p1++;
+			p2++;
+		}
+	}
+	puts("ok");
+}
+
 int main()
 {
 	try {
 		strstr_test();
 		strchr_test();
 		strlen_test();
+		findCharIn_test();
+		findCharRange_test();
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);

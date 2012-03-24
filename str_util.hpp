@@ -15,8 +15,10 @@
 namespace str_util_impl {
 
 const size_t strstrOffset = 0;
-const size_t strchrOffset = strstrOffset + 96;
-const size_t strlenOffset = strchrOffset + 48;
+const size_t strlenOffset = strstrOffset + 96;
+const size_t strchrOffset = strlenOffset + 48;
+const size_t findCharInOffset = strchrOffset + 48;
+const size_t findCharRangeOffset = findCharInOffset + 48;
 
 struct StringCode : Xbyak::CodeGenerator {
 	StringCode(char *buf, size_t size)
@@ -34,15 +36,28 @@ struct StringCode : Xbyak::CodeGenerator {
 		gen_strstr(isSandyBridge);
 		printf("strstr size=%d\n", (int)getSize());
 
-		nextOffset(strchrOffset);
-		gen_strchr();
-		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
-
 		nextOffset(strlenOffset);
 		gen_strlen();
 		printf("strlen size=%d\n", (int)(getSize() - strlenOffset));
+
+		nextOffset(strchrOffset);
+		gen_strchr(M_strchr);
+		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
+
+		nextOffset(findCharInOffset);
+		gen_strchr(M_findCharIn);
+		printf("findCharIn size=%d\n", (int)(getSize() - findCharInOffset));
+
+		nextOffset(findCharRangeOffset);
+		gen_strchr(M_findCharRange);
+		printf("findCharRange size=%d\n", (int)(getSize() - findCharRangeOffset));
 	}
 private:
+	enum {
+		M_strchr,
+		M_findCharIn,
+		M_findCharRange
+	};
 	void nextOffset(size_t pos)
 	{
 		size_t cur = getSize();
@@ -138,7 +153,7 @@ private:
 		ret();
 		outLocalLabel();
 	}
-	void gen_strchr()
+	void gen_strchr(int mode)
 	{
 		inLocalLabel();
 		using namespace Xbyak;
@@ -153,21 +168,31 @@ private:
 	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
-		and(c1, 0xff);
-		movq(xm0, c1);
+		if (mode == M_strchr) {
+			and(c1, 0xff);
+			movq(xm0, c1);
+		} else {
+			movdqu(xm0, ptr [c1]);
+		}
 		mov(a, p);
 #else
 		const Reg32& a = eax;
 		const Reg32& c = ecx;
-		movzx(eax, byte [esp + 8]);
-		movd(xm0, eax);
+		if (mode == M_strchr) {
+			movzx(eax, byte [esp + 8]);
+			movd(xm0, eax);
+		} else {
+			mov(eax, ptr [esp + 8]);
+			movdqu(xm0, ptr [eax]);
+		}
 		mov(a, ptr [esp + 4]);
 #endif
+		const int v = mode == M_findCharRange ? 4 : 0;
 		jmp(".in");
 	L("@@");
 		add(a, 16);
 	L(".in");
-		pcmpistri(xm0, ptr [a], 0);
+		pcmpistri(xm0, ptr [a], v);
 		ja("@b");
 		jnc(".notfound");
 		add(a, c);
@@ -199,12 +224,8 @@ private:
 		mov(eax, 0xff01);
 		movd(xm0, eax);
 
-#if 0
-		lea(a, ptr [p - 16]);
-#else
 		mov(a, p);
 		jmp(".in");
-#endif
 	L("@@");
 		add(a, 16);
 	L(".in");
@@ -266,3 +287,20 @@ inline size_t strlen_sse42(const char *str)
 	return ((size_t(*)(const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strlenOffset))(str);
 }
 
+/*
+	find key[0], key[1], ... in str
+	@note strlen(key) <= 16
+*/
+inline const char *findCharIn(const char *str, const char *key)
+{
+	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharInOffset))(str, key);
+}
+
+/*
+	find c such that key[0] <= c && c <= key[1], key[2] <= c && c <= key[3], ... in str
+	@note strlen(key) <= 16
+*/
+inline const char *findCharRange(const char *str, const char *key)
+{
+	return ((const char *(*)(const char*, const char *key))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCharRangeOffset))(str, key);
+}
