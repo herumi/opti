@@ -467,6 +467,44 @@ void findChar_range_test()
 	printf("findChar_range  :"); findChar_range_bench(str, (const char*(*)(const char*,const char*,const char*,size_t))mie::findChar_range);
 }
 
+const char *findStr_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin + keySize <= end) {
+		if (memcmp(begin, key, keySize) == 0) {
+			return begin;
+		}
+		begin++;
+	}
+	return end;
+}
+
+void findStr_test()
+{
+	puts("findStr_test");
+	struct {
+		const char *text;
+		const char *key;
+	} tbl[] = {
+		{ "abcdefghijklmn", "fghi" },
+		{ "abcdefghijklmn", "x" },
+		{ "abcdefghijklmn", "i" },
+		{ "abcdefghijklmn", "ij" },
+		{ "abcdefghijklmn", "abcdefghijklm" },
+		{ "0123456789abcdefghijkl", "0123456789abcdefghijklm" },
+		{ "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU", "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU@" },
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		const char *begin = tbl[i].text;
+		const char *end = begin + strlen(begin);
+		const char *key = tbl[i].key;
+		const size_t keySize = strlen(key);
+		const char *a = findStr_C(begin, end, key, keySize);
+		const char *b = mie::findStr(begin, end, key, keySize);
+		TEST_EQUAL(a, b);
+	}
+	puts("ok");
+}
+
 int main()
 {
 	try {
@@ -478,6 +516,7 @@ int main()
 		findChar_test();
 		findChar_any_test();
 		findChar_range_test();
+		findStr_test();
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);

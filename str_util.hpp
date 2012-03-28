@@ -22,6 +22,7 @@ const size_t strchr_rangeOffset = strchr_anyOffset + 48;
 const size_t findCharOffset = strchr_rangeOffset + 64;
 const size_t findChar_anyOffset = findCharOffset + 64;
 const size_t findChar_rangeOffset = findChar_anyOffset + 64;
+const size_t findStrOffset = findChar_rangeOffset + 64;
 
 struct StringCode : Xbyak::CodeGenerator {
 	StringCode(char *buf, size_t size)
@@ -67,6 +68,10 @@ struct StringCode : Xbyak::CodeGenerator {
 		nextOffset(findChar_rangeOffset);
 		gen_findChar(M_range);
 		printf("findChar_range size=%d\n", (int)(getSize() - findChar_rangeOffset));
+
+		nextOffset(findStrOffset);
+		gen_findStr(isSandyBridge);
+		printf("findStr size=%d\n", (int)(getSize() - findStrOffset));
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
 		::exit(1);
@@ -97,21 +102,21 @@ private:
 #ifdef XBYAK64
 	#ifdef XBYAK64_WIN
 		const Reg64& key = rdx; // 2nd
-		const Reg64& t1 = r11;
-		const Reg64& t2 = r9;
+		const Reg64& save_a = r11;
+		const Reg64& save_key = r9;
 		mov(rax, rcx); // 1st:str
 	#else
 		const Reg64& key = rsi; // 2nd
-		const Reg64& t1 = r8;
-		const Reg64& t2 = r9;
+		const Reg64& save_a = r8;
+		const Reg64& save_key = r9;
 		mov(rax, rdi); // 1st:str
 	#endif
 		const Reg64& c = rcx;
 		const Reg64& a = rax;
 #else
 		const Reg32& key = edx;
-		const Reg32& t1 = esi;
-		const Reg32& t2 = edi;
+		const Reg32& save_a = esi;
+		const Reg32& save_key = edi;
 		const Reg32& c = ecx;
 		const Reg32& a = eax;
 		const int P_ = 4 * 2;
@@ -125,7 +130,7 @@ private:
 		/*
 			strstr(a, key);
 			input key
-			use t1, t2, c
+			use save_a, save_key, c
 		*/
 		movdqu(xm0, ptr [key]); // xm0 = *key
 	L(".lp");
@@ -147,16 +152,16 @@ private:
 		} else {
 			add(a, c);
 		}
-		mov(t1, a); // save a
-		mov(t2, key); // save key
+		mov(save_a, a); // save a
+		mov(save_key, key); // save key
 	L(".tailCmp");
-		movdqu(xm1, ptr [t2]);
-		pcmpistri(xmm1, ptr [t1], 12);
+		movdqu(xm1, ptr [save_key]);
+		pcmpistri(xmm1, ptr [save_a], 12);
 		jno(".next"); // if (OF == 0) goto .next
 		js(".found"); // if (SF == 1) goto .found
 		// rare case
-		add(t1, 16);
-		add(t2, 16);
+		add(save_a, 16);
+		add(save_key, 16);
 		jmp(".tailCmp");
 	L(".next");
 		add(a, 1);
@@ -257,13 +262,13 @@ private:
 	}
 	void gen_findChar(int mode)
 	{
-		// findChar(begin, end, c)
+		// findChar(p(=begin), end, c)
 		inLocalLabel();
 		using namespace Xbyak;
 
 #ifdef XBYAK64
 	#ifdef XBYAK64_WIN
-		const Reg64& begin = r9;
+		const Reg64& p = r9;
 		const Reg64& end = r10;
 		if (mode == M_one) {
 			movzx(r8d, r8b); // c:3rd
@@ -272,10 +277,10 @@ private:
 			movdqu(xm0, ptr [r8]); // key:3rd
 			mov(rax, r9); // keySize:4th
 		}
-		mov(begin, rcx); // 1st
+		mov(p, rcx); // 1st
 		mov(end, rdx); // 2nd
 	#else
-		const Reg64& begin = rdi; // 1st
+		const Reg64& p = rdi; // 1st
 		const Reg64& end = rsi; // 2nd
 		if (mode == M_one) {
 			movzx(edx, dl); // c:3rd
@@ -289,7 +294,7 @@ private:
 		const Reg64& c = rcx;
 		const Reg64& d = rdx;
 #else
-		const Reg32& begin = esi;
+		const Reg32& p = esi;
 		const Reg32& end = edi;
 		const Reg32& a = eax;
 		const Reg32& c = ecx;
@@ -297,7 +302,7 @@ private:
 		push(esi);
 		push(edi);
 		const int P_ = 4 * 2;
-		mov(begin, ptr [esp + P_ + 4]);
+		mov(p, ptr [esp + P_ + 4]);
 		mov(end, ptr [esp + P_ + 8]);
 		if (mode == M_one) {
 			movzx(eax, byte [esp + P_ + 12]);
@@ -313,22 +318,22 @@ private:
 			inc(eax); // eax = 1
 		}
 		/*
-			input  : [begin, end), xm0 : char(key)
+			input  : [p, end), xm0 : char(key)
 			output : a
-			destroy: a, c, d, begin
+			destroy: a, c, d, p
 		*/
 		const int v = mode == M_range ? 4 : 0;
 		mov(d, end);
-		sub(d, begin); // len
+		sub(d, p); // len
 		jmp(".in");
 	L("@@");
-		add(begin, 16);
+		add(p, 16);
 		sub(d, 16);
 	L(".in");
-		pcmpestri(xm0, ptr [begin], v);
+		pcmpestri(xm0, ptr [p], v);
 		ja("@b");
 		jnc(".notfound");
-		lea(a, ptr [begin + c]);
+		lea(a, ptr [p + c]);
 #ifdef XBYAK32
 		pop(edi);
 		pop(esi);
@@ -339,6 +344,132 @@ private:
 #ifdef XBYAK32
 		pop(edi);
 		pop(esi);
+#endif
+		ret();
+		outLocalLabel();
+	}
+	// findStr(const char*begin, const char *end, const char *key, size_t keySize)
+	void gen_findStr(bool isSandyBridge)
+	{
+		inLocalLabel();
+		using namespace Xbyak;
+#ifdef XBYAK64
+	#ifdef XBYAK64_WIN
+		const Reg64& p = r9;
+		const Reg64& key = r8;
+		const Reg64& save_p = r10;
+		const Reg64& save_key = r11;
+		const Reg64& save_a = r12;
+		const Reg64& save_d = r13;
+		const Address end = ptr [rsp + 24];
+		mov(ptr [rsp + 8], r12);
+		mov(ptr [rsp + 16], r13);
+		mov(end, rdx); // save end:2nd
+		mov(rax, r9); // keySize:4th
+		sub(rdx, rcx); // len = end - begin(1st)
+		mov(p, rcx);
+	#else
+		const Reg64& p = rdi; // begin::1st
+		const Reg64& key = r8;
+		const Reg64& save_p = r9;
+		const Reg64& save_key = r10;
+		const Reg64& save_a = r11;
+		const Reg64& save_d = r12;
+		const Reg64& end = rsi; // end::2nd
+		mov(key, rdx);
+		mov(rax, rcx); // keySize:4th
+		mov(rdx, end);
+		sub(rdx, p); // len = end - p
+		push(r12);
+	#endif
+		const Reg64& a = rax;
+		const Reg64& c = rcx;
+		const Reg64& d = rdx;
+#else
+		const Reg32& p = esi;
+		const Reg32& key = edi;
+		const Reg32& save_p = ebx;
+		const Reg32& save_key = ebp;
+		const Reg32& a = eax;
+		const Reg32& c = ecx;
+		const Reg32& d = edx;
+		const int P_ = 4 * 6;
+		const Address save_d = ptr [esp + 16];
+		const Address save_a = ptr [esp + 20];
+		const Address end = ptr [esp + P_ + 8];
+		sub(esp, P_);
+		mov(ptr [esp + 0], esi);
+		mov(ptr [esp + 4], edi);
+		mov(ptr [esp + 8], ebx);
+		mov(ptr [esp + 12], ebp);
+		mov(p, ptr [esp + P_ + 4]); // p
+		mov(edx, end); // end
+		sub(edx, p); // len = end - p
+		mov(key, ptr [esp + P_+ 12]); // key
+		movdqu(xm0, ptr [key]);
+		mov(eax, ptr [esp + P_ + 16]); // keySize
+#endif
+
+		/*
+			findStr(p, end, key, keySize)
+			input  : p, d:=len=end-p, xm0:key, a:keySize
+			destroy: save_p, save_d, save_key, save_keySize, a, c, d
+		*/
+		movdqu(xm0, ptr [key]);
+	L(".lp");
+		pcmpestri(xmm0, ptr [p], 12); // 12(1100b) = [equal ordered:unsigned:byte]
+		lea(p, ptr [p + 16]);
+		lea(d, ptr [d - 16]);
+		ja(".lp"); // if (CF == 0 and ZF = 0) goto .lp
+		jnc(".notFound");
+		// get position
+		lea(p, ptr [p + c - 16]);
+		sub(d, c);
+		add(d, 16);
+		mov(save_p, p);
+		mov(save_key, key);
+		mov(save_a, a);
+		mov(save_d, d);
+	L(".tailCmp");
+		movdqu(xm1, ptr [save_key]);
+		pcmpestri(xmm1, ptr [save_p], 12);
+		jno(".next"); // if (OF == 0) goto .next
+		js(".found"); // if (SF == 1) goto .found
+		// rare case
+		add(save_p, 16);
+		add(save_key, 16);
+		sub(a, 16);
+		sub(d, 16);
+		jmp(".tailCmp");
+	L(".next");
+		add(p, 1);
+		mov(a, save_a);
+#ifdef XBYAK32
+		mov(edx, save_d);
+		sub(edx, 1);
+#else
+		lea(d, ptr [save_d - 1]);
+#endif
+		jmp(".lp");
+	L(".notFound");
+		mov(a, end);
+		jmp(".exit");
+	L(".found");
+		mov(a, p);
+	L(".exit");
+#ifdef XBYAK64
+	#ifdef XBYAK64_WIN
+		mov(r12, ptr [rsp + 8]);
+		mov(r13, ptr [rsp + 16]);
+	#else
+		pop(r12);
+	#endif
+#else
+		mov(esi, ptr [esp + 0]);
+		mov(edi, ptr [esp + 4]);
+		mov(ebx, ptr [esp + 8]);
+		mov(ebp, ptr [esp + 12]);
+		add(esp, P_);
 #endif
 		ret();
 		outLocalLabel();
@@ -460,6 +591,13 @@ inline const char *findChar_range(const char *begin, const char *end, const char
 inline char *findChar_range(char *begin, const char *end, const char *key, size_t keySize)
 {
 	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findChar_rangeOffset))(begin, end, key, keySize);
+}
+/*
+	find [key, key + keySize) in [begin, end)
+*/
+inline const char *findStr(const char*begin, const char *end, const char *key, size_t keySize)
+{
+	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findStrOffset))(begin, end, key, keySize);
 }
 
 } // mie

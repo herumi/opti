@@ -11,6 +11,7 @@
 #include <cybozu/file.hpp>
 #include <cybozu/quick_search.hpp>
 #include "strstr_sse42.hpp"
+#include "str_util.hpp"
 
 #include <xbyak/xbyak_util.h>
 
@@ -76,6 +77,100 @@ double test(const std::string& text, const std::string& key)
 	double ave2 = time2 / (len2 ? len2 : text.size()) * 1e3;
 	double rate = time1 / time2;
 	printf("%26s %6d%10.1f %8.2f %5.2f %8.2f %5.2f %4.2f\n", key.substr(0,26).c_str(), num1, len1, time1, ave1, time2, ave2, rate);
+	return rate;
+}
+
+const char *findStr_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin + keySize <= end) {
+		if (memcmp(begin, key, keySize) == 0) {
+			return begin;
+		}
+		begin++;
+	}
+	return end;
+}
+
+double test2(const std::string& text, const std::string& key)
+{
+	int num1 = 0;
+	int num2 = 0;
+	double time1 = 0;
+	double time2 = 0;
+	double len1 = 0;
+	double len2 = 0;
+	const int N = 10;
+	for (int i = 0; i < N; i++) {
+		{
+			Xbyak::util::Clock clk;
+			const char *k = key.c_str();
+			size_t keySize = key.size();
+#if 1
+			size_t p = 0;
+			while (p != std::string::npos) {
+				clk.begin();
+				size_t q = text.find(key, p);
+				clk.end();
+				if (q == std::string::npos) break;
+				num1++;
+				len1 += (int)(q - p);
+				p = q + 1;
+			}
+#else
+			const char *p = &text[0];
+			const char *const end = p + text.size();
+			while (p != end) {
+				clk.begin();
+				const char *q = findStr_C(p, end, k, keySize);
+				clk.end();
+				if (q == end) break;
+				num1++;
+				len1 += (int)(q - p);
+				p = q + 1;
+			}
+#endif
+			time1 += clk.getClock() / double(clk.getCount()) * 1e-3;
+		}
+		{
+			Xbyak::util::Clock clk;
+			const char *p = &text[0];
+			const char *const end = p + text.size();
+			const char *k = key.c_str();
+			size_t keySize = key.size();
+			while (p != end) {
+				clk.begin();
+				const char *q = mie::findStr(p, end, k, keySize);
+#if 0
+				const char *r = findStr_C(p, end, k, keySize);
+				if (q != r) {
+					printf("p=%s, key=%s, q=%p(%d), r=%p(%d)\n", std::string(p, 10).c_str(), k, q, (int)(q - &text[0]), r, (int)(r - &text[0]));
+					exit(1);
+				}
+#endif
+				clk.end();
+				if (q == end) break;
+				num2++;
+				len2 += (int)(q - p);
+				p = q + 1;
+			}
+			time2 += clk.getClock() / double(clk.getCount()) * 1e-3;
+		}
+	}
+	num1 /= N;
+	num2 /= N;
+	len1 /= N;
+	len2 /= N;
+	time1 /= N;
+	time2 /= N;
+	if (num1 != num2 || len1 != len2) {
+		fprintf(stderr, "err key=%s, (%d, %d), (%d, %d)\n", key.c_str(), num1, (int)len1, num2, (int)len2);
+	}
+	if (num1) len1 /= num1;
+	if (num2) len2 /= num2;
+	double ave1 = time1 / (len1 ? len1 : text.size()) * 1e3;
+	double ave2 = time2 / (len2 ? len2 : text.size()) * 1e3;
+	double rate = time1 / time2;
+	printf("%24s %6d%10.1f %8.2f %5.2f %8.2f %5.2f %4.2f\n", key.substr(0,24).c_str(), num1, len1, time1, ave1, time2, ave2, rate);
 	return rate;
 }
 
@@ -156,10 +251,14 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%25s %6s %10s %8s %5s %8s %5s rate\n", "key", "count", "len", "C:Kclk", "clk/B", "asm:Kclk", "clk/B");
+#if 0
 	double score = 0;
 	for (size_t i = 0; i < keyTbl.size(); i++) {
 		score += test(text, keyTbl[i]);
 	}
 	printf("score rate=%f\n", score / keyTbl.size());
+#endif
+	for (size_t i = 0; i < keyTbl.size(); i++) {
+		test2(text, keyTbl[i]);
+	}
 }
-

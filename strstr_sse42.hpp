@@ -65,10 +65,18 @@ struct StrstrCode : Xbyak::CodeGenerator {
 		const Reg32& t2 = edi;
 		const Reg32& c = ecx;
 		const Reg32& a = eax;
-		const int P_ = 4 * 2;
+		const Reg32& len = ebx;
+		const Reg32& tbl = ebp;
+		const int P_ = isQs ? 4 * 4 : 4 * 2;
 		sub(esp, P_);
 		mov(ptr [esp + 0], esi);
 		mov(ptr [esp + 4], edi);
+		if (isQs) {
+			mov(ptr [esp + 8], ebx);
+			mov(ptr [esp + 12], ebp);
+			mov(len, ptr [esp + P_ + 12]);
+			mov(tbl, ptr [esp + P_ + 16]);
+		}
 		mov(eax, ptr [esp + P_ + 4]);
 		mov(s2, ptr [esp + P_ + 8]);
 #endif
@@ -124,6 +132,10 @@ struct StrstrCode : Xbyak::CodeGenerator {
 #ifdef XBYAK32
 		mov(esi, ptr [esp + 0]);
 		mov(edi, ptr [esp + 4]);
+		if (isQs) {
+			mov(ebx, ptr [esp + 8]);
+			mov(ebp, ptr [esp + 12]);
+		}
 		add(esp, P_);
 #elif defined(XBYAK64_WIN)
 		if (isQs) {
