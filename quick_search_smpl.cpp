@@ -51,6 +51,19 @@ struct FquickSearch_org {
 	const char *find(const char *p) const { return qs_.find_org(p, end_); }
 };
 
+const char *mystrstr_C(const char *str, const char *key)
+{
+	size_t len = strlen(key);
+//	if (len == 1) return strchr(str, key[0]);
+	while (*str) {
+		const char *p = strchr(str, key[0]);
+		if (p == 0) return 0;
+		if (memcmp(p + 1, key + 1, len - 1) == 0) return p;
+		str = p + 1;
+	}
+	return 0;
+}
+
 int main(int argc, char *argv[])
 {
 	argc--, argv++;
@@ -71,7 +84,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keyTbl;
 	if (key.empty()) {
 		const char tbl[][32] = {
-			"a", "b", "c", "d",
+			"a", "a", "b", "c", "d",
 			"ab", "xy", "ex",
 			"std", "jit", "asm",
 			"atoi", "1234",
@@ -97,7 +110,8 @@ int main(int argc, char *argv[])
 		keyTbl.push_back(key);
 	}
 
-	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs org", FquickSearch_org(), text, keyTbl);
-	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs", FquickSearch(), text, keyTbl);
+//	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs org", FquickSearch_org(), text, keyTbl);
+//	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs", FquickSearch(), text, keyTbl);
+	benchmarkTbl("qs", FquickSearch(), "mystrstr_C", Fstrstr<mystrstr_C>(), text, keyTbl);
 }
 

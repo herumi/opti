@@ -55,6 +55,19 @@ const char *strchr_range_C(const char *str, const char *key)
 	return 0;
 }
 
+const char *mystrstr_C(const char *str, const char *key)
+{
+	size_t len = strlen(key);
+//	if (len == 1) return strchr(str, key[0]);
+	while (*str) {
+		const char *p = strchr(str, key[0]);
+		if (p == 0) return 0;
+		if (memcmp(p + 1, key + 1, len - 1) == 0) return p;
+		str = p + 1;
+	}
+	return 0;
+}
+
 const char *strchr_any_C(const char *str, const char *key)
 {
 	while (*str) {
@@ -248,6 +261,7 @@ void strstr_test()
 		}
 		std::string key = tbl[i].key;
 		benchmark("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), str, key);
+		benchmark("strstr2_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<mie::strstr>(), str, key);
 	}
 }
 
@@ -368,9 +382,10 @@ int main(int argc, char *argv[])
 	std::vector<std::string> keyTbl;
 
 	const char tbl[][32] = {
-		"a", "b",
-		"xy", "ex",
-		"std", "jit",
+		"a", // dummy for cache
+		"a", "b", "c", "d",
+		"ab", "xy", "ex",
+		"std", "jit", "asm",
 		"atoi", "1234",
 		"File", "?????",
 		"patch", "56789",
@@ -381,6 +396,7 @@ int main(int argc, char *argv[])
 		"\xe3\x81\x93\xe3\x82\x8c\xe3\x81\xaf", /* ko-re-wa */
 		"cybozu::ssl",
 		"asdfasdfasdf",
+		"static_assert",
 		"const_iterator",
 		"000000000000000",
 		"WARIXDFSKVJWSVFDVWESVF",
@@ -401,6 +417,7 @@ int main(int argc, char *argv[])
 		strstr_test();
 		if (!text.empty()) {
 			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("string::find", Fstr_find(), "findStr", Frange<mie::findStr>(), text, keyTbl);
 		}
 
@@ -408,6 +425,10 @@ int main(int argc, char *argv[])
 		findChar_any_test(text);
 		findChar_range_test(text);
 #endif
+//			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
+//			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "mystrstr", Fstrstr<mie::strstr>(), text, keyTbl);
+//			benchmarkTbl("strstr", Fstrstr<STRSTR>(), "mystrstr", Fstrstr<mie::strstr>(), text, keyTbl);
+//		strstr_test();
 		findStr_test(text);
 		return 0;
 	} catch (Xbyak::Error err) {
