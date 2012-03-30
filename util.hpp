@@ -103,7 +103,7 @@ private:
 /*
 	read text data from fileName
 */
-static inline bool LoadFile(AlignedArray<char>& textBuf, const std::string& fileName)
+inline bool LoadFile(AlignedArray<char>& textBuf, const std::string& fileName)
 {
 	std::ifstream ifs(fileName.c_str(), std::ios::binary);
 	if (!ifs) return false;
@@ -117,3 +117,14 @@ static inline bool LoadFile(AlignedArray<char>& textBuf, const std::string& file
 	return true;
 }
 
+inline std::string LoadFile(const std::string& fileName)
+{
+	std::ifstream ifs(fileName.c_str(), std::ios::binary);
+	std::string str(std::istreambuf_iterator<char>(ifs.rdbuf()), std::istreambuf_iterator<char>());
+	for (size_t i = 0; i < str.size(); i++) {
+		char c = str[i];
+		if (c == '\0') c = ' ';
+	}
+	printf("file=%s, size=%d\n", fileName.c_str(), (int)str.size());
+	return str;
+}
