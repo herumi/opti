@@ -484,6 +484,10 @@ void findStr_test(const std::string& text)
 
 int main(int argc, char *argv[])
 {
+	if (!mie::isAvaiableSSE42()) {
+		fprintf(stderr, "SSE4.2 is not supported\n");
+		return 1;
+	}
 	argc--, argv++;
 	const std::string text = (argc == 1) ? LoadFile(argv[0]) : "";
 	std::vector<std::string> keyTbl;
@@ -513,6 +517,7 @@ int main(int argc, char *argv[])
 	}
 
 	try {
+#if 0
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);
@@ -527,7 +532,9 @@ int main(int argc, char *argv[])
 		findChar_test(text);
 		findChar_any_test(text);
 		findChar_range_test(text);
-		findStr_test(text);
+#endif
+//		findStr_test(text);
+			benchmarkTbl("strstr_C", Fstrstr<strstr>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);

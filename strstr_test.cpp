@@ -9,7 +9,7 @@
 #include <vector>
 #include <stdio.h>
 #include <cybozu/file.hpp>
-#include <cybozu/quick_search.hpp>
+#include "quick_search.hpp"
 #include "strstr_sse42.hpp"
 #include "str_util.hpp"
 
@@ -45,7 +45,7 @@ double test(const std::string& text, const std::string& key)
 			Xbyak::util::Clock clk;
 			const char *p = &text[0];
 			const char *const end = p + text.size();
-//			cybozu::QuickSearch qs(key);
+//			QuickSearch qs(key);
 			QuickSearch2 qs(key);
 			const size_t len = key.size();
 			while (p != end) {

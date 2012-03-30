@@ -25,15 +25,14 @@ const size_t findChar_rangeOffset = findChar_anyOffset + 64;
 const size_t findStrOffset = findChar_rangeOffset + 64;
 
 struct StringCode : Xbyak::CodeGenerator {
+	const Xbyak::util::Cpu cpu;
 	StringCode(char *buf, size_t size)
 		try
 		: Xbyak::CodeGenerator(size, buf)
 	{
 		Xbyak::CodeArray::protect(buf, size, true);
-		Xbyak::util::Cpu cpu;
 		if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
-			fprintf(stderr, "SSE4.2 is not supported\n");
-			::exit(1);
+			return;
 		}
 		/* this check is adhoc */
 		const bool isSandyBridge = cpu.has(Xbyak::util::Cpu::tAVX);
@@ -134,12 +133,11 @@ private:
 		*/
 		movdqu(xm0, ptr [key]); // xm0 = *key
 	L(".lp");
+		pcmpistri(xmm0, ptr [a], 12); // 12(1100b) = [equal ordered:unsigned:byte]
 		if (isSandyBridge) {
-			pcmpistri(xmm0, ptr [a], 12); // 12(1100b) = [equal ordered:unsigned:byte]
 			lea(a, ptr [a + 16]);
 			ja(".lp"); // if (CF == 0 and ZF = 0) goto .lp
 		} else {
-			pcmpistri(xmm0, ptr [a], 12);
 			jbe(".headCmp"); //  if (CF == 1 or ZF == 1) goto .headCmp
 			add(a, 16);
 			jmp(".lp");
@@ -349,7 +347,7 @@ private:
 		outLocalLabel();
 	}
 	// findStr(const char*begin, const char *end, const char *key, size_t keySize)
-	void gen_findStr(bool isSandyBridge)
+	void gen_findStr(bool /*isSandyBridge*/)
 	{
 		inLocalLabel();
 		using namespace Xbyak;
@@ -418,14 +416,27 @@ private:
 		movdqu(xm0, ptr [key]);
 	L(".lp");
 		pcmpestri(xmm0, ptr [p], 12); // 12(1100b) = [equal ordered:unsigned:byte]
-		lea(p, ptr [p + 16]);
-		lea(d, ptr [d - 16]);
-		ja(".lp"); // if (CF == 0 and ZF = 0) goto .lp
+		if (true/* isSandyBridge */) {
+			lea(p, ptr [p + 16]);
+			lea(d, ptr [d - 16]);
+			ja(".lp"); // if (CF == 0 and ZF = 0) goto .lp
+		} else {
+			jbe(".headCmp"); //  if (CF == 1 or ZF == 1) goto .headCmp
+			add(p, 16);
+			sub(d, 16);
+			jmp(".lp");
+	L(".headCmp");
+		}
 		jnc(".notFound");
 		// get position
-		lea(p, ptr [p + c - 16]);
-		sub(d, c);
-		add(d, 16);
+		if (true/* isSandyBridge */) {
+			lea(p, ptr [p + c - 16]);
+			sub(d, c);
+			add(d, 16);
+		} else {
+			add(p, c);
+			sub(d, c);
+		}
 		mov(save_p, p);
 		mov(save_key, key);
 		mov(save_a, a);
@@ -495,6 +506,11 @@ struct DummyCall {
 } // str_util_impl
 
 namespace mie {
+
+inline bool isAvaiableSSE42()
+{
+	return str_util_impl::InstanceIsHere<>::code.cpu.has(Xbyak::util::Cpu::tSSE42);
+}
 ///////////////////////////////////////////////////////////////////////////////////////
 // functions like C
 // const version of strstr
