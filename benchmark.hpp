@@ -15,8 +15,7 @@ struct Ret {
 	operator long long() const { return val; }
 };
 
-
-template<char* (*f)(const char*str, const char *key)>
+template<const char* (*f)(const char*str, const char *key)>
 struct Fstrstr {
 	const char *str_;
 	const char *key_;
@@ -130,3 +129,20 @@ void benchmarkTbl(const char *msg1, F1 f1, const char *msg2, F2 f2, const std::s
 	}
 }
 
+// dirty hack for gcc 4.2 on mac
+#ifdef __APPLE__
+	#define STRSTR mystrstr
+	#define STRCHR mystrchr
+inline const char *mystrstr(const char*text, const char *key)
+{
+	return strstr(text, key);
+}
+inline const char *mystrchr(const char*text, int c)
+{
+	return strchr(text, c);
+}
+
+#else
+	#define STRSTR strstr
+	#define STRCHR strchr
+#endif

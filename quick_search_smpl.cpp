@@ -6,6 +6,7 @@
 */
 #include <string>
 #include <vector>
+#include <cstring>
 #include <stdio.h>
 #include <xbyak/xbyak_util.h>
 #include "quick_search.hpp"
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
 		keyTbl.push_back(key);
 	}
 
-	benchmarkTbl("strstr", Fstrstr<strstr>(), "qs org", FquickSearch_org(), text, keyTbl);
-	benchmarkTbl("strstr", Fstrstr<strstr>(), "qs", FquickSearch(), text, keyTbl);
+	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs org", FquickSearch_org(), text, keyTbl);
+	benchmarkTbl("strstr", Fstrstr<STRSTR>(), "qs", FquickSearch(), text, keyTbl);
 }
 

@@ -145,7 +145,7 @@ void strchr_test(const std::string& text)
 	str[MaxChar] = '\0';
 	const std::string *pstr = text.empty() ? &str : &text;
 	for (int c = '0'; c <= '9'; c++) {
-		benchmark("strchr_C", Fstrchr<strchr>(), "strchr", Fstrchr<mie::strchr>(), *pstr, std::string(1, (char)c));
+		benchmark("strchr_C", Fstrchr<STRCHR>(), "strchr", Fstrchr<mie::strchr>(), *pstr, std::string(1, (char)c));
 	}
 }
 
@@ -234,7 +234,7 @@ void strstr_test()
 			str.append(tbl[i].str, len);
 		}
 		std::string key = tbl[i].key;
-		benchmark("strstr_C", Fstrstr<strstr>(), "strstr", Fstrstr<mie::strstr>(), str, key);
+		benchmark("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), str, key);
 	}
 }
 
@@ -386,7 +386,7 @@ int main(int argc, char *argv[])
 
 		strstr_test();
 		if (!text.empty()) {
-			benchmarkTbl("strstr_C", Fstrstr<strstr>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("string::find", Fstr_find(), "findStr", Frange<mie::findStr>(), text, keyTbl);
 		}
 
@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
 		findChar_range_test(text);
 #endif
 //		findStr_test(text);
-			benchmarkTbl("strstr_C", Fstrstr<strstr>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
