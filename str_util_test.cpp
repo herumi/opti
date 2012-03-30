@@ -113,6 +113,19 @@ const char *findStr_C(const char *begin, const char *end, const char *key, size_
 	return end;
 }
 
+const char *findStr2_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin + keySize <= end) {
+		const char *p = (const char*)memchr(begin, key[0], end - begin);
+		if (p == 0) break;
+		if (memcmp(p + 1, key + 1, keySize - 1) == 0) {
+			return p;
+		}
+		begin = p + 1;
+	}
+	return end;
+}
+
 /////////////////////////////////////////////////
 void strlen_test()
 {
@@ -339,6 +352,7 @@ void findStr_test(const std::string& text)
 		const std::string key = tbl[i].key;
 		const std::string *pstr = text.empty() ? &str : &text;
 		benchmark("findStr_C", Frange<findStr_C>(), "findStr", Frange<mie::findStr>(), *pstr, key);
+		benchmark("findStr2_C", Frange<findStr2_C>(), "findStr", Frange<mie::findStr>(), *pstr, key);
 	}
 	puts("ok");
 }
@@ -394,8 +408,7 @@ int main(int argc, char *argv[])
 		findChar_any_test(text);
 		findChar_range_test(text);
 #endif
-//		findStr_test(text);
-			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+		findStr_test(text);
 		return 0;
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
