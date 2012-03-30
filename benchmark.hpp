@@ -130,7 +130,7 @@ void benchmarkTbl(const char *msg1, F1 f1, const char *msg2, F2 f2, const std::s
 }
 
 // dirty hack for gcc 4.2 on mac
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__clang__)
 	#define STRSTR mystrstr
 	#define STRCHR mystrchr
 inline const char *mystrstr(const char*text, const char *key)
