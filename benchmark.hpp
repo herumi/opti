@@ -16,7 +16,7 @@ struct Ret {
 };
 
 
-template<const char* (*f)(const char*str, const char *key)>
+template<char* (*f)(const char*str, const char *key)>
 struct Fstrstr {
 	const char *str_;
 	const char *key_;

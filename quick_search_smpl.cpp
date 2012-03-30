@@ -31,6 +31,25 @@ struct FquickSearch {
 	const char *find(const char *p) const { return qs_.find(p, end_); }
 };
 
+struct FquickSearch_org {
+	const char *str_;
+	const char *key_;
+	const char *end_;
+	typedef const char* type;
+	QuickSearch qs_;
+	void set(const std::string& str, const std::string& key)
+	{
+		str_ = &str[0];
+		end_ = str_ + str.size();
+		key_ = &key[0];
+		qs_.init(key_, key_ + key.size());
+	}
+	FquickSearch_org() : str_(0), key_(0), end_(0) { }
+	const char *begin() const { return str_; }
+	const char *end() const { return end_; }
+	const char *find(const char *p) const { return qs_.find_org(p, end_); }
+};
+
 int main(int argc, char *argv[])
 {
 	argc--, argv++;
@@ -77,6 +96,7 @@ int main(int argc, char *argv[])
 		keyTbl.push_back(key);
 	}
 
-	benchmarkTbl("strstr", Fstrstr<strstr>(), "quick search", FquickSearch(), text, keyTbl);
+	benchmarkTbl("strstr", Fstrstr<strstr>(), "qs org", FquickSearch_org(), text, keyTbl);
+	benchmarkTbl("strstr", Fstrstr<strstr>(), "qs", FquickSearch(), text, keyTbl);
 }
 
