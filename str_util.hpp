@@ -32,6 +32,7 @@ struct StringCode : Xbyak::CodeGenerator {
 	{
 		Xbyak::CodeArray::protect(buf, size, true);
 		if (!cpu.has(Xbyak::util::Cpu::tSSE42)) {
+			fprintf(stderr, "warning SSE4.2 is not available.\n");
 			return;
 		}
 		/* this check is adhoc */
