@@ -3,6 +3,7 @@
 	string function for SSE4.2
 	@NOTE
 	all functions in this header will access max 16 bytes beyond the end of input string
+	see http://www.slideshare.net/herumi/x86opti3
 
 	@author herumi
 	@note modified new BSD license

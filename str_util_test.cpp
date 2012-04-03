@@ -41,6 +41,33 @@ struct Fstr_find_first_of {
 	size_t find(size_t p) const { return str_->find_first_of(*key_, p); }
 };
 
+// findChar_range(begin, end, "azAZ<>")
+struct FfindChar_range_emu {
+	const char *begin_;
+	const char *end_;
+	char tbl_[256];
+	typedef const char* type;
+	void set(const std::string& str, const std::string&)
+	{
+		begin_ = &str[0];
+		end_ = begin_ + str.size();
+		for (unsigned int i = 0; i < 256; i++) {
+			tbl_[i] = ('a' <= i && i <= 'z') || ('A' <= i && i <= 'Z') || ('<' <= i && i <= '>');
+		}
+	}
+	FfindChar_range_emu() : begin_(0), end_(0) { }
+	const char *begin() const { return begin_; }
+	const char *end() const { return end_; }
+	const char *find(const char *p) const
+	{
+		while (p < end_) {
+			if (tbl_[(unsigned char)*p]) return p;
+			p++;
+		}
+		return end_;
+	}
+};
+
 const char *strchr_range_C(const char *str, const char *key)
 {
 	while (*str) {
@@ -332,6 +359,7 @@ void findChar_range_test(const std::string& text)
 		"zz",
 		"09",
 		"az09",
+		"0-9a-fA-F",
 		"09afAF//..",
 	};
 	const std::string *pstr = text.empty() ? &str : &text;
@@ -339,6 +367,8 @@ void findChar_range_test(const std::string& text)
 		const std::string key = tbl[i];
 		benchmark("findChar_range_C", Frange<findChar_range_C>(), "findChar_range", Frange<mie::findChar_range>(), *pstr, key);
 	}
+	std::string key = "azAZ<>"; // QQQ:same as in FfindChar_range_emu
+	benchmark("findChar_range_emu", FfindChar_range_emu(), "findChar_range", Frange<mie::findChar_range>(), text, key);
 }
 
 void findStr_test(const std::string& text)
@@ -408,7 +438,6 @@ int main(int argc, char *argv[])
 	}
 
 	try {
-#if 0
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);
@@ -424,11 +453,6 @@ int main(int argc, char *argv[])
 		findChar_test(text);
 		findChar_any_test(text);
 		findChar_range_test(text);
-#endif
-//			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
-//			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "mystrstr", Fstrstr<mie::strstr>(), text, keyTbl);
-//			benchmarkTbl("strstr", Fstrstr<STRSTR>(), "mystrstr", Fstrstr<mie::strstr>(), text, keyTbl);
-//		strstr_test();
 		findStr_test(text);
 		return 0;
 	} catch (Xbyak::Error err) {
