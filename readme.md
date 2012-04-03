@@ -1,9 +1,7 @@
 
-experiment of optimization
-=============
+# experiment of x86/x64 optimization
 
-Test Code
--------------
+## Test Code
 
 * strlen_sse2.cpp ; fast strlen/memchr with SSE2 sample
 * strlen_sse42.cpp ; fast strlen with SSE4.2 sample
@@ -11,20 +9,19 @@ Test Code
 
 >Note: These sample code requires Xbyak(https://github.com/herumi/xbyak) and "-fno-operator-names" option is required on gcc to avoid analyzing "and", "or", etc. as operators.
 
-Reference
--------------
+## Reference
 
 * http://slideshare.com/herumi/x86opti3
-** http://www.ustream.tv/recorded/21484472 (Japanese)
+    * http://www.ustream.tv/recorded/21484472 (Japanese)
 
-License
--------------
+## License
 
-modified new BSD License
-http://opensource.org/licenses/BSD-3-Clause
+modified new BSD License (http://opensource.org/licenses/BSD-3-Clause)
 
-Author
--------------
+## Author
 
-MITSUNARI Shigeo(herumi at nifty dot com)
+MITSUNARI Shigeo
+* mail:herumi@nifty.com
+* twitter:@herumi
+* facbook:https://www.facebook.com/mitsunari.shigeo
 
