@@ -21,6 +21,7 @@ modified new BSD License (http://opensource.org/licenses/BSD-3-Clause)
 ## Author
 
 MITSUNARI Shigeo
+
 * mail:herumi@nifty.com
 * twitter:@herumi
 * facbook:https://www.facebook.com/mitsunari.shigeo
