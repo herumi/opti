@@ -8,6 +8,7 @@
 #include "str_util.hpp"
 #include "util.hpp"
 #include "benchmark.hpp"
+//#include "mischasan_strstr.hpp"
 
 // std::string.find()
 struct Fstr_find {
@@ -405,7 +406,7 @@ int main(int argc, char *argv[])
 {
 	if (!mie::isAvaiableSSE42()) {
 		fprintf(stderr, "SSE4.2 is not supported\n");
-		return 1;
+//		return 1;
 	}
 	argc--, argv++;
 	const std::string text = (argc == 1) ? LoadFile(argv[0]) : "";
@@ -448,6 +449,7 @@ int main(int argc, char *argv[])
 			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("string::find", Fstr_find(), "findStr", Frange<mie::findStr>(), text, keyTbl);
+//			benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		}
 
 		findChar_test(text);

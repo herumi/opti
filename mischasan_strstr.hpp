@@ -2,18 +2,20 @@
 /*
 	see http://mischasan.wordpress.com/2011/07/16/convergence-sse2-and-strstr/
 */
+#include "util.hpp"
+#include <string.h>
 #ifdef _WIN32
-	#include <intrin.h>
-	#define ffs(x) (_BitScanForward((DWORD*)&x, x), x) // bsf
-//	#define my_bsr(x) (_BitScanReverse(&x, x), x) // bsf
+	inline int ffs(int x)
+	{
+		DWORD ret;
+		if (_BitScanForward(&ret, x)) {
+			return ret + 1;
+		} else {
+			return 0;
+		}
+	}
 #else
-	#ifdef __Linux__
-		#include <x86intrin.h>
-	#else
-		#include <emmintrin.h>
-	#endif
-	#define ffs(x) __builtin_ctz(x) // bsf
-//	#define ffs(x) __builtin_clz(val) // ^ 0x1f // bsr
+	#define ffs(x) __builtin_ffs(x) // bsf ; 0 if x == 0
 #endif
 
 #define compxm(a,b) _mm_movemask_epi8(_mm_cmpeq_epi8((a), (b)))
@@ -87,6 +89,7 @@ char const *scanstr3(char const *tgt, char const pat[3])
 
 char const *scanstrN(char const *tgt, char const *pat, int len)
 {
+	if (len == 1) return strchr(tgt, *pat); // add by herumi
     for (; (tgt = scanstr2(tgt, pat)); tgt++)
         if (!memcmp(tgt+2, pat+2, len-2))
             return tgt;

@@ -17,6 +17,13 @@ typedef unsigned char uint8_t;
 typedef signed char int8_t;
 #endif
 
+#ifndef MIE_ALIGN
+	#ifdef _MSC_VER
+		#define MIE_ALIGN(x) __declspec(align(x))
+	#else
+		#define MIE_ALIGN(x) __attribute__((aligned(x)))
+	#endif
+#endif
 #ifdef _WIN32
 	#include <intrin.h>
 	#define my_bsf(x) (_BitScanForward(&x, x), x)

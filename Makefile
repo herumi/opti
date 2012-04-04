@@ -21,14 +21,15 @@ CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
 
+HEADER=str_util.hpp benchmark.hpp mischasan_strstr.hpp
 all:$(TARGET)
 
 .SUFFIXES: .cpp
 
-str_util_test: str_util_test.cpp str_util.hpp
+str_util_test: str_util_test.cpp $(HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m32
 
-str_util_test64: str_util_test.cpp str_util.hpp
+str_util_test64: str_util_test.cpp $(HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m64
 
 .cpp.o:

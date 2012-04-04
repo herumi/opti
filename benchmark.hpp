@@ -93,6 +93,7 @@ Ret benchmark1(F f, const std::string& str, const std::string& key)
 	int val = 0;
 	f.set(str, key);
 	Xbyak::util::Clock clk;
+
 	for (int i = 0; i < N; i++) {
 		typename F::type p = f.begin();
 		typename F::type end = f.end();
