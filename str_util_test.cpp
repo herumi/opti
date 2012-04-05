@@ -8,7 +8,9 @@
 #include "str_util.hpp"
 #include "util.hpp"
 #include "benchmark.hpp"
-//#include "mischasan_strstr.hpp"
+#ifdef USE_MISCHASAN
+#include "mischasan_strstr.hpp"
+#endif
 
 // std::string.find()
 struct Fstr_find {
@@ -439,9 +441,11 @@ int main(int argc, char *argv[])
 	}
 
 	try {
-//		benchmarkTbl("mischasan", Fmischasan_strstr(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
-//		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+#ifdef USE_MISCHASAN
+		benchmarkTbl("mischasan", Fmischasan_strstr(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
+		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
+#endif
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);

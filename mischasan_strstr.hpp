@@ -23,7 +23,7 @@ typedef __m128i XMM;
 static inline unsigned under(unsigned x){ return (x - 1) & ~x; }
 static inline XMM xmfill(char b) { return _mm_set1_epi8(b); }
 static inline XMM xmload(void const *p) { return _mm_load_si128((XMM const *) p); }
-static inline XMM xmloud(void const *p) { return (XMM) _mm_loadu_pd((double const *) p); }
+static inline XMM xmloud(void const *p) { return _mm_castpd_si128(_mm_loadu_pd((double const *) p)); }
 static inline unsigned xmatch(XMM a, XMM b) { return _mm_movemask_epi8(_mm_cmpeq_epi8(a, b)); }
 static inline unsigned xmdiff(XMM a, XMM b) { return xmatch(a, b) ^ 0xFFFF; }
 
