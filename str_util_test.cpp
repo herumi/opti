@@ -439,6 +439,9 @@ int main(int argc, char *argv[])
 	}
 
 	try {
+//		benchmarkTbl("mischasan", Fmischasan_strstr(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
+//		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+		return 0;
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);
@@ -449,7 +452,6 @@ int main(int argc, char *argv[])
 			benchmarkTbl("strstr_C", Fstrstr<STRSTR>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("mystrstr_C", Fstrstr<mystrstr_C>(), "strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 			benchmarkTbl("string::find", Fstr_find(), "findStr", Frange<mie::findStr>(), text, keyTbl);
-//			benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		}
 
 		findChar_test(text);
