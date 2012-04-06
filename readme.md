@@ -24,5 +24,5 @@ MITSUNARI Shigeo
 
 * mail:herumi@nifty.com
 * twitter:@herumi
-* facbook:https://www.facebook.com/mitsunari.shigeo
+* facebook:https://www.facebook.com/mitsunari.shigeo
 
