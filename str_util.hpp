@@ -190,9 +190,6 @@ private:
 			use save_a, save_key, c
 		*/
 		movdqu(xm0, ptr [key]); // xm0 = *key
-		if (caseInsensitive) {
-			toLower(xm0, Am1, Zp1, amA, xm1, xm2);
-		}
 	L(".lp");
 		if (caseInsensitive) {
 			movdqu(xm1, ptr [a]);
@@ -505,7 +502,7 @@ private:
 		if (caseInsensitive) {
 			movdqu(xm1, ptr [p]);
 			toLower(xm1, Am1, Zp1, amA, t0, t1);
-			pcmpistri(xm0, xm1, 12);
+			pcmpestri(xm0, xm1, 12);
 		} else {
 			pcmpestri(xmm0, ptr [p], 12); // 12(1100b) = [equal ordered:unsigned:byte]
 		}
@@ -536,13 +533,13 @@ private:
 		mov(save_d, d);
 	L(".tailCmp");
 		if (caseInsensitive) {
-			movdqu(xm1, ptr [save_p]);
-			toLower(xm1, Am1, Zp1, amA, t0, t1);
-			movdqu(t0, ptr [save_key]);
-			pcmpistri(t0, xm1, 12);
+			movdqu(t0, ptr [save_p]);
+			toLower(t0, Am1, Zp1, amA, xm1, t1);
+			movdqu(xm1, ptr [save_key]);
+			pcmpestri(xm1, t0, 12);
 		} else {
 			movdqu(xm1, ptr [save_key]);
-			pcmpestri(xmm1, ptr [save_p], 12);
+			pcmpestri(xm1, ptr [save_p], 12);
 		}
 		jno(".next"); // if (OF == 0) goto .next
 		js(".found"); // if (SF == 1) goto .found

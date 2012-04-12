@@ -33,13 +33,22 @@ const char *stristr_C(const char *str, const char *key)
 	return 0;
 #endif
 }
+int memicmp_C(const char *p, const char *q, size_t len)
+{
+	for (size_t i = 0; i < len; i++) {
+		char c = p[i];
+		if ('A' <= c && c <= 'Z') c += 'a' - 'A';
+		if (c != q[i]) return (int)c - (int)q[i];
+	}
+	return 0;
+}
 const char *findiStr_C(const char *begin, const char *end, const char *key, size_t keySize)
 {
 	while (begin + keySize <= end) {
 #ifdef _WIN32
 		if (_memicmp(begin, key, keySize) == 0) return begin;
 #else
-		if (strncasecmp(begin, key, keySize) == 0) return begin;
+		if (memicmp_C(begin, key, keySize) == 0) return begin;
 #endif
 		begin++;
 	}
@@ -435,6 +444,13 @@ void findStr_test(const std::string& text)
 		benchmark("findStr_C", Frange<findStr_C>(), "findStr", Frange<mie::findStr>(), *pstr, key);
 		benchmark("findStr2_C", Frange<findStr2_C>(), "findStr", Frange<mie::findStr>(), *pstr, key);
 	}
+	{
+		MIE_ALIGN(16) const char tt[]="\0a\0bAbc\0ef123";
+		const char *q1 = findiStr_C(tt, tt + 13, "bc\0ef12", 7);
+		const char *q2 = mie::findiStr(tt, tt + 13, "bc\0ef12", 7);
+		TEST_EQUAL((int)(q1 - tt), 5);
+		TEST_EQUAL((int)(q2 - tt), 5);
+	}
 	puts("ok");
 }
 
@@ -488,7 +504,7 @@ void stristr_test(const std::string& text)
 			"abcdefghijklmnopqrstuvwxyz",
 		};
 		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
-			benchmark("stristr_C", Fstrstr<stristr_C>(), "mie::stristr", Fstrstr<mie::stristr>(), text, tbl[i]);
+			benchmark("strcasestr", Fstrstr<stristr_C>(), "mie::stristr", Fstrstr<mie::stristr>(), text, tbl[i]);
 		}
 	}
 	puts("ok");
@@ -498,13 +514,13 @@ void findiStr_test(const std::string& text)
 {
 	puts("findiStr_test");
 	std::string str;
-	for (int i = 1; i < 256; i++) {
+	for (int i = 0; i < 256; i++) {
 		str += (char)i;
 	}
 	for (int i = 0; i < 3; i++) {
 		str += str;
 	}
-	for (int i = 1; i < 256; i++) {
+	for (int i = 0; i < 256; i++) {
 		if ('A' <= i && i <= 'Z') continue;
 		std::string key(1, (char)i);
 		verify(Frange<findiStr_C>(), Frange<mie::findiStr>(), str, key);
@@ -546,6 +562,13 @@ void findiStr_test(const std::string& text)
 		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
 			benchmark("findiStr_C", Frange<findiStr_C>(), "mie::findiStr", Frange<mie::findiStr>(), text, tbl[i]);
 		}
+	}
+	{
+		MIE_ALIGN(16) const char tt[]="\0a\0bABc\0Ef123";
+		const char *q1 = findiStr_C(tt, tt + 13, "bc\0ef12", 7);
+		const char *q2 = mie::findiStr(tt, tt + 13, "bc\0ef12", 7);
+		TEST_EQUAL((int)(q1 - tt), 5);
+		TEST_EQUAL((int)(q2 - tt), 5);
 	}
 	puts("ok");
 }
