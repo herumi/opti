@@ -111,7 +111,7 @@ private:
 		amA : 'a' - 'A'
 		t : temporary register
 	*/
-	void setUpperReg(const Xbyak::Xmm& Am1, const Xbyak::Xmm& Zp1, const Xbyak::Xmm& amA, const Xbyak::Reg32& t)
+	void setLowerReg(const Xbyak::Xmm& Am1, const Xbyak::Xmm& Zp1, const Xbyak::Xmm& amA, const Xbyak::Reg32& t)
 	{
 		mov(t, 0x40404040);
 		movd(Am1, t);
@@ -181,7 +181,7 @@ private:
 		mov(key, ptr [esp + P_ + 8]);
 #endif
 		if (caseInsensitive) {
-			setUpperReg(Am1, Zp1, amA, Reg32(save_a.getIdx()));
+			setLowerReg(Am1, Zp1, amA, Reg32(save_a.getIdx()));
 		}
 
 		/*
@@ -492,7 +492,7 @@ private:
 		mov(eax, ptr [esp + P_ + 16]); // keySize
 #endif
 		if (caseInsensitive) {
-			setUpperReg(Am1, Zp1, amA, Reg32(save_p.getIdx()));
+			setLowerReg(Am1, Zp1, amA, Reg32(save_p.getIdx()));
 		}
 
 		/*
