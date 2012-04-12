@@ -24,6 +24,8 @@ const size_t findCharOffset = strchr_rangeOffset + 64;
 const size_t findChar_anyOffset = findCharOffset + 64;
 const size_t findChar_rangeOffset = findChar_anyOffset + 64;
 const size_t findStrOffset = findChar_rangeOffset + 64;
+const size_t stristrOffset = findStrOffset + 160;
+const size_t findiStrOffset = stristrOffset + 224;
 
 struct StringCode : Xbyak::CodeGenerator {
 	const Xbyak::util::Cpu cpu;
@@ -73,6 +75,14 @@ struct StringCode : Xbyak::CodeGenerator {
 		nextOffset(findStrOffset);
 		gen_findStr(isSandyBridge);
 		printf("findStr size=%d\n", (int)(getSize() - findStrOffset));
+
+		nextOffset(stristrOffset);
+		gen_strstr(isSandyBridge, true);
+		printf("stristr size=%d\n", (int)(getSize() - stristrOffset));
+
+		nextOffset(findiStrOffset);
+		gen_findStr(isSandyBridge, true);
+		printf("findiStr size=%d\n", (int)(getSize() - findiStrOffset));
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
 		::exit(1);
@@ -95,17 +105,60 @@ private:
 			cur++;
 		}
 	}
+	/*
+		Am1 : 'A' - 1
+		Zp1 : 'Z' + 1
+		amA : 'a' - 'A'
+		t : temporary register
+	*/
+	void setUpperReg(const Xbyak::Xmm& Am1, const Xbyak::Xmm& Zp1, const Xbyak::Xmm& amA, const Xbyak::Reg32& t)
+	{
+		mov(t, 0x40404040);
+		movd(Am1, t);
+		pshufd(Am1, Am1, 0); // 'A' - 1
+		mov(t, 0x5b5b5b5b);
+		movd(Zp1, t);
+		pshufd(Zp1, Zp1, 0); // 'Z' + 1
+		mov(t, 0x20202020);
+		movd(amA, t);
+		pshufd(amA, amA, 0); // 'a' - 'A'
+	}
+	/*
+		toLower in x
+		Am1 : 'A' - 1
+		Zp1 : 'Z' + 1
+		amA : 'a' - 'A'
+		t0, t1 : temporary register
+	*/
+	void toLower(const Xbyak::Xmm& x, const Xbyak::Xmm& Am1, const Xbyak::Xmm& Zp1, const Xbyak::Xmm& amA
+		, const Xbyak::Xmm& t0, const Xbyak::Xmm& t1)
+	{
+		movdqa(t0, x);
+		pcmpgtb(t0, Am1); // -1 if c > 'A' - 1
+		movdqa(t1, Zp1);
+		pcmpgtb(t1, x); // -1 if 'Z' + 1 > c
+		pand(t0, t1); // -1 if [A-Z]
+		pand(t0, amA); // 0x20 if c in [A-Z]
+		paddb(x, t0); // [A-Z] -> [a-z]
+	}
 	// char *strstr(str, key)
-	void gen_strstr(bool isSandyBridge)
+	// @note key must not have capital characters[A-Z] if caseInsensitive is true
+	void gen_strstr(bool isSandyBridge, bool caseInsensitive = false)
 	{
 		inLocalLabel();
 		using namespace Xbyak;
+		const Xmm& t0 = xm2;
+		const Xmm& t1 = xm3;
+		const Xmm& Am1 = xm4;
+		const Xmm& Zp1 = xm5;
+		const Xmm& amA = xm6;
 #ifdef XBYAK64
 	#ifdef XBYAK64_WIN
 		const Reg64& key = rdx; // 2nd
 		const Reg64& save_a = r11;
 		const Reg64& save_key = r9;
 		mov(rax, rcx); // 1st:str
+		movdqa(ptr [rsp + 8], xm6);
 	#else
 		const Reg64& key = rsi; // 2nd
 		const Reg64& save_a = r8;
@@ -127,6 +180,9 @@ private:
 		mov(eax, ptr [esp + P_ + 4]);
 		mov(key, ptr [esp + P_ + 8]);
 #endif
+		if (caseInsensitive) {
+			setUpperReg(Am1, Zp1, amA, Reg32(save_a.getIdx()));
+		}
 
 		/*
 			strstr(a, key);
@@ -134,8 +190,17 @@ private:
 			use save_a, save_key, c
 		*/
 		movdqu(xm0, ptr [key]); // xm0 = *key
+		if (caseInsensitive) {
+			toLower(xm0, Am1, Zp1, amA, xm1, xm2);
+		}
 	L(".lp");
-		pcmpistri(xmm0, ptr [a], 12); // 12(1100b) = [equal ordered:unsigned:byte]
+		if (caseInsensitive) {
+			movdqu(xm1, ptr [a]);
+			toLower(xm1, Am1, Zp1, amA, t0, t1);
+			pcmpistri(xm0, xm1, 12);
+		} else {
+			pcmpistri(xm0, ptr [a], 12); // 12(1100b) = [equal ordered:unsigned:byte]
+		}
 		if (isSandyBridge) {
 			lea(a, ptr [a + 16]);
 			ja(".lp"); // if (CF == 0 and ZF = 0) goto .lp
@@ -155,8 +220,15 @@ private:
 		mov(save_a, a); // save a
 		mov(save_key, key); // save key
 	L(".tailCmp");
-		movdqu(xm1, ptr [save_key]);
-		pcmpistri(xmm1, ptr [save_a], 12);
+		if (caseInsensitive) {
+			movdqu(xm1, ptr [save_a]);
+			toLower(xm1, Am1, Zp1, amA, t0, t1);
+			movdqu(t0, ptr [save_key]);
+			pcmpistri(t0, xm1, 12);
+		} else {
+			movdqu(xm1, ptr [save_key]);
+			pcmpistri(xm1, ptr [save_a], 12);
+		}
 		jno(".next"); // if (OF == 0) goto .next
 		js(".found"); // if (SF == 1) goto .found
 		// rare case
@@ -173,6 +245,8 @@ private:
 		mov(esi, ptr [esp + 0]);
 		mov(edi, ptr [esp + 4]);
 		add(esp, P_);
+#elif defined(XBYAK64_WIN)
+		movdqa(xm6, ptr [rsp + 8]);
 #endif
 		ret();
 		outLocalLabel();
@@ -349,10 +423,15 @@ private:
 		outLocalLabel();
 	}
 	// findStr(const char*begin, const char *end, const char *key, size_t keySize)
-	void gen_findStr(bool /*isSandyBridge*/)
+	void gen_findStr(bool /*isSandyBridge*/, bool caseInsensitive = false)
 	{
 		inLocalLabel();
 		using namespace Xbyak;
+		const Xmm& t0 = xm2;
+		const Xmm& t1 = xm3;
+		const Xmm& Am1 = xm4;
+		const Xmm& Zp1 = xm5;
+		const Xmm& amA = xm6;
 #ifdef XBYAK64
 	#ifdef XBYAK64_WIN
 		const Reg64& p = r9;
@@ -364,6 +443,9 @@ private:
 		const Address end = ptr [rsp + 24];
 		mov(ptr [rsp + 8], r12);
 		mov(ptr [rsp + 16], r13);
+		if (caseInsensitive) {
+			movdqa(ptr [rsp + 24], xm6);
+		}
 		mov(end, rdx); // save end:2nd
 		mov(rax, r9); // keySize:4th
 		sub(rdx, rcx); // len = end - begin(1st)
@@ -409,6 +491,9 @@ private:
 		movdqu(xm0, ptr [key]);
 		mov(eax, ptr [esp + P_ + 16]); // keySize
 #endif
+		if (caseInsensitive) {
+			setUpperReg(Am1, Zp1, amA, Reg32(save_p.getIdx()));
+		}
 
 		/*
 			findStr(p, end, key, keySize)
@@ -417,7 +502,13 @@ private:
 		*/
 		movdqu(xm0, ptr [key]);
 	L(".lp");
-		pcmpestri(xmm0, ptr [p], 12); // 12(1100b) = [equal ordered:unsigned:byte]
+		if (caseInsensitive) {
+			movdqu(xm1, ptr [p]);
+			toLower(xm1, Am1, Zp1, amA, t0, t1);
+			pcmpistri(xm0, xm1, 12);
+		} else {
+			pcmpestri(xmm0, ptr [p], 12); // 12(1100b) = [equal ordered:unsigned:byte]
+		}
 		if (true/* isSandyBridge */) {
 			lea(p, ptr [p + 16]);
 			lea(d, ptr [d - 16]);
@@ -444,8 +535,15 @@ private:
 		mov(save_a, a);
 		mov(save_d, d);
 	L(".tailCmp");
-		movdqu(xm1, ptr [save_key]);
-		pcmpestri(xmm1, ptr [save_p], 12);
+		if (caseInsensitive) {
+			movdqu(xm1, ptr [save_p]);
+			toLower(xm1, Am1, Zp1, amA, t0, t1);
+			movdqu(t0, ptr [save_key]);
+			pcmpistri(t0, xm1, 12);
+		} else {
+			movdqu(xm1, ptr [save_key]);
+			pcmpestri(xmm1, ptr [save_p], 12);
+		}
 		jno(".next"); // if (OF == 0) goto .next
 		js(".found"); // if (SF == 1) goto .found
 		// rare case
@@ -474,6 +572,7 @@ private:
 	#ifdef XBYAK64_WIN
 		mov(r12, ptr [rsp + 8]);
 		mov(r13, ptr [rsp + 16]);
+		movdqa(ptr [rsp + 24], xm6);
 	#else
 		pop(r12);
 	#endif
@@ -622,4 +721,30 @@ inline char *findStr(char*begin, const char *end, const char *key, size_t keySiz
 	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findStrOffset))(begin, end, key, keySize);
 }
 
+/*
+	case insensitive strstr
+	@note key must not have capital characters [A-Z]
+*/
+inline const char *stristr(const char *str, const char *key)
+{
+	return ((const char*(*)(const char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::stristrOffset))(str, key);
+}
+
+// non const version of strstr
+inline char *stristr(char *str, const char *key)
+{
+	return ((char*(*)(char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::stristrOffset))(str, key);
+}
+/*
+	case insensitive find [key, key + keySize) in [begin, end)
+	@note key must not have capital characters [A-Z]
+*/
+inline const char *findiStr(const char*begin, const char *end, const char *key, size_t keySize)
+{
+	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findiStrOffset))(begin, end, key, keySize);
+}
+inline char *findiStr(char*begin, const char *end, const char *key, size_t keySize)
+{
+	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findiStrOffset))(begin, end, key, keySize);
+}
 } // mie

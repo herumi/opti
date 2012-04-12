@@ -130,6 +130,23 @@ void benchmarkTbl(const char *msg1, F1 f1, const char *msg2, F2 f2, const std::s
 	}
 }
 
+template<class F1, class F2>
+void verify(F1 f1, F2 f2, const std::string& str, const std::string& key)
+{
+	f1.set(str, key);
+	f2.set(str, key);
+
+	typename F1::type p = f1.begin();
+	typename F1::type end = f1.end();
+	for (;;) {
+		typename F1::type q1 = f1.find(p);
+		typename F2::type q2 = f2.find(p);
+		TEST_EQUAL(q1, q2);
+		if (q1 == end) break;
+		p = q1 + 1;
+	}
+}
+
 // dirty hack for gcc 4.2 on mac
 #if defined(__APPLE__) || defined(__clang__)
 	#define STRSTR mystrstr

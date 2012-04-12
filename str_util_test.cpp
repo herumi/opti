@@ -11,6 +11,36 @@
 #ifdef USE_MISCHASAN
 #include "mischasan_strstr.hpp"
 #endif
+#ifdef __GNUC__
+#include <strings.h>
+#endif
+
+// stristr(key must not have capital character)
+const char *stristr_C(const char *str, const char *key)
+{
+	const size_t keySize = strlen(key);
+	while (*str) {
+#ifdef _WIN32
+		if (_memicmp(str, key, keySize) == 0) return str;
+#else
+		if (strncasecmp(str, key, keySize) == 0) return str;
+#endif
+		str++;
+	}
+	return 0;
+}
+const char *findiStr_C(const char *begin, const char *end, const char *key, size_t keySize)
+{
+	while (begin + keySize <= end) {
+#ifdef _WIN32
+		if (_memicmp(begin, key, keySize) == 0) return begin;
+#else
+		if (strncasecmp(begin, key, keySize) == 0) return begin;
+#endif
+		begin++;
+	}
+	return end;
+}
 
 // std::string.find()
 struct Fstr_find {
@@ -404,6 +434,118 @@ void findStr_test(const std::string& text)
 	puts("ok");
 }
 
+void stristr_test(const std::string& text)
+{
+	puts("stristr_test");
+	std::string str;
+	for (int i = 1; i < 256; i++) {
+		str += (char)i;
+	}
+	for (int i = 0; i < 3; i++) {
+		str += str;
+	}
+	for (int i = 1; i < 256; i++) {
+		if ('A' <= i && i <= 'Z') continue;
+		std::string key(1, (char)i);
+		verify(Fstrstr<stristr_C>(), Fstrstr<mie::stristr>(), str, key);
+	}
+	str = "@AZ[`az{";
+	for (int i = 0; i < 7; i++) {
+		str += str;
+	}
+	const char tbl[][48] = {
+		"@",
+		"a",
+		"z",
+		"@az[",
+		"`az{",
+		"z[`",
+		"@az[`az{",
+		"@az[`az{@az[`az",
+		"@az[`az{@az[`az{@az[`az{@az[`az{",
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		verify(Fstrstr<stristr_C>(), Fstrstr<mie::stristr>(), str, tbl[i]);
+	}
+	if (!text.empty()) {
+		const char tbl[][32] = {
+			"ssl",
+			"cybozu",
+			"xyz",
+			"@",
+			"}",
+			"["
+			"`",
+			"abc",
+			"xyz",
+			"openssl",
+			"0123456789",
+			"00000000000",
+			"abcdefghijklmnopqrstuvwxyz",
+		};
+		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+			benchmark("stristr_C", Fstrstr<stristr_C>(), "mie::stristr", Fstrstr<mie::stristr>(), text, tbl[i]);
+		}
+	}
+	puts("ok");
+}
+
+void findiStr_test(const std::string& text)
+{
+	puts("findiStr_test");
+	std::string str;
+	for (int i = 1; i < 256; i++) {
+		str += (char)i;
+	}
+	for (int i = 0; i < 3; i++) {
+		str += str;
+	}
+	for (int i = 1; i < 256; i++) {
+		if ('A' <= i && i <= 'Z') continue;
+		std::string key(1, (char)i);
+		verify(Frange<findiStr_C>(), Frange<mie::findiStr>(), str, key);
+	}
+	str = "@AZ[`az{";
+	for (int i = 0; i < 7; i++) {
+		str += str;
+	}
+	const char tbl[][48] = {
+		"@",
+		"a",
+		"z",
+		"@az[",
+		"`az{",
+		"z[`",
+		"@az[`az{",
+		"@az[`az{@az[`az",
+		"@az[`az{@az[`az{@az[`az{@az[`az{",
+	};
+	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+		verify(Frange<findiStr_C>(), Frange<mie::findiStr>(), str, tbl[i]);
+	}
+	if (!text.empty()) {
+		const char tbl[][32] = {
+			"ssl",
+			"cybozu",
+			"xyz",
+			"@",
+			"}",
+			"["
+			"`",
+			"abc",
+			"xyz",
+			"openssl",
+			"0123456789",
+			"00000000000",
+			"abcdefghijklmnopqrstuvwxyz",
+		};
+		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
+			benchmark("findiStr_C", Frange<findiStr_C>(), "mie::findiStr", Frange<mie::findiStr>(), text, tbl[i]);
+		}
+	}
+	puts("ok");
+}
+
 int main(int argc, char *argv[])
 {
 	if (!mie::isAvaiableSSE42()) {
@@ -446,6 +588,22 @@ int main(int argc, char *argv[])
 		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
 #endif
+#if 1
+		/*
+			compare strstr with stristr
+			stristr speed is about 0.66~0.70 times speed of strstr
+		*/
+		if (!text.empty()) {
+			std::string itext = text;
+			for (size_t i = 0; i < itext.size(); i++) {
+				char c = itext[i];
+				if ('A' <= c && c <= 'Z') itext[i] = c + 'a' - 'A';
+			}
+			benchmarkTbl("mie::strstr", Fstrstr<mie::strstr>(), "mie::stristr", Fstrstr<mie::stristr>(), itext, keyTbl);
+		}
+#endif
+		stristr_test(text);
+		findiStr_test(text);
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);

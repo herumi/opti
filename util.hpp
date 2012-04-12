@@ -99,7 +99,6 @@ struct AlignedArray {
 	{
 		_aligned_free(p_);
 		p_ = (T*)_aligned_malloc(n * sizeof(T) + 16, 16);
-		std::fill_n(p_ + n * sizeof(T), 16, 0);
 		n_ = n;
 	}
 	size_t size() const { return n_; }
