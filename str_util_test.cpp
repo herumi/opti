@@ -18,6 +18,9 @@
 // stristr(key must not have capital character)
 const char *stristr_C(const char *str, const char *key)
 {
+#ifdef _GNU_SOURCE
+	return strcasestr(str, key);
+#else
 	const size_t keySize = strlen(key);
 	while (*str) {
 #ifdef _WIN32
@@ -28,6 +31,7 @@ const char *stristr_C(const char *str, const char *key)
 		str++;
 	}
 	return 0;
+#endif
 }
 const char *findiStr_C(const char *begin, const char *end, const char *key, size_t keySize)
 {
@@ -588,6 +592,8 @@ int main(int argc, char *argv[])
 		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
 #endif
+		stristr_test(text);
+		findiStr_test(text);
 #if 1
 		/*
 			compare strstr with stristr
@@ -602,8 +608,6 @@ int main(int argc, char *argv[])
 			benchmarkTbl("mie::strstr", Fstrstr<mie::strstr>(), "mie::stristr", Fstrstr<mie::stristr>(), itext, keyTbl);
 		}
 #endif
-		stristr_test(text);
-		findiStr_test(text);
 		strlen_test();
 		strchr_test(text);
 		strchr_any_test(text);
