@@ -13,13 +13,14 @@
 
 All funcionts are declared within a namespace mie. All functions may access max 16 bytes beyond end of text.
 
+
     /*
         fast strstr
     */
     const char *strstr(const char *str, const char *key);
 
     /*
-        case insensitive strstr
+        strstr(case insensitive version)
         @note key must not have capital characters [A-Z]
     */
     const char *stristr(const char *str, const char *key);
@@ -34,7 +35,7 @@ All funcionts are declared within a namespace mie. All functions may access max 
     /*
         find c such that key[0] <= c && c <= key[1], key[2] <= c && c <= key[3], ... in str
         @note strlen(key) <= 16, key[i] != 0
-        @note strchr_range(str, "az09") means find str with a regular expression [a-z0-9]
+        @note strchr_range(str, "az09") means to find string with a regular expression [a-z0-9] in str
     */
     const char *strchr_range(const char *str, const char *key);
 
