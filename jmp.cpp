@@ -88,8 +88,16 @@ int g2(int a, int b)
 }
 */
 
+int g3_C(int a, int b)
+{
+    if (a > b) {
+        return a + 1;
+    }
+    return a + 2;
+}
+
 struct ExpectCode : public Xbyak::CodeGenerator {
-	void gen(bool likely)
+	void gen(int mode)
 	{
 		using namespace Xbyak;
 		inLocalLabel();
@@ -109,19 +117,33 @@ struct ExpectCode : public Xbyak::CodeGenerator {
 		mov(edx, ptr [esp + 8]);
 #endif
 		cmp(p1, p2);
-		if (likely) {
+		switch (mode) {
+		case 0:
 			jle("@f");
 			lea(a, ptr [p1 + 1]);
 			ret();
 		L("@@");
 			lea(a, ptr [p1 + 2]);
 			ret();
-		} else {
+			break;
+		case 1:
 			jg("@f");
 			lea(a, ptr [p1 + 2]);
 			ret();
 		L("@@");
 			lea(a, ptr [p1 + 1]);
+			ret();
+			break;
+		case 2:
+			lea(a, ptr [p1 + 1]);
+			cmp(p1, p2);
+			lea(p1, ptr [p1 + 2]);
+			cmovle(a, p1);
+			ret();
+		default:
+			cmp(p2, p1);
+			sbb(a, a);
+			lea(a, ptr [p1 + 2 + a]);
 			ret();
 		}
 		align(16);
@@ -154,6 +176,21 @@ void test2(F f, int a, int b)
 	printf("a, b=%d, %d, %.3f\n", a, b, clk.getClock() / double(C));
 }
 
+template<class F>
+void check(F f)
+{
+	for (int a = 0; a < 5; a++) {
+		for (int b = 0; b < 5; b++) {
+			int c = f(a, b);
+			int d = g3_C(a, b);
+			if (c != d) {
+				printf("ERR (a, b)=(%d, %d) %d %d\n", a, b, c, d);
+			}
+		}
+	}
+	puts("ok");
+}
+
 int main()
 {
 	try {
@@ -163,9 +200,17 @@ int main()
 		test1(f, 1);
 		ExpectCode c;
 		int (*g1)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(true);
+		c.gen(0);
 		int (*g2)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(false);
+		c.gen(1);
+		int (*g3)(int, int) = (int (*)(int, int))c.getCurr();
+		c.gen(2);
+		int (*g4)(int, int) = (int (*)(int, int))c.getCurr();
+		c.gen(3);
+		check(g1);
+		check(g2);
+		check(g3);
+		check(g4);
 
 		test2(g1, 0, 1);
 		test2(g1, 1, 0);
@@ -173,6 +218,11 @@ int main()
 		test2(g2, 0, 1);
 		test2(g2, 1, 0);
 
+		test2(g3, 0, 1);
+		test2(g3, 1, 0);
+
+		test2(g4, 0, 1);
+		test2(g4, 1, 0);
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
 	} catch (...) {
