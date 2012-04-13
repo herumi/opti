@@ -7,14 +7,10 @@
 Pentium D
 a=0, 2.769
 a=1, 2.693
-a, b=0, 1, 12.416
-a, b=1, 0, 12.500
-a, b=0, 1, 12.276
-a, b=1, 0, 12.309
-a, b=0, 1, 12.213
-a, b=1, 0, 12.632
-a, b=0, 1, 12.204
-a, b=1, 0, 12.439
+a, b=0, 1, 12.352
+a, b=1, 0, 12.235
+a, b=0, 1, 12.352
+a, b=1, 0, 12.589
 
 Core Duo
 a=0, 1.954
@@ -89,23 +85,23 @@ struct Code : public Xbyak::CodeGenerator {
 /*
 int f(int a, int b)
 {
-	if (__builtin_expect(a > b, 1)) {
-		return a;
-	}
-	return a + b;
+    if (__builtin_expect(a > b, 1)) {
+        return a + 1;
+    }
+    return a + 2;
 }
 
 int g(int a, int b)
 {
-	if (__builtin_expect(a > b, 0)) {
-		return a;
-	}
-	return a + b;
+    if (__builtin_expect(a > b, 0)) {
+        return a + 1;
+    }
+    return a + 2;
 }
 */
 
 struct ExpectCode : public Xbyak::CodeGenerator {
-	void gen(bool likely, bool hint)
+	void gen(bool likely)
 	{
 		using namespace Xbyak;
 		inLocalLabel();
@@ -128,16 +124,17 @@ struct ExpectCode : public Xbyak::CodeGenerator {
 		mov(a, p1);
 		if (likely) {
 			jle("@f");
-			if (hint) db(0xf3);
+			lea(a, ptr [p1 + 1]);
 			ret();
 		L("@@");
-			add(a, p2);
+			lea(a, ptr [p1 + 2]);
 			ret();
 		} else {
 			jg("@f");
-			add(a, p2);
+			lea(a, ptr [p1 + 2]);
+			ret();
 		L("@@");
-			if (hint) db(0xf3);
+			lea(a, ptr [p1 + 1]);
 			ret();
 		}
 		align(16);
@@ -178,25 +175,16 @@ int main()
 		test1(f, 0);
 		test1(f, 1);
 		ExpectCode c;
-		int (*gtt)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(true, true);
-		int (*gtf)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(true, false);
-		int (*gft)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(false, true);
-		int (*gff)(int, int) = (int (*)(int, int))c.getCurr();
-		c.gen(false, false);
-		test2(gtt, 0, 1);
-		test2(gtt, 1, 0);
+		int (*g1)(int, int) = (int (*)(int, int))c.getCurr();
+		c.gen(true);
+		int (*g2)(int, int) = (int (*)(int, int))c.getCurr();
+		c.gen(false);
 
-		test2(gtf, 0, 1);
-		test2(gtf, 1, 0);
+		test2(g1, 0, 1);
+		test2(g1, 1, 0);
 
-		test2(gft, 0, 1);
-		test2(gft, 1, 0);
-
-		test2(gff, 0, 1);
-		test2(gff, 1, 0);
+		test2(g2, 0, 1);
+		test2(g2, 1, 0);
 
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
