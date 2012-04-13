@@ -15,38 +15,26 @@ a, b=1, 0, 12.589
 Core Duo
 a=0, 1.954
 a=1, 1.955
-a, b=0, 1, 9.084
-a, b=1, 0, 7.072
-a, b=0, 1, 10.101
-a, b=1, 0, 7.072
-a, b=0, 1, 8.050
-a, b=1, 0, 9.015
-a, b=0, 1, 8.011
-a, b=1, 0, 9.086
+a, b=0, 1, 9.099
+a, b=1, 0, 8.047
+a, b=0, 1, 8.084
+a, b=1, 0, 9.084
 
 Xeon X5650
 a=0, 1.741
 a=1, 1.741
-a, b=0, 1, 7.842
-a, b=1, 0, 6.094
-a, b=0, 1, 7.839
-a, b=1, 0, 6.101
-a, b=0, 1, 6.101
-a, b=1, 0, 7.832
-a, b=0, 1, 6.109
-a, b=1, 0, 7.834
+a, b=0, 1, 7.833
+a, b=1, 0, 6.096
+a, b=0, 1, 6.091
+a, b=1, 0, 7.850
 
 i7 2600K
 a=0, 1.810
 a=1, 1.801
-a, b=0, 1, 7.201
-a, b=1, 0, 5.405
-a, b=0, 1, 7.185
-a, b=1, 0, 5.417
-a, b=0, 1, 5.401
-a, b=1, 0, 7.200
-a, b=0, 1, 5.395
-a, b=1, 0, 7.190
+a, b=0, 1, 8.092
+a, b=1, 0, 6.300
+a, b=0, 1, 6.316
+a, b=1, 0, 8.103
 */
 #include <stdio.h>
 #include <vector>
@@ -83,7 +71,7 @@ struct Code : public Xbyak::CodeGenerator {
 };
 
 /*
-int f(int a, int b)
+int g1(int a, int b)
 {
     if (__builtin_expect(a > b, 1)) {
         return a + 1;
@@ -91,7 +79,7 @@ int f(int a, int b)
     return a + 2;
 }
 
-int g(int a, int b)
+int g2(int a, int b)
 {
     if (__builtin_expect(a > b, 0)) {
         return a + 1;
@@ -121,7 +109,6 @@ struct ExpectCode : public Xbyak::CodeGenerator {
 		mov(edx, ptr [esp + 8]);
 #endif
 		cmp(p1, p2);
-		mov(a, p1);
 		if (likely) {
 			jle("@f");
 			lea(a, ptr [p1 + 1]);
