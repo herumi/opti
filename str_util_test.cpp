@@ -15,8 +15,8 @@
 #include <strings.h>
 #endif
 
-// stristr(key must not have capital character)
-const char *stristr_C(const char *str, const char *key)
+// strcasestr(key must not have capital character)
+const char *strcasestr_C(const char *str, const char *key)
 {
 #ifdef _GNU_SOURCE
 	return strcasestr(str, key);
@@ -42,7 +42,7 @@ int memicmp_C(const char *p, const char *q, size_t len)
 	}
 	return 0;
 }
-const char *findiStr_C(const char *begin, const char *end, const char *key, size_t keySize)
+const char *findCaseStr_C(const char *begin, const char *end, const char *key, size_t keySize)
 {
 	while (begin + keySize <= end) {
 #ifdef _WIN32
@@ -446,17 +446,17 @@ void findStr_test(const std::string& text)
 	}
 	{
 		MIE_ALIGN(16) const char tt[]="\0a\0bAbc\0ef123";
-		const char *q1 = findiStr_C(tt, tt + 13, "bc\0ef12", 7);
-		const char *q2 = mie::findiStr(tt, tt + 13, "bc\0ef12", 7);
+		const char *q1 = findCaseStr_C(tt, tt + 13, "bc\0ef12", 7);
+		const char *q2 = mie::findCaseStr(tt, tt + 13, "bc\0ef12", 7);
 		TEST_EQUAL((int)(q1 - tt), 5);
 		TEST_EQUAL((int)(q2 - tt), 5);
 	}
 	puts("ok");
 }
 
-void stristr_test(const std::string& text)
+void strcasestr_test(const std::string& text)
 {
-	puts("stristr_test");
+	puts("strcasestr_test");
 	std::string str;
 	for (int i = 1; i < 256; i++) {
 		str += (char)i;
@@ -467,7 +467,7 @@ void stristr_test(const std::string& text)
 	for (int i = 1; i < 256; i++) {
 		if ('A' <= i && i <= 'Z') continue;
 		std::string key(1, (char)i);
-		verify(Fstrstr<stristr_C>(), Fstrstr<mie::stristr>(), str, key);
+		verify(Fstrstr<strcasestr_C>(), Fstrstr<mie::strcasestr>(), str, key);
 	}
 	str = "@AZ[`az{";
 	for (int i = 0; i < 7; i++) {
@@ -485,7 +485,7 @@ void stristr_test(const std::string& text)
 		"@az[`az{@az[`az{@az[`az{@az[`az{",
 	};
 	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
-		verify(Fstrstr<stristr_C>(), Fstrstr<mie::stristr>(), str, tbl[i]);
+		verify(Fstrstr<strcasestr_C>(), Fstrstr<mie::strcasestr>(), str, tbl[i]);
 	}
 	if (!text.empty()) {
 		const char tbl[][32] = {
@@ -504,15 +504,15 @@ void stristr_test(const std::string& text)
 			"abcdefghijklmnopqrstuvwxyz",
 		};
 		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
-			benchmark("strcasestr", Fstrstr<stristr_C>(), "mie::stristr", Fstrstr<mie::stristr>(), text, tbl[i]);
+			benchmark("strcasestr", Fstrstr<strcasestr_C>(), "mie::strcasestr", Fstrstr<mie::strcasestr>(), text, tbl[i]);
 		}
 	}
 	puts("ok");
 }
 
-void findiStr_test(const std::string& text)
+void findCaseStr_test(const std::string& text)
 {
-	puts("findiStr_test");
+	puts("findCaseStr_test");
 	std::string str;
 	for (int i = 0; i < 256; i++) {
 		str += (char)i;
@@ -523,7 +523,7 @@ void findiStr_test(const std::string& text)
 	for (int i = 0; i < 256; i++) {
 		if ('A' <= i && i <= 'Z') continue;
 		std::string key(1, (char)i);
-		verify(Frange<findiStr_C>(), Frange<mie::findiStr>(), str, key);
+		verify(Frange<findCaseStr_C>(), Frange<mie::findCaseStr>(), str, key);
 	}
 	str = "@AZ[`az{";
 	for (int i = 0; i < 7; i++) {
@@ -541,7 +541,7 @@ void findiStr_test(const std::string& text)
 		"@az[`az{@az[`az{@az[`az{@az[`az{",
 	};
 	for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
-		verify(Frange<findiStr_C>(), Frange<mie::findiStr>(), str, tbl[i]);
+		verify(Frange<findCaseStr_C>(), Frange<mie::findCaseStr>(), str, tbl[i]);
 	}
 	if (!text.empty()) {
 		const char tbl[][32] = {
@@ -560,13 +560,13 @@ void findiStr_test(const std::string& text)
 			"abcdefghijklmnopqrstuvwxyz",
 		};
 		for (size_t i = 0; i < NUM_OF_ARRAY(tbl); i++) {
-			benchmark("findiStr_C", Frange<findiStr_C>(), "mie::findiStr", Frange<mie::findiStr>(), text, tbl[i]);
+			benchmark("findCaseStr_C", Frange<findCaseStr_C>(), "mie::findCaseStr", Frange<mie::findCaseStr>(), text, tbl[i]);
 		}
 	}
 	{
 		MIE_ALIGN(16) const char tt[]="\0a\0bABc\0Ef123";
-		const char *q1 = findiStr_C(tt, tt + 13, "bc\0ef12", 7);
-		const char *q2 = mie::findiStr(tt, tt + 13, "bc\0ef12", 7);
+		const char *q1 = findCaseStr_C(tt, tt + 13, "bc\0ef12", 7);
+		const char *q2 = mie::findCaseStr(tt, tt + 13, "bc\0ef12", 7);
 		TEST_EQUAL((int)(q1 - tt), 5);
 		TEST_EQUAL((int)(q2 - tt), 5);
 	}
@@ -615,12 +615,12 @@ int main(int argc, char *argv[])
 		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
 		return 0;
 #endif
-		stristr_test(text);
-		findiStr_test(text);
+		strcasestr_test(text);
+		findCaseStr_test(text);
 #if 1
 		/*
-			compare strstr with stristr
-			stristr speed is about 0.66~0.70 times speed of strstr
+			compare strstr with strcasestr
+			strcasestr speed is about 0.66~0.70 times speed of strstr
 		*/
 		if (!text.empty()) {
 			std::string itext = text;
@@ -628,7 +628,7 @@ int main(int argc, char *argv[])
 				char c = itext[i];
 				if ('A' <= c && c <= 'Z') itext[i] = c + 'a' - 'A';
 			}
-			benchmarkTbl("mie::strstr", Fstrstr<mie::strstr>(), "mie::stristr", Fstrstr<mie::stristr>(), itext, keyTbl);
+			benchmarkTbl("mie::strstr", Fstrstr<mie::strstr>(), "mie::strcasestr", Fstrstr<mie::strcasestr>(), itext, keyTbl);
 		}
 #endif
 		strlen_test();

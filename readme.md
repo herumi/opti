@@ -23,7 +23,7 @@ All funcionts are declared within a namespace mie. All functions may access max 
         strstr(case insensitive version)
         @note key must not have capital characters [A-Z]
     */
-    const char *stristr(const char *str, const char *key);
+    const char *strcasestr(const char *str, const char *key);
 
     /*
         find key[0] or key[1], ... in str
@@ -68,7 +68,7 @@ All funcionts are declared within a namespace mie. All functions may access max 
         case insensitive find [key, key + keySize) in [begin, end)
         @note key must not have capital characters [A-Z]
     */
-    const char *findiStr(const char*begin, const char *end, const char *key, size_t keySize);
+    const char *findCaseStr(const char*begin, const char *end, const char *key, size_t keySize);
 
 ## Reference
 

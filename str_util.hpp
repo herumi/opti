@@ -24,8 +24,8 @@ const size_t findCharOffset = strchr_rangeOffset + 64;
 const size_t findChar_anyOffset = findCharOffset + 64;
 const size_t findChar_rangeOffset = findChar_anyOffset + 64;
 const size_t findStrOffset = findChar_rangeOffset + 64;
-const size_t stristrOffset = findStrOffset + 160;
-const size_t findiStrOffset = stristrOffset + 224;
+const size_t strcasestrOffset = findStrOffset + 160;
+const size_t findCaseStrOffset = strcasestrOffset + 224;
 
 struct StringCode : Xbyak::CodeGenerator {
 	const Xbyak::util::Cpu cpu;
@@ -76,13 +76,13 @@ struct StringCode : Xbyak::CodeGenerator {
 		gen_findStr(isSandyBridge);
 		printf("findStr size=%d\n", (int)(getSize() - findStrOffset));
 
-		nextOffset(stristrOffset);
+		nextOffset(strcasestrOffset);
 		gen_strstr(isSandyBridge, true);
-		printf("stristr size=%d\n", (int)(getSize() - stristrOffset));
+		printf("strcasestr size=%d\n", (int)(getSize() - strcasestrOffset));
 
-		nextOffset(findiStrOffset);
+		nextOffset(findCaseStrOffset);
 		gen_findStr(isSandyBridge, true);
-		printf("findiStr size=%d\n", (int)(getSize() - findiStrOffset));
+		printf("findCaseStr size=%d\n", (int)(getSize() - findCaseStrOffset));
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
 		::exit(1);
@@ -722,26 +722,26 @@ inline char *findStr(char*begin, const char *end, const char *key, size_t keySiz
 	case insensitive strstr
 	@note key must not have capital characters [A-Z]
 */
-inline const char *stristr(const char *str, const char *key)
+inline const char *strcasestr(const char *str, const char *key)
 {
-	return ((const char*(*)(const char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::stristrOffset))(str, key);
+	return ((const char*(*)(const char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strcasestrOffset))(str, key);
 }
 
 // non const version of strstr
-inline char *stristr(char *str, const char *key)
+inline char *strcasestr(char *str, const char *key)
 {
-	return ((char*(*)(char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::stristrOffset))(str, key);
+	return ((char*(*)(char*, const char*))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::strcasestrOffset))(str, key);
 }
 /*
 	case insensitive find [key, key + keySize) in [begin, end)
 	@note key must not have capital characters [A-Z]
 */
-inline const char *findiStr(const char*begin, const char *end, const char *key, size_t keySize)
+inline const char *findCaseStr(const char*begin, const char *end, const char *key, size_t keySize)
 {
-	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findiStrOffset))(begin, end, key, keySize);
+	return ((const char *(*)(const char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCaseStrOffset))(begin, end, key, keySize);
 }
-inline char *findiStr(char*begin, const char *end, const char *key, size_t keySize)
+inline char *findCaseStr(char*begin, const char *end, const char *key, size_t keySize)
 {
-	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findiStrOffset))(begin, end, key, keySize);
+	return ((char *(*)(char*, const char *, const char *,size_t))((char*)str_util_impl::InstanceIsHere<>::buf + str_util_impl::findCaseStrOffset))(begin, end, key, keySize);
 }
 } // mie
