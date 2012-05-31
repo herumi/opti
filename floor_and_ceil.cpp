@@ -110,8 +110,11 @@ bool compare(F f1, F f2, uint32_t limit)
 	return true;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+#if 1
+	return my_FLP2(argc);
+#else
 	puts("compare CLP2");
 	compare(CLP2, my_CLP2, 0xffffffff);
 	puts("CLP2");
@@ -124,5 +127,6 @@ int main()
 	bench(FLP2, 0xffffffff);
 	puts("my_FLP2");
 	bench(my_FLP2, 0xffffffff);
+#endif
 }
 

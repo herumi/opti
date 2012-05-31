@@ -105,6 +105,11 @@ struct AlignedArray {
 	const T* begin() const { return p_; }
 	const T* end() const { return p_ + n_; }
 	typedef T value_type;
+	void swap(AlignedArray& rhs) throw()
+	{
+		std::swap(p_, rhs.p_);
+		std::swap(n_, rhs.n_);
+	}
 private:
 	AlignedArray(const AlignedArray&);
 	void operator=(const AlignedArray&);
