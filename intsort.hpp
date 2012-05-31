@@ -1,4 +1,11 @@
 #pragma once
+/*
+	implementation of AA-Sort with SSE4.1(not yet complete)
+	see http://www.trl.ibm.com/people/inouehrs/pdf/PACT2007-SIMDsort.pdf
+    @author herumi
+    @note modified new BSD license
+    http://opensource.org/licenses/BSD-3-Clause
+*/
 #include "v128.h"
 #include <assert.h>
 #include <string.h>
@@ -119,7 +126,7 @@ inline void sort_step2(uint32_t *a, size_t N)
 		}
 		gap = nextGap(gap);
 	}
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 8; i++) {
 		for (size_t i = 0; i < N / 4 - 1; i++) {
 			vector_cmpswap(va[i], va[i + 1]);
 		}

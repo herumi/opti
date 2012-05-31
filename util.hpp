@@ -29,7 +29,7 @@ typedef signed char int8_t;
 	#define my_bsf(x) (_BitScanForward(&x, x), x)
 //	#define my_bsr(x) (_BitScanReverse(&x, x), x)
 #else
-	#ifdef __Linux__
+	#ifdef __linux__
 		#include <x86intrin.h>
 	#else
 		#include <emmintrin.h>

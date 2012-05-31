@@ -1,10 +1,16 @@
 /*
-g++ -O3 -fno-operator-names -march=native -msse4 intsort_test.cpp && ./a.out
-Xeon X5650
-sort by STL
-isSorted=1:bb0579b6 5378.599
-sort by SIMD
-isSorted=1:bb0579b6 1550.305
+	g++ -O3 -fno-operator-names -march=native -msse4 intsort_test.cpp && ./a.out
+	Xeon X5650
+	isSorted=1:bb0579b6 5320.585
+	sort by SIMD
+	isSorted=1:bb0579b6 1340.714
+
+	VC11 x64
+	Core i7 2600
+	sort by STL
+	isSorted=1:bb0579b6 6628.255
+	sort by SIMD
+	isSorted=1:bb0579b6 1551.794
 */
 #include <stdio.h>
 #include <numeric>
