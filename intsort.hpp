@@ -45,21 +45,34 @@ inline void vector_cmpswap(V128& a, V128& b)
 	b = t;
 }
 
+inline V128 vector_cmpswap_ck(V128& a, V128& b)
+{
+	V128 t = pmaxud(a, b);
+	a = pminud(a, b);
+	V128 ret = pcmpeqd(b, t);
+	b = t;
+	return ret;
+}
+
 inline void vector_cmpswap_skew(V128& a, V128& b)
 {
-#if 0
-	V128 c = psrldq<4>(a); // [0:a3:a2:a1]
-	V128 minbc = pminud(b, c); // [0:a3':a2':a1']
-	b = pmaxud(b, c); // [b3:b2':b1':b0']
-	a = pslldq<12>(a); // [a0:0:0:0]
-	a = palignr<12>(minbc, a); // [a3':a2':a1':a0]
-#else
 	V128 c = pslldq<4>(a); // [a2:a1:a0:0]
 	V128 minbc = pminud(b, c); // [a2':a1':a0':0]
 	b = pmaxud(b, c); // [b3':b2':b1':b0]
 	a = psrldq<12>(a); // [0:0:0:a3]
 	a = palignr<4>(a, minbc); // [a3:a2':a1':a0']
-#endif
+}
+
+inline V128 vector_cmpswap_skew_ck(V128& a, V128& b)
+{
+	V128 c = pslldq<4>(a); // [a2:a1:a0:0]
+	V128 minbc = pminud(b, c); // [a2':a1':a0':0]
+	V128 new_b = pmaxud(b, c); // [b3':b2':b1':b0]
+	V128 ret = pcmpeqd(b, new_b);
+	b = new_b;
+	a = psrldq<12>(a); // [0:0:0:a3]
+	a = palignr<4>(a, minbc); // [a3:a2':a1':a0']
+	return ret;
 }
 
 inline void transpose(V128 x[4])
@@ -112,7 +125,7 @@ bool isSorted(const uint32_t *a, size_t len)
 	return true;
 }
 
-inline void sort_step2(uint32_t *a, size_t N)
+inline bool sort_step2(uint32_t *a, size_t N)
 {
 	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
@@ -126,15 +139,21 @@ inline void sort_step2(uint32_t *a, size_t N)
 		}
 		gap = nextGap(gap);
 	}
-	for (int i = 0; i < 8; i++) {
+	for (int i = 0; i < 15; i++) {
+		V128 same = pcmpeqd(Zero(), Zero());
 		for (size_t i = 0; i < N / 4 - 1; i++) {
-			vector_cmpswap(va[i], va[i + 1]);
+			V128 t = vector_cmpswap_ck(va[i], va[i + 1]);
+			same = pand(same, t);
 		}
-		vector_cmpswap_skew(va[N / 4 - 1], va[0]);
-//		if (isSorted(a, N)) return true;
+		V128 t = vector_cmpswap_skew_ck(va[N / 4 - 1], va[0]);
+		same = pand(same, t);
+		if (pmovmskb(same) == 0xffff) {
+//			fprintf(stderr, "i=%d\n", i);
+			return true;
+		}
 	}
-//	puts("ERR!!! not sorted");
-//	return false;
+	printf("!!! max loop\n");
+	return false;
 }
 
 inline void sort_step3(uint32_t *a, size_t N)

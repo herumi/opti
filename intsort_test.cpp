@@ -21,7 +21,8 @@ void Init(uint32_t *a, size_t len)
 {
 	XorShift128 r;
 	for (size_t i = 0; i < len; i++) {
-		a[i] = r.get();
+		uint32_t x = r.get();
+		a[i] = x;
 	}
 }
 
@@ -32,30 +33,48 @@ void put(const uint32_t *a, size_t len)
 	}
 }
 
-uint32_t checksum(const uint32_t *a, size_t len)
+uint64_t sum(const uint32_t *a, size_t len)
 {
-#if 0
-	return std::accumulate(a, a + len, 0);
-#else
-	uint32_t ret = 0x12345;
-	for (size_t i = 0; i < len; i++) {
-		ret = ret * 0x12345 + a[i];
+	return (uint64_t)std::accumulate(a, a + len, 0ULL);
+}
+
+template<class F>
+double test(F f, uint32_t *a, size_t N)
+{
+	uint64_t pre = sum(a, N);
+	Xbyak::util::Clock clk;
+	clk.begin();
+	f(a, N);
+	clk.end();
+	uint64_t cur = sum(a, N);
+	if (pre != cur) {
+		fprintf(stderr, "value is different\n");
+		return -1;
 	}
-	return ret;
-#endif
+	if (!isSorted(a, N)) {
+		fprintf(stderr, "a is not sorted\n");
+		return -1;
+	}
+	return clk.getClock() * 1e-3;
+}
+
+void STLsort(uint32_t *a, size_t N)
+{
+	std::sort(a, a + N);
 }
 
 int main()
 {
-	const size_t N = 16 * 2048;
-	AlignedArray<uint32_t> va(N);
-	uint32_t *const a = &va[0];
-	Init(a, N);
-//	put(a, N);
-	AlignedArray<uint32_t> vb(N);
-	uint32_t *const b = &vb[0];
-	Init(b, N);
-
+	for (int i = 0; i < 16; i++) {
+		const size_t N = 16 * (1U << i);
+		AlignedArray<uint32_t> va(N);
+		uint32_t *const a = &va[0];
+		Init(a, N);
+		double c1 = test(STLsort, a, N);
+		Init(a, N);
+		double c2 = test(intsort, a, N);
+		printf("N=%6d, STL=%11.3fKclk SSE=%11.3fKclk(%.2f)\n", (int)N, c1, c2, c1 / c2);
+	}
 #if 0
 	{
 		puts("cmpswap_skew");
@@ -75,21 +94,4 @@ int main()
 	sort_step1(a, N);
 	put(a, N);
 #endif
-	puts("sort by STL");
-	{
-		Xbyak::util::Clock clk;
-		clk.begin();
-		std::sort(b, b + N);
-		clk.end();
-		printf("isSorted=%d:%08x %.3f\n", isSorted(b, N), checksum(b, N), clk.getClock() * 1e-3);
-	}
-	puts("sort by SIMD");
-	{
-		Xbyak::util::Clock clk;
-		clk.begin();
-		intsort(a, N);
-		clk.end();
-//		put(a, N);
-		printf("isSorted=%d:%08x %.3f\n", isSorted(a, N), checksum(a, N), clk.getClock() * 1e-3);
-	}
 }
