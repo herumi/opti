@@ -29,7 +29,7 @@ typedef signed char int8_t;
 	#define my_bsf(x) (_BitScanForward(&x, x), x)
 //	#define my_bsr(x) (_BitScanReverse(&x, x), x)
 #else
-	#ifdef __Linux__
+	#ifdef __linux__
 		#include <x86intrin.h>
 	#else
 		#include <emmintrin.h>
@@ -105,6 +105,11 @@ struct AlignedArray {
 	const T* begin() const { return p_; }
 	const T* end() const { return p_ + n_; }
 	typedef T value_type;
+	void swap(AlignedArray& rhs) throw()
+	{
+		std::swap(p_, rhs.p_);
+		std::swap(n_, rhs.n_);
+	}
 private:
 	AlignedArray(const AlignedArray&);
 	void operator=(const AlignedArray&);
@@ -118,9 +123,14 @@ inline bool LoadFile(AlignedArray<char>& textBuf, const std::string& fileName)
 	std::ifstream ifs(fileName.c_str(), std::ios::binary);
 	if (!ifs) return false;
 	ifs.seekg(0, std::ifstream::end);
-	const size_t size = ifs.tellg();
+	const uint64_t orgSize = ifs.tellg();
 	ifs.seekg(0);
-	fprintf(stderr, "size=%d\n", (int)size);
+	if (orgSize > 0x7ffffffe) {
+		fprintf(stderr, "file is too large\n");
+		return false;
+	}
+	const int size = (int)orgSize;
+	fprintf(stderr, "size=%d\n", size);
 	textBuf.resize(size + 1);
 	ifs.read(&textBuf[0], size);
 	textBuf[size] = '\0';
