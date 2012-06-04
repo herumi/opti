@@ -9,6 +9,7 @@
 #include "v128.h"
 #include <assert.h>
 #include <string.h>
+#include <xbyak/xbyak_util.h>
 
 inline size_t nextGap(size_t N)
 {
@@ -124,17 +125,30 @@ bool isSorted(const uint32_t *a, size_t len)
 	}
 	return true;
 }
-
+/*
+	Xeon
+	all
+	N =   65536 clk =  122K
+	N =  131072 clk =  243K
+	N =  262144 clk =  481K
+	N =  524288 clk =  984K
+	N = 1048576 clk = 1978K
+	N = 2097152 clk = 4829K
+*/
 inline bool isSortedVec(const V128 *va, size_t N)
 {
+//	Xbyak::util::Clock clk;
+//	clk.begin();
 	for (size_t i = 0; i < N - 1; i++) {
 		V128 a = va[i];
 		V128 b = va[i + 1];
 		V128 c = pmaxud(a, b);
 		if (!ptest_cf(b, c)) {
+//			clk.end(); printf("AAA %f\n", clk.getClock() * 1e-3);
 			return false;
 		}
 	}
+//	clk.end(); printf("BAA %f\n", clk.getClock() * 1e-3);
 	return true;
 }
 inline bool sort_step2(uint32_t *a, size_t N)
@@ -152,7 +166,7 @@ inline bool sort_step2(uint32_t *a, size_t N)
 		gap = nextGap(gap);
 	}
 	for (int i = 0; i < 15; i++) {
-#if 1
+#if 0
 #if 1
 		V128 same;
 		{
@@ -184,9 +198,25 @@ inline bool sort_step2(uint32_t *a, size_t N)
 			return true;
 		}
 #else
+#if 1
+		{
+			V128 a = va[0];
+			V128 b = va[1];
+			va[0] = pminud(a, b);
+			a = pmaxud(a, b);
+			for (size_t i = 1; i < N / 4 - 1; i++) {
+				b = va[i + 1];
+				V128 t = pmaxud(a, b);
+				va[i] = pminud(a, b);
+				a = t;
+			}
+			va[N / 4 - 1] = a;
+		}
+#else
 		for (size_t i = 0; i < N / 4 - 1; i++) {
 			vector_cmpswap(va[i], va[i + 1]);
 		}
+#endif
 		vector_cmpswap_skew(va[N / 4 - 1], va[0]);
 		if (isSortedVec(va, N / 4)) return true;
 #endif
