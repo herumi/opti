@@ -125,6 +125,18 @@ bool isSorted(const uint32_t *a, size_t len)
 	return true;
 }
 
+inline bool isSortedVec(const V128 *va, size_t N)
+{
+	for (size_t i = 0; i < N - 1; i++) {
+		V128 a = va[i];
+		V128 b = va[i + 1];
+		V128 c = pmaxud(a, b);
+		if (!ptest_cf(b, c)) {
+			return false;
+		}
+	}
+	return true;
+}
 inline bool sort_step2(uint32_t *a, size_t N)
 {
 	assert((N % 16) == 0);
@@ -140,17 +152,44 @@ inline bool sort_step2(uint32_t *a, size_t N)
 		gap = nextGap(gap);
 	}
 	for (int i = 0; i < 15; i++) {
+#if 1
+#if 1
+		V128 same;
+		{
+			V128 a = va[0];
+			V128 b = va[1];
+			va[0] = pminud(a, b);
+			a = pmaxud(a, b);
+			same = pcmpeqd(b, a);
+			for (size_t i = 1; i < N / 4 - 1; i++) {
+				b = va[i + 1];
+				V128 t = pmaxud(a, b);
+				va[i] = pminud(a, b);
+				same = pand(same, pcmpeqd(b, t));
+				a = t;
+			}
+			va[N / 4 - 1] = a;
+		}
+#else
 		V128 same = pcmpeqd(Zero(), Zero());
 		for (size_t i = 0; i < N / 4 - 1; i++) {
 			V128 t = vector_cmpswap_ck(va[i], va[i + 1]);
 			same = pand(same, t);
 		}
+#endif
 		V128 t = vector_cmpswap_skew_ck(va[N / 4 - 1], va[0]);
 		same = pand(same, t);
 		if (pmovmskb(same) == 0xffff) {
 //			fprintf(stderr, "i=%d\n", i);
 			return true;
 		}
+#else
+		for (size_t i = 0; i < N / 4 - 1; i++) {
+			vector_cmpswap(va[i], va[i + 1]);
+		}
+		vector_cmpswap_skew(va[N / 4 - 1], va[0]);
+		if (isSortedVec(va, N / 4)) return true;
+#endif
 	}
 	printf("!!! max loop\n");
 	return false;

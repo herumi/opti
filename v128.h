@@ -203,11 +203,25 @@ inline V128 pcmpeqd(const V128& a, const V128& b)
 	return _mm_cmpeq_epi32(a.x_, b.x_);
 }
 
+inline V128 pcmpgtd(const V128& a, const V128& b)
+{
+	return _mm_cmpgt_epi32(a.x_, b.x_);
+}
+
 inline uint32_t pmovmskb(const V128& a)
 {
 	return _mm_movemask_epi8(a.x_);
 }
 
+inline int ptest_zf(const V128& a, const V128& b)
+{
+	return _mm_testz_si128(a.x_, b.x_);
+}
+
+inline int ptest_cf(const V128& a, const V128& b)
+{
+	return _mm_testc_si128(a.x_, b.x_);
+}
 inline void swap128(uint32_t *p, uint32_t *q)
 {
 	V128 t(p);

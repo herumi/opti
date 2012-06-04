@@ -3,7 +3,7 @@ ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
     ADD_OPT+=-mtune=native
 endif
 
-TARGET=str_util_test
+TARGET=str_util_test intsort_test
 
 BIT=32
 ifeq ($(shell uname -m),x86_64)
@@ -26,11 +26,14 @@ all:$(TARGET)
 
 .SUFFIXES: .cpp
 
-str_util_test: str_util_test.cpp $(HEADER)
+str_util_test: str_util_test.o $(HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m32
 
-str_util_test64: str_util_test.cpp $(HEADER)
+str_util_test64: str_util_test.o $(HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m64
+
+intsort_test: intsort_test.o $(HEADER)
+	$(CXX) $(CFLAGS) $< -o $@
 
 .cpp.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)
@@ -40,4 +43,6 @@ str_util_test64: str_util_test.cpp $(HEADER)
 
 clean:
 	$(RM) *.o $(TARGET)
+
+intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 

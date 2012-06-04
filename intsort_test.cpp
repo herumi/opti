@@ -65,7 +65,8 @@ void STLsort(uint32_t *a, size_t N)
 
 int main()
 {
-	for (int i = 0; i < 16; i++) {
+	/* i == 19 reaches max loop */
+	for (int i = 0; i < 19; i++) {
 		const size_t N = 16 * (1U << i);
 		AlignedArray<uint32_t> va(N);
 		uint32_t *const a = &va[0];
@@ -73,7 +74,8 @@ int main()
 		double c1 = test(STLsort, a, N);
 		Init(a, N);
 		double c2 = test(intsort, a, N);
-		printf("N=%6d, STL=%11.3fKclk SSE=%11.3fKclk(%.2f)\n", (int)N, c1, c2, c1 / c2);
+//put(a, N);exit(1);
+		printf("N=%7d, STL=%11.3fKclk SSE=%11.3fKclk(%.2f)\n", (int)N, c1, c2, c1 / c2);
 	}
 #if 0
 	{
