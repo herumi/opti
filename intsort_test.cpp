@@ -76,8 +76,75 @@ void STLsort(uint32_t *a, size_t N)
 	std::sort(a, a + N);
 }
 
+void test_vector_merge()
+{
+	puts("test_vector_merge");
+	if (0) {
+		V128 a(7, 6, 5, 4);
+		V128 b(9, 8, 3, 1);
+		a.put("a=");
+		b.put("b=");
+		vector_merge(a, b);
+		puts("compswap_skew");
+		a.put("a=");
+		b.put("b=");
+	}
+	for (int a0 = 0; a0 < 8; a0++) {
+		for (int a1 = a0; a1 < 8; a1++) {
+			for (int a2 = a1; a2 < 8; a2++) {
+				for (int a3 = a2; a3 < 8; a3++) {
+					for (int b0 = 0; b0 < 8; b0++) {
+						for (int b1 = b0; b1 < 8; b1++) {
+							for (int b2 = b1; b2 < 8; b2++) {
+								for (int b3 = b2; b3 < 8; b3++) {
+									V128 a(a3, a2, a1, a0);
+									V128 b(b3, b2, b1, b0);
+									vector_merge(a, b);
+									MIE_ALIGN(16) uint32_t buf[8];
+									a.store(buf);
+									b.store(buf + 4);
+									if (!isSorted(buf, 8)) {
+										puts("ERR not sorted");
+										a.put("a=");
+										b.put("b=");
+										exit(1);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	puts("ok");
+}
+
+void test_int_mergesort()
+{
+	for (int i = 0; i < 19; i++) {
+		const size_t N = 16 * (1U << i);
+		AlignedArray<uint32_t> va(N);
+		AlignedArray<uint32_t> vo(N);
+		uint32_t *const a = &va[0];
+		Init(a, N);
+		STLsort(a, N / 2);
+		STLsort(a + N / 2, N / 2);
+		int_mergesort((V128*)&vo[0], (const V128*)a, N / 8,(const V128*)(a + N / 2), N / 8);
+		STLsort(a, N);
+		for (size_t j = 0; j < N; j++) {
+			if (a[i] != vo[i]) {
+				printf("ERR %d %u %u\n", (int)i, a[i], vo[i]);
+				break;
+			}
+		}
+	}
+}
+
 int main()
 {
+	test_vector_merge();
+	test_int_mergesort();
 	/* i == 19 reaches max loop */
 	printf("%7s %11s %11s %4s\n", "N", "STL", "SSE", "rate");
 	for (int i = 0; i < 19; i++) {
@@ -88,7 +155,6 @@ int main()
 		double c1 = test(STLsort, a, N);
 		Init(a, N);
 		double c2 = test(intsort, a, N);
-//put(a, N);exit(1);
 		printf("%7d %11.3f %11.3f %.2f\n", (int)N, c1, c2, c1 / c2);
 	}
 #if 0

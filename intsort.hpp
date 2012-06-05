@@ -246,6 +246,60 @@ inline void sort_step3(uint32_t *a, size_t/* aN*/, V128 *va, size_t N)
 }
 #endif
 
+/*
+	input
+	a = [a3:a2:a1:a0], b = [b3:b2:b1:b0]
+	output
+	[b:a] = merge(a3, a2, a1, a0, b3, b2, b1, b0)
+	mij = min(ai,bi)
+	Mij = max(ai,bj)
+
+	m00 M00 m11 M11  m22 M22 m33 M33
+	     c   d   e    f   g   h
+	    mcf Mcf  g    d  meh Meh
+         s   t            u   v
+	m00 msd Msd mtu  Mtu mgv Mgv M33
+
+*/
+inline void vector_merge(V128& a, V128& b)
+{
+	V128 m = pminud(a, b); // [h:f:d:m00] = [m33:m22:m11:m00]
+	V128 M = pmaxud(a, b);      // [M33:g:e:c] = [M33:m22:M11:M00]
+	V128 s0 = punpckhqdq(m, m); // [  h:f:h:f]
+	V128 s1 = pminud(s0, M);    // [  h:f:u:s]
+	V128 s2 = pmaxud(s0, M);    // [M33:g:v:t]
+	V128 s3 = punpcklqdq(s1, punpckhqdq(M, M)); // [M33:g:u:s]
+	V128 s4 = punpcklqdq(s2, m); // [d:m00:v:t]
+	s4 = pshufd(s4, ShuffleConst(2, 1, 0, 3)); // [m00:v:t:d]
+	V128 s5 = pminud(s3, s4); // [m00:mgv:mtu:msd]
+	V128 s6 = pmaxud(s3, s4); // [M33:Mgv:Mtu:Msd]
+	V128 s7 = pinsrd<2>(s5, movd(s6)); // [m00:Msd:mtu:msd]
+	V128 s8 = pinsrd<0>(s6, pextrd<2>(s5)); // [M33:Mgv:Mtu:mgv]
+	a = pshufd(s7, ShuffleConst(1, 2, 0, 3));
+	b = pshufd(s8, ShuffleConst(3, 2, 0, 1));
+}
+
+/*
+	vo[aN + bN] <- merge(va[aN], vb[bN]);
+*/
+inline void int_mergesort(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN)
+{
+	uint32_t aPos = 0;
+	uint32_t bPos = 0;
+	uint32_t outPos = 0;
+	V128 vMin = va[aPos++];
+	V128 vMax = vb[bPos++];
+	while (aPos < aN && bPos < bN) {
+		vector_merge(vMin, vMax);
+		vo[outPos++] = vMin;
+		if (((const uint32_t*)va)[aPos * 4] < ((const uint32_t*)vb)[bPos * 4]) {
+			vMin = va[aPos++];
+		} else {
+			vMin = vb[bPos++];
+		}
+	}
+}
+
 inline void intsort(uint32_t *a, size_t N)
 {
 #if 0

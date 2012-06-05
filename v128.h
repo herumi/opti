@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <assert.h>
 
+inline uint32_t ShuffleConst(uint32_t x, uint32_t y, uint32_t z, uint32_t w)
+{
+	return x * 64 + y * 16 + z * 4 + w;
+}
+
 struct V128 {
 	__m128i x_;
 	V128()
@@ -23,7 +28,7 @@ struct V128 {
 	}
 	__m128 to_ps() const { return _mm_castsi128_ps(x_); }
 	// m = [x3:x2:x1:x0]
-	V128(uint32_t x0, uint32_t x1, uint32_t x2, uint32_t x3)
+	V128(uint32_t x3, uint32_t x2, uint32_t x1, uint32_t x0)
 		: x_(_mm_set_epi32(x3, x2, x1, x0))
 	{
 	}
@@ -44,7 +49,7 @@ struct V128 {
 		x_ = _mm_set1_epi32(x);
 	}
 	// m = [x3:x2:x1:x0]
-	void set(uint32_t x0, uint32_t x1, uint32_t x2, uint32_t x3)
+	void set(uint32_t x3, uint32_t x2, uint32_t x1, uint32_t x0)
 	{
 		x_ = _mm_set_epi32(x3, x2, x1, x0);
 	}
@@ -138,9 +143,24 @@ inline V128 palignr(const V128& a, const V128& b)
 	return _mm_alignr_epi8(a.x_, b.x_, n);
 }
 
+inline V128 punpckhdq(const V128& a, const V128& b)
+{
+	return _mm_unpackhi_epi32(a.x_, b.x_);
+}
+
 inline V128 punpckhqdq(const V128& a, const V128& b)
 {
 	return _mm_unpackhi_epi64(a.x_, b.x_);
+}
+
+inline V128 punpckldq(const V128& a, const V128& b)
+{
+	return _mm_unpacklo_epi32(a.x_, b.x_);
+}
+
+inline V128 punpcklqdq(const V128& a, const V128& b)
+{
+	return _mm_unpacklo_epi64(a.x_, b.x_);
 }
 
 inline V128 unpcklps(const V128& a, const V128& b)
@@ -212,6 +232,22 @@ inline uint32_t pmovmskb(const V128& a)
 {
 	return _mm_movemask_epi8(a.x_);
 }
+inline V128 pshufd(const V128& a, int n)
+{
+	return _mm_shuffle_epi32(a.x_, n);
+}
+
+template<int idx>
+inline uint32_t pextrd(const V128& a)
+{
+	return _mm_extract_epi32(a.x_, idx);
+}
+
+template<int idx>
+inline V128 pinsrd(const V128& a, uint32_t v)
+{
+	return _mm_insert_epi32(a.x_, v, idx);
+}
 
 inline int ptest_zf(const V128& a, const V128& b)
 {
@@ -222,6 +258,7 @@ inline int ptest_cf(const V128& a, const V128& b)
 {
 	return _mm_testc_si128(a.x_, b.x_);
 }
+
 inline void swap128(uint32_t *p, uint32_t *q)
 {
 	V128 t(p);
