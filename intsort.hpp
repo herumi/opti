@@ -190,61 +190,17 @@ inline bool sort_step2(V128 *va, size_t N)
 	return false;
 }
 
-inline void sort_step3(V128 *va, size_t N)
-{
-	for (size_t i = 0; i < N / 4; i++) {
-		transpose(&va[i * 4]);
-	}
-	AlignedArray<uint32_t> work(N * 4);
-	uint32_t *vw = &work[0];
-	for (size_t i = 0; i < 4; i++) {
-		for (size_t j = 0; j < N / 4; j++) {
-			va[(j * 4 + i)].store(&vw[(j + i * (N / 4)) * 4]);
-		}
-	}
-	memcpy(va, vw, N * sizeof(va[0]));
-}
-
-#if 0
-inline void sort_step1(V128 *va, size_t N, uint32_t *a, size_t /* aN */)
-{
-	for (size_t i = 0; i < N; i += 4) {
-		V128 *x = (V128*)&a[i * 4];
-		V128 min01 = pminud(x[0], x[1]);
-		V128 max01 = pmaxud(x[0], x[1]);
-		V128 min23 = pminud(x[2], x[3]);
-		V128 max23 = pmaxud(x[2], x[3]);
-		V128 x0 = pminud(min01, min23);
-		V128 x3 = pmaxud(max01, max23);
-		V128 s = pmaxud(min01, min23);
-		V128 t = pminud(max01, max23);
-		V128 x1 = pminud(s, t);
-		V128 x2 = pmaxud(s, t);
-		V128 t0 = unpcklps(x0, x2);
-		V128 t1 = unpcklps(x1, x3);
-		V128 t2 = unpckhps(x0, x2);
-		V128 t3 = unpckhps(x1, x3);
-		va[i + 0] = unpcklps(t0, t1);
-		va[i + 1] = unpckhps(t0, t1);
-		va[i + 2] = unpcklps(t2, t3);
-		va[i + 3] = unpckhps(t2, t3);
-	}
-}
-
-inline void sort_step3(uint32_t *a, size_t/* aN*/, V128 *va, size_t N)
+inline void sort_step3(V128 *vw, V128 *va, size_t N)
 {
 	for (size_t i = 0; i < N / 4; i++) {
 		transpose(&va[i * 4]);
 	}
 	for (size_t i = 0; i < 4; i++) {
 		for (size_t j = 0; j < N / 4; j++) {
-			va[(j * 4 + i)].store(&a[(j + i * (N / 4)) * 4]);
+			vw[j + i * (N / 4)] = va[j * 4 + i];
 		}
-		// QQQ
-		// move remain data
 	}
 }
-#endif
 
 /*
 	input
@@ -302,20 +258,13 @@ inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN
 
 inline void intsort(uint32_t *a, size_t N)
 {
-#if 0
-	assert((N % 16) == 0);
-	const size_t NA = ((N + 15) & ~15);
-	const size_t NA4 = NA / 4;
-	AlignedArray<uint32_t> work(NA);
-	V128 *vw = (V128*)&work[0];
-	sort_step1(vw, NA4, a, N);
-	sort_step2(vw, NA4);
-	sort_step3(a, N, vw, NA4);
-#else
 	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
 	sort_step1(va, N / 4);
 	sort_step2(va, N / 4);
-	sort_step3(va, N / 4);
-#endif
+	AlignedArray<uint32_t> work(N);
+	V128 *vw = (V128*)&work[0];
+	sort_step3(vw, va, N / 4);
+	memcpy(va, vw, N * sizeof(a[0]));
 }
+

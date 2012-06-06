@@ -232,7 +232,7 @@ int main()
 	test_vector_merge();
 	test_merge();
 	puts("test");
-	for (int mode = 0; mode < 5; mode++) {
+	for (int mode = 0; mode < 1; mode++) {
 		printf("mode=%s\n", mode2str(mode));
 		/* i == 19 reaches max loop */
 		for (int i = 0; i < 19; i++) {
