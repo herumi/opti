@@ -33,13 +33,67 @@ N=4194304, STL= 955930.427Kclk SSE= 399368.311Kclk(2.39)
 #include <algorithm>
 #include "intsort.hpp"
 #include <xbyak/xbyak_util.h>
-
-void Init(uint32_t *a, size_t len)
+/*
+	mode = 0 : random
+	       1 : all zero
+           2 : almost presorted
+           3 : forward presorted
+           4 : reversed presorted
+*/
+const char *mode2str(int mode)
 {
-	XorShift128 r;
-	for (size_t i = 0; i < len; i++) {
-		uint32_t x = r.get();
-		a[i] = x;
+	switch (mode) {
+	case 0:
+		return "random";
+	case 1:
+		return "all zero";
+	case 2:
+		return "almost presorted";
+	case 3:
+		return "forward presorted";
+	case 4:
+		return "reversed presorted";
+	default:
+		fprintf(stderr, "ERR mode=%d in modeStr\n", mode);
+		exit(1);
+	}
+}
+void Init(uint32_t *a, size_t len, int mode = 0)
+{
+	switch (mode) {
+	case 0:
+		{
+			XorShift128 r;
+			for (size_t i = 0; i < len; i++) {
+				uint32_t x = r.get();
+				a[i] = x;
+			}
+		}
+		break;
+	case 1:
+		for (size_t i = 0; i < len; i++) {
+			a[i] = 0;
+		}
+		break;
+	case 2:
+		a[0] = len;
+		for (size_t i = 1; i < len; i++) {
+			a[i] = 1;
+		}
+		break;
+	case 3:
+		for (size_t i = 0; i < len; i++) {
+			a[i] = (int)i;
+		}
+		break;
+	case 4:
+		for (size_t i = 0; i < len; i++) {
+			a[i] = (int)(len - i);
+		}
+		break;
+	default:
+		fprintf(stderr, "ERR mode=%d\n", mode);
+		exit(1);
 	}
 }
 
@@ -178,16 +232,19 @@ int main()
 	test_vector_merge();
 	test_merge();
 	puts("test");
-	/* i == 19 reaches max loop */
-	for (int i = 0; i < 19; i++) {
-		const size_t N = 16 * (1U << i);
-		AlignedArray<uint32_t> va(N);
-		uint32_t *const a = &va[0];
-		Init(a, N);
-		double c1 = test(STLsort, a, N);
-		Init(a, N);
-		double c2 = test(intsort, a, N);
-		printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
+	for (int mode = 0; mode < 5; mode++) {
+		printf("mode=%s\n", mode2str(mode));
+		/* i == 19 reaches max loop */
+		for (int i = 0; i < 19; i++) {
+			const size_t N = 16 * (1U << i);
+			AlignedArray<uint32_t> va(N);
+			uint32_t *const a = &va[0];
+			Init(a, N, mode);
+			double c1 = test(STLsort, a, N);
+			Init(a, N, mode);
+			double c2 = test(intsort, a, N);
+			printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
+		}
 	}
 #if 0
 	{
