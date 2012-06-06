@@ -256,15 +256,38 @@ inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN
 	}
 }
 
+inline void sort_step123(V128 *vw, V128 *va, size_t N)
+{
+	sort_step1(va, N);
+	sort_step2(va, N);
+	sort_step3(vw, va, N);
+}
+
 inline void intsort(uint32_t *a, size_t N)
 {
+	const size_t BN = 8192;
+	const size_t N4 = N / 4;
 	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
-	sort_step1(va, N / 4);
-	sort_step2(va, N / 4);
-	AlignedArray<uint32_t> work(N);
+//	if (N4 <= BN) {
+	if (1) {
+		AlignedArray<uint32_t> work(N);
+		V128 *vw = (V128*)&work[0];
+		sort_step123(vw, va, N4);
+		memcpy(va, vw, N * sizeof(a[0]));
+		return;
+	}
+	AlignedArray<uint32_t> work(N / 2);
 	V128 *vw = (V128*)&work[0];
-	sort_step3(vw, va, N / 4);
-	memcpy(va, vw, N * sizeof(a[0]));
+	assert((N % Q) == 0); // QQQ
+	const size_t Q = N4 / BN;
+	/*
+		[ ] [<] [<] [<] [<] [<] [<] [<]
+		                [ ] [ ] [ ] [<]
+	*/
+	sort_step123(vw, va, BN);
+	for (size_t i = BN; i < N4; i += BN) {
+		sort_step123(&va[i - BN], &va[i], BN);
+	}
 }
 
