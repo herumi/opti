@@ -270,19 +270,19 @@ inline void vector_merge(V128& a, V128& b)
 	V128 s2 = pmaxud(s0, M);    // [M33:g:v:t]
 	V128 s3 = punpcklqdq(s1, punpckhqdq(M, M)); // [M33:g:u:s]
 	V128 s4 = punpcklqdq(s2, m); // [d:m00:v:t]
-	s4 = pshufd(s4, ShuffleConst(2, 1, 0, 3)); // [m00:v:t:d]
+	s4 = pshufd<MIE_PACK(2, 1, 0, 3)>(s4); // [m00:v:t:d]
 	V128 s5 = pminud(s3, s4); // [m00:mgv:mtu:msd]
 	V128 s6 = pmaxud(s3, s4); // [M33:Mgv:Mtu:Msd]
 	V128 s7 = pinsrd<2>(s5, movd(s6)); // [m00:Msd:mtu:msd]
 	V128 s8 = pinsrd<0>(s6, pextrd<2>(s5)); // [M33:Mgv:Mtu:mgv]
-	a = pshufd(s7, ShuffleConst(1, 2, 0, 3));
-	b = pshufd(s8, ShuffleConst(3, 2, 0, 1));
+	a = pshufd<MIE_PACK(1, 2, 0, 3)>(s7);
+	b = pshufd<MIE_PACK(3, 2, 0, 1)>(s8);
 }
 
 /*
 	vo[aN + bN] <- merge(va[aN], vb[bN]);
 */
-inline void int_mergesort(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN)
+inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN)
 {
 	uint32_t aPos = 0;
 	uint32_t bPos = 0;

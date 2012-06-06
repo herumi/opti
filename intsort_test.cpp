@@ -30,6 +30,7 @@ N=4194304, STL= 955930.427Kclk SSE= 399368.311Kclk(2.39)
 */
 #include <stdio.h>
 #include <numeric>
+#include <algorithm>
 #include "intsort.hpp"
 #include <xbyak/xbyak_util.h>
 
@@ -120,17 +121,46 @@ void test_vector_merge()
 	puts("ok");
 }
 
-void test_int_mergesort()
+
+
+void test_merge()
 {
+	puts("test_merge");
 	for (int i = 0; i < 19; i++) {
 		const size_t N = 16 * (1U << i);
 		AlignedArray<uint32_t> va(N);
 		AlignedArray<uint32_t> vo(N);
 		uint32_t *const a = &va[0];
+		double c1, c2;
 		Init(a, N);
 		STLsort(a, N / 2);
 		STLsort(a + N / 2, N / 2);
-		int_mergesort((V128*)&vo[0], (const V128*)a, N / 8,(const V128*)(a + N / 2), N / 8);
+		{
+			// fill cache
+			std::merge(a, a + N / 2, a + N / 2, a + N, &vo[0]);
+		}
+
+		Init(a, N);
+		STLsort(a, N / 2);
+		STLsort(a + N / 2, N / 2);
+		{
+			Xbyak::util::Clock clk;
+			clk.begin();
+			std::set_union(a, a + N / 2, a + N / 2, a + N, &vo[0]);
+			clk.end();
+			c1 = clk.getClock() * 1e-3;
+		}
+		Init(a, N);
+		STLsort(a, N / 2);
+		STLsort(a + N / 2, N / 2);
+		{
+			Xbyak::util::Clock clk;
+			clk.begin();
+			merge((V128*)&vo[0], (const V128*)a, N / 8,(const V128*)(a + N / 2), N / 8);
+			clk.end();
+			c2 = clk.getClock() * 1e-3;
+		}
+
 		STLsort(a, N);
 		for (size_t j = 0; j < N; j++) {
 			if (a[i] != vo[i]) {
@@ -138,15 +168,17 @@ void test_int_mergesort()
 				break;
 			}
 		}
+		printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 	}
 }
 
 int main()
 {
+	printf("%7s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
 	test_vector_merge();
-	test_int_mergesort();
+	test_merge();
+	puts("test");
 	/* i == 19 reaches max loop */
-	printf("%7s %11s %11s %4s\n", "N", "STL", "SSE", "rate");
 	for (int i = 0; i < 19; i++) {
 		const size_t N = 16 * (1U << i);
 		AlignedArray<uint32_t> va(N);
@@ -155,7 +187,7 @@ int main()
 		double c1 = test(STLsort, a, N);
 		Init(a, N);
 		double c2 = test(intsort, a, N);
-		printf("%7d %11.3f %11.3f %.2f\n", (int)N, c1, c2, c1 / c2);
+		printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 	}
 #if 0
 	{

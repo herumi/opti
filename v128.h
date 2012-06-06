@@ -4,10 +4,9 @@
 #include <stdio.h>
 #include <assert.h>
 
-inline uint32_t ShuffleConst(uint32_t x, uint32_t y, uint32_t z, uint32_t w)
-{
-	return x * 64 + y * 16 + z * 4 + w;
-}
+#ifndef MIE_PACK // for shufps
+	#define MIE_PACK(x, y, z, w) ((x) * 64 + (y) * 16 + (z) * 4 + (w))
+#endif
 
 struct V128 {
 	__m128i x_;
@@ -232,7 +231,8 @@ inline uint32_t pmovmskb(const V128& a)
 {
 	return _mm_movemask_epi8(a.x_);
 }
-inline V128 pshufd(const V128& a, int n)
+template<int n>
+inline V128 pshufd(const V128& a)
 {
 	return _mm_shuffle_epi32(a.x_, n);
 }
