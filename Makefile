@@ -1,6 +1,7 @@
+OPT=-msse4 -O3 -fomit-frame-pointer -DNDEBUG -msse4
 GCC_VER=$(shell gcc -dumpversion)
 ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
-    ADD_OPT+=-mtune=native
+    OPT+=-mtune=native
 endif
 
 TARGET=str_util_test intsort_test
@@ -16,7 +17,7 @@ ifeq ($(BIT),64)
 TARGET += str_util_test64
 endif
 # ----------------------------------------------------------------
-CFLAGS += -O3 -fomit-frame-pointer -DNDEBUG -fno-operator-names -msse4 $(ADD_OPT)
+CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------

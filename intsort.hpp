@@ -1,8 +1,8 @@
 #pragma once
 /*
 	implementation of AA-Sort with SSE4.1(not yet complete)
-	see http://www.trl.ibm.com/people/inouehrs/pdf/PACT2007-SIMDsort.pdf
     @author herumi
+	ref http://www.research.ibm.com/trl/people/inouehrs/pdf/SPE-SIMDsort.pdf
     @note modified new BSD license
     http://opensource.org/licenses/BSD-3-Clause
 */
@@ -16,28 +16,6 @@ inline size_t nextGap(size_t N)
 	return (N * 10) / 13;
 }
 
-template<class T>
-void combSort(T *a, size_t N)
-{
-	size_t gap = nextGap(N);
-	for (;;) {
-		bool isSwapped = false;
-		for (size_t i = 0; i < N - gap; i++) {
-			T x = a[i];
-			T y = a[i + gap];
-			if (x > y) {
-				a[i + gap] = x;
-				a[i] = y;
-				isSwapped = true;
-			}
-		}
-		if (gap == 1) {
-			if (!isSwapped) break;
-		} else {
-			gap = nextGap(gap);
-		}
-	}
-}
 /*
 	input
 	a = [a3:a2:a1:a0], b = [b3:b2:b1:b0]
@@ -83,7 +61,10 @@ inline void transpose(V128 x[4])
 	x[3] = unpckhps(t2, t3);
 }
 
-inline void sort_step1_sub(V128 x[4])
+/*
+	sort [x[i][j] | i<-[0,1,2,3]] for j = 0, 1, 2, 3
+*/
+inline void sort_step1_vec(V128 x[4])
 {
 	V128 min01 = pminud(x[0], x[1]);
 	V128 max01 = pmaxud(x[0], x[1]);
@@ -100,20 +81,11 @@ inline void sort_step1_sub(V128 x[4])
 inline void sort_step1(V128 *va, size_t N)
 {
 	for (size_t i = 0; i < N; i += 4) {
-		sort_step1_sub(&va[i]);
+		sort_step1_vec(&va[i]);
 		transpose(&va[i]);
 	}
 }
 
-bool isSorted(const uint32_t *a, size_t len)
-{
-	if (len > 0) {
-		for (size_t i = 0; i < len - 1; i++) {
-			if (a[i] > a[i + 1]) return false;
-		}
-	}
-	return true;
-}
 /*
 	the following condition
 	Xeon
@@ -138,8 +110,6 @@ inline bool isSortedVec(const V128 *va, size_t N)
 	assert(a[e * 4 + 1] <= a[0 * 4 + 2]);
 	assert(a[e * 4 + 2] <= a[0 * 4 + 3]);
 #endif
-//	Xbyak::util::Clock clk;
-//	clk.begin();
 	for (size_t i = 0; i < N - 1; i++) {
 		V128 a = va[i];
 		V128 b = va[i + 1];
@@ -148,11 +118,33 @@ inline bool isSortedVec(const V128 *va, size_t N)
 			return false;
 		}
 	}
-//	clk.end(); printf("clock=%.3f\n", clk.getClock() * 1e-3);
 	return true;
 }
+
+static struct Log {
+	void set(int i)
+	{
+		m[i]++;
+	}
+	~Log()
+	{
+		if (m.empty()) return;
+		printf("Log\n");
+		for (Map::const_iterator i = m.begin(), ie = m.end(); i != ie; ++i) {
+			printf("%d:%d\n", i->first, i->second);
+		}
+	}
+	typedef std::map<int, int> Map;
+	Map m;
+} g_log;
+
+#define INTSORT_FALL_STD_SORT
 inline bool sort_step2(V128 *va, size_t N)
 {
+#ifndef INTSORT_FALL_STD_SORT
+	int retryNum = 0;
+RETRY:
+#endif
 	size_t gap = nextGap(N);
 	while (gap > 1) {
 		for (size_t i = 0; i < N - gap; i++) {
@@ -163,7 +155,7 @@ inline bool sort_step2(V128 *va, size_t N)
 		}
 		gap = nextGap(gap);
 	}
-	const int maxLoop = 100;
+	const int maxLoop = 10;
 	for (int i = 0; i < maxLoop; i++) {
 #if 1
 		{
@@ -185,13 +177,31 @@ inline bool sort_step2(V128 *va, size_t N)
 		}
 #endif
 		vector_cmpswap_skew(va[N - 1], va[0]);
-		if (isSortedVec(va, N)) return true;
+		if (isSortedVec(va, N)) {
+//			g_log.set(i);
+			return true;
+		}
 	}
-	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
-	std::sort((uint32_t*)va, (uint32_t*)va + (N * 4));
+//	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
+//	g_log.set(maxLoop);
+#ifdef INTSORT_FALL_STD_SORT
 	return false;
+#else
+	retryNum++;
+	if (retryNum == 10) {
+		printf("retry end\n");
+		exit(1);
+	}
+	goto RETRY;
+#endif
+	return true;
 }
 
+/*
+	transpose and reorder va[0..N-1]
+	input : va
+	output : vw
+*/
 inline void sort_step3(V128 *vw, V128 *va, size_t N)
 {
 	for (size_t i = 0; i < N / 4; i++) {
@@ -275,30 +285,18 @@ inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN
 		}
 	}
 	vo[outPos] = vMax;
-#if 0
-puts("------");
-	printf("outPos=%d\n", (int)outPos);
-	vMax.put("vmax:");
-	vo[outPos] = vMax;
-for(size_t i = 0; i < outPos; i++) {
-	printf("%d:", (int)i);
-	vo[i].put("");
-}
-printf("end aPos, bPos, outPos=%d, %d, %d\n", (int)aPos, (int)bPos, (int)outPos);
-	while (aPos < aN) {
-		vo[outPos++] = va[aPos++];
-	}
-	while (bPos < bN) {
-		vo[outPos++] = vb[bPos++];
-	}
-#endif
 }
 
 inline void sort_step123(V128 *vw, V128 *va, size_t N)
 {
 	sort_step1(va, N);
-	sort_step2(va, N);
-	sort_step3(vw, va, N);
+	bool isSorted = sort_step2(va, N);
+	if (isSorted) {
+		sort_step3(vw, va, N);
+	} else {
+		std::copy(va, va + N, vw);
+		std::sort((uint32_t*)&vw[0], (uint32_t*)&vw[N]);
+	}
 }
 
 void put(const char *msg, const V128 *a, size_t N)
@@ -312,8 +310,7 @@ void put(const char *msg, const V128 *a, size_t N)
 
 inline void intsort(uint32_t *a, size_t N)
 {
-	size_t BN = 4096 * 2; // Xeon
-//	size_t BN = 4096 * 4; // i7?
+	size_t BN = 8192; // maybe fastest for Xeon, i7
 	const size_t N4 = N / 4;
 	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
@@ -338,7 +335,7 @@ inline void intsort(uint32_t *a, size_t N)
 	}
 	while (BN < N4 / 2) {
 		merge(&vw[N4 / 2 - BN * 2], &va[N4 - BN * 2], BN, &vw[N4 / 2 - BN], BN);
-		for (size_t i = N4 - BN * 4; i >= BN * 2; i -= BN * 2) {
+		for (size_t i = N4 - BN * 4; i > 0; i -= BN * 2) {
 			merge(&va[i + BN * 2], &va[i], BN, &va[i + BN * 3], BN);
 		}
 		merge(&va[BN * 2], &va[BN], BN, &va[BN * 3], BN);

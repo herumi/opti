@@ -39,6 +39,7 @@ N=4194304, STL= 955930.427Kclk SSE= 399368.311Kclk(2.39)
            2 : almost presorted
            3 : forward presorted
            4 : reversed presorted
+	       5 : 16 bit random
 */
 const char *mode2str(int mode)
 {
@@ -53,6 +54,8 @@ const char *mode2str(int mode)
 		return "forward presorted";
 	case 4:
 		return "reversed presorted";
+	case 5:
+		return "16 bit random";
 	default:
 		fprintf(stderr, "ERR mode=%d in modeStr\n", mode);
 		exit(1);
@@ -91,10 +94,29 @@ void Init(uint32_t *a, size_t len, int mode = 0)
 			a[i] = (int)(len - i);
 		}
 		break;
+	case 5:
+		{
+			XorShift128 r;
+			for (size_t i = 0; i < len; i++) {
+				uint32_t x = r.get();
+				a[i] = x & 0xffff;
+			}
+		}
+		break;
 	default:
 		fprintf(stderr, "ERR mode=%d\n", mode);
 		exit(1);
 	}
+}
+
+bool isSorted(const uint32_t *a, size_t len)
+{
+	if (len > 0) {
+		for (size_t i = 0; i < len - 1; i++) {
+			if (a[i] > a[i + 1]) return false;
+		}
+	}
+	return true;
 }
 
 void put(const uint32_t *a, size_t len)
@@ -225,7 +247,7 @@ void test_merge()
 				exit(1);
 			}
 		}
-		printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
+		printf("%8d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 	}
 }
 
@@ -248,14 +270,14 @@ int main()
 		put("buf", (V128*)buf,N * 2);
 		return 1;
 	}
-	printf("%7s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
+	printf("%8s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
 //	test_vector_merge();
 //	test_merge();
 	puts("test");
-	for (int mode = 0; mode < 1; mode++) {
+	for (int mode = 0; mode < 6; mode++) {
 		printf("mode=%s\n", mode2str(mode));
 		/* i == 19 reaches max loop */
-		for (int i = 0; i < 22; i++) {
+		for (int i = 0; i < 20; i++) {
 			const size_t N = 16 * (1U << i);
 			AlignedArray<uint32_t> va(N);
 			uint32_t *const a = &va[0];
@@ -263,7 +285,7 @@ int main()
 			double c1 = test(STLsort, a, N);
 			Init(a, N, mode);
 			double c2 = test(intsort, a, N);
-			printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
+			printf("%8d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 		}
 	}
 #if 0
@@ -278,7 +300,6 @@ int main()
 		a.put("a=");
 		b.put("b=");
 	}
-	combSort(a, N);
 	put(a, N);
 	printf("isSorted=%d\n", isSorted(a, N));
 	puts("sort_step1");
