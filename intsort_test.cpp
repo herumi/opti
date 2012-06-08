@@ -274,10 +274,11 @@ int main()
 //	test_vector_merge();
 //	test_merge();
 	puts("test");
-	for (int mode = 0; mode < 6; mode++) {
+	const int modeMax = 6;
+	for (int mode = 0; mode < 1; mode++) {
 		printf("mode=%s\n", mode2str(mode));
 		/* i == 19 reaches max loop */
-		for (int i = 0; i < 20; i++) {
+		for (int i = 0; i < 22; i++) {
 			const size_t N = 16 * (1U << i);
 			AlignedArray<uint32_t> va(N);
 			uint32_t *const a = &va[0];

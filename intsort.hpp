@@ -274,14 +274,20 @@ inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN
 					bPos++;
 				}
 			} else {
-				vMin = va[aPos++];
-			}
-		} else {
-			if (bPos < bN) {
-				vMin = vb[bPos++];
-			} else {
+				while (aPos < aN) {
+					vMin = va[aPos++];
+					vector_merge(vMin, vMax);
+					vo[outPos++] = vMin;
+				}
 				break;
 			}
+		} else {
+			while (bPos < bN) {
+				vMin = vb[bPos++];
+				vector_merge(vMin, vMax);
+				vo[outPos++] = vMin;
+			}
+			break;
 		}
 	}
 	vo[outPos] = vMax;
