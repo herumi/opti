@@ -112,16 +112,18 @@ uint64_t sum(const uint32_t *a, size_t len)
 template<class F>
 double test(F f, uint32_t *a, size_t N)
 {
-	uint64_t pre = sum(a, N);
+	AlignedArray<uint32_t> wk(N);
+	memcpy(&wk[0], a, N * sizeof(a[0]));
 	Xbyak::util::Clock clk;
 	clk.begin();
-	f(a, N);
+	f(&wk[0], N);
 	clk.end();
-	uint64_t cur = sum(a, N);
-	if (pre != cur) {
-		fprintf(stderr, "value is different\n");
-	} else if (!isSorted(a, N)) {
-		fprintf(stderr, "a is not sorted\n");
+	std::sort(a, a + N);
+	for (size_t i = 0; i < N; i++) {
+		if (a[i] != wk[i]) {
+			fprintf(stderr, "NG %d %08x %08x\n", (int)i, a[i], wk[i]);
+			break;
+		}
 	}
 	return clk.getClock() * 1e-3;
 }
@@ -175,8 +177,6 @@ void test_vector_merge()
 	puts("ok");
 }
 
-
-
 void test_merge()
 {
 	puts("test_merge");
@@ -186,7 +186,8 @@ void test_merge()
 		AlignedArray<uint32_t> vo(N);
 		uint32_t *const a = &va[0];
 		double c1, c2;
-		Init(a, N);
+		const int mode = 0;
+		Init(a, N, mode);
 		STLsort(a, N / 2);
 		STLsort(a + N / 2, N / 2);
 		{
@@ -194,7 +195,8 @@ void test_merge()
 			std::merge(a, a + N / 2, a + N / 2, a + N, &vo[0]);
 		}
 
-		Init(a, N);
+		Init(a, N, mode);
+		std::fill(&vo[0], &vo[N], 0);
 		STLsort(a, N / 2);
 		STLsort(a + N / 2, N / 2);
 		{
@@ -204,7 +206,8 @@ void test_merge()
 			clk.end();
 			c1 = clk.getClock() * 1e-3;
 		}
-		Init(a, N);
+		Init(a, N, mode);
+		std::fill(&vo[0], &vo[N], 0);
 		STLsort(a, N / 2);
 		STLsort(a + N / 2, N / 2);
 		{
@@ -217,9 +220,9 @@ void test_merge()
 
 		STLsort(a, N);
 		for (size_t j = 0; j < N; j++) {
-			if (a[i] != vo[i]) {
-				printf("ERR %d %u %u\n", (int)i, a[i], vo[i]);
-				break;
+			if (a[j] != vo[j]) {
+				printf("ERR %d %u %u\n", (int)i, a[j], vo[j]);
+				exit(1);
 			}
 		}
 		printf("%7d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
@@ -228,14 +231,31 @@ void test_merge()
 
 int main()
 {
+	if (0) {
+		const int N = 1;
+		MIE_ALIGN(16) uint32_t buf[N * 8];
+		MIE_ALIGN(16) uint32_t wk[N * 8];
+		MIE_ALIGN(16) uint32_t out[N * 8];
+		for (int i = 0; i < N * 4; i++) {
+			buf[i + N * 4] = i * 2;
+			wk[i] = i * 2 + 1;
+		}
+		put("buf", (V128*)buf,N * 2);
+		put("wk", (V128*)wk,N);
+		merge((V128*)out, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
+		put("out", (V128*)out, N * 2);
+		merge((V128*)buf, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
+		put("buf", (V128*)buf,N * 2);
+		return 1;
+	}
 	printf("%7s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
-	test_vector_merge();
-	test_merge();
+//	test_vector_merge();
+//	test_merge();
 	puts("test");
 	for (int mode = 0; mode < 1; mode++) {
 		printf("mode=%s\n", mode2str(mode));
 		/* i == 19 reaches max loop */
-		for (int i = 0; i < 19; i++) {
+		for (int i = 0; i < 22; i++) {
 			const size_t N = 16 * (1U << i);
 			AlignedArray<uint32_t> va(N);
 			uint32_t *const a = &va[0];

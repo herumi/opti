@@ -163,7 +163,8 @@ inline bool sort_step2(V128 *va, size_t N)
 		}
 		gap = nextGap(gap);
 	}
-	for (int i = 0; i < 15; i++) {
+	const int maxLoop = 100;
+	for (int i = 0; i < maxLoop; i++) {
 #if 1
 		{
 			V128 a = va[0];
@@ -186,7 +187,8 @@ inline bool sort_step2(V128 *va, size_t N)
 		vector_cmpswap_skew(va[N - 1], va[0]);
 		if (isSortedVec(va, N)) return true;
 	}
-	printf("!!! max loop\n");
+	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
+	std::sort((uint32_t*)va, (uint32_t*)va + (N * 4));
 	return false;
 }
 
@@ -240,20 +242,56 @@ inline void vector_merge(V128& a, V128& b)
 */
 inline void merge(V128 *vo, const V128 *va, size_t aN, const V128 *vb, size_t bN)
 {
+	assert(aN > 0 && bN > 0);
+//printf("aN=%d, bN=%d\n", (int)aN, (int)bN);
 	uint32_t aPos = 0;
 	uint32_t bPos = 0;
 	uint32_t outPos = 0;
 	V128 vMin = va[aPos++];
 	V128 vMax = vb[bPos++];
-	while (aPos < aN && bPos < bN) {
+	for (;;) {
 		vector_merge(vMin, vMax);
 		vo[outPos++] = vMin;
-		if (((const uint32_t*)va)[aPos * 4] < ((const uint32_t*)vb)[bPos * 4]) {
-			vMin = va[aPos++];
+		if (aPos < aN) {
+			if (bPos < bN) {
+				V128 ta = va[aPos];
+				V128 tb = vb[bPos];
+				if (movd(ta) <= movd(tb)) {
+					vMin = ta;
+					aPos++;
+				} else {
+					vMin = tb;
+					bPos++;
+				}
+			} else {
+				vMin = va[aPos++];
+			}
 		} else {
-			vMin = vb[bPos++];
+			if (bPos < bN) {
+				vMin = vb[bPos++];
+			} else {
+				break;
+			}
 		}
 	}
+	vo[outPos] = vMax;
+#if 0
+puts("------");
+	printf("outPos=%d\n", (int)outPos);
+	vMax.put("vmax:");
+	vo[outPos] = vMax;
+for(size_t i = 0; i < outPos; i++) {
+	printf("%d:", (int)i);
+	vo[i].put("");
+}
+printf("end aPos, bPos, outPos=%d, %d, %d\n", (int)aPos, (int)bPos, (int)outPos);
+	while (aPos < aN) {
+		vo[outPos++] = va[aPos++];
+	}
+	while (bPos < bN) {
+		vo[outPos++] = vb[bPos++];
+	}
+#endif
 }
 
 inline void sort_step123(V128 *vw, V128 *va, size_t N)
@@ -263,14 +301,23 @@ inline void sort_step123(V128 *vw, V128 *va, size_t N)
 	sort_step3(vw, va, N);
 }
 
+void put(const char *msg, const V128 *a, size_t N)
+{
+	printf("%s\n", msg);
+	for (int i = 0; i < (int)N; i++) {
+		printf("%2d", i);
+		a[i].put(":");
+	}
+}
+
 inline void intsort(uint32_t *a, size_t N)
 {
-	const size_t BN = 8192;
+	size_t BN = 4096 * 2; // Xeon
+//	size_t BN = 4096 * 4; // i7?
 	const size_t N4 = N / 4;
 	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
-//	if (N4 <= BN) {
-	if (1) {
+	if (N4 <= BN) {
 		AlignedArray<uint32_t> work(N);
 		V128 *vw = (V128*)&work[0];
 		sort_step123(vw, va, N4);
@@ -279,15 +326,25 @@ inline void intsort(uint32_t *a, size_t N)
 	}
 	AlignedArray<uint32_t> work(N / 2);
 	V128 *vw = (V128*)&work[0];
-	assert((N % Q) == 0); // QQQ
-	const size_t Q = N4 / BN;
+	assert((N % (N4 / BN)) == 0); // QQQ
 	/*
-		[ ] [<] [<] [<] [<] [<] [<] [<]
-		                [ ] [ ] [ ] [<]
+		[ ] [<] [<] [<] [<] [<] [<] [<] ; va
+		                [ ] [ ] [ ] [<] ; vw
 	*/
-	sort_step123(vw, va, BN);
-	for (size_t i = BN; i < N4; i += BN) {
-		sort_step123(&va[i - BN], &va[i], BN);
+	sort_step123(&vw[N4 / 2 - BN], &va[N4 - BN], BN);
+
+	for (size_t i = N4 - BN; i >= BN; i -= BN) {
+		sort_step123(&va[i], &va[i - BN], BN);
 	}
+	while (BN < N4 / 2) {
+		merge(&vw[N4 / 2 - BN * 2], &va[N4 - BN * 2], BN, &vw[N4 / 2 - BN], BN);
+		for (size_t i = N4 - BN * 4; i >= BN * 2; i -= BN * 2) {
+			merge(&va[i + BN * 2], &va[i], BN, &va[i + BN * 3], BN);
+		}
+		merge(&va[BN * 2], &va[BN], BN, &va[BN * 3], BN);
+		BN *= 2;
+	}
+	merge(va, &va[BN], BN, vw, BN);
 }
+
 
