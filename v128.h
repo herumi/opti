@@ -176,6 +176,10 @@ inline V128 paddd(const V128& a, const V128& b)
 {
 	return _mm_add_epi32(a.x_, b.x_);
 }
+inline V128 psubd(const V128& a, const V128& b)
+{
+	return _mm_sub_epi32(a.x_, b.x_);
+}
 
 inline V128 andn(const V128& a, const V128& b)
 {

@@ -56,7 +56,7 @@ void Init(uint32_t *a, size_t len, int mode = 0)
 		}
 		break;
 	case 2:
-		a[0] = len;
+		a[0] = (uint32_t)len;
 		for (size_t i = 1; i < len; i++) {
 			a[i] = 1;
 		}

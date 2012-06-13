@@ -12,9 +12,12 @@
 
 namespace intsort_impl {
 
-inline size_t nextGap(size_t N)
+inline size_t nextGap(size_t n)
 {
-	return (N * 10) / 13;
+	n = (n * 10) / 13;
+	// Combsort11. http://cs.clackamas.cc.or.us/molatore/cs260Spr03/combsort.htm
+	if (n == 9 || n == 10) return 11;
+	return n;
 }
 
 /*
@@ -115,7 +118,10 @@ inline bool isSortedVec(const V128 *va, size_t N)
 		V128 a = va[i];
 		V128 b = va[i + 1];
 		V128 c = pmaxud(a, b);
-		if (!ptest_cf(b, c)) {
+		c = psubd(c, b);
+		// a <= b <=> max(a, b) == b
+		// pcmpgtd is for signed dword integer
+		if (!ptest_zf(c, c)) {
 			return false;
 		}
 	}
@@ -157,12 +163,10 @@ inline bool sort_step2(V128 *va, size_t N)
 #endif
 		vector_cmpswap_skew(va[N - 1], va[0]);
 		if (isSortedVec(va, N)) {
-//			g_log.set(i);
 			return true;
 		}
 	}
 //	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
-//	g_log.set(maxLoop);
 	return false;
 }
 
