@@ -40,6 +40,7 @@ N=4194304, STL= 955930.427Kclk SSE= 399368.311Kclk(2.39)
            3 : forward presorted
            4 : reversed presorted
 	       5 : 16 bit random
+	       6 : 8 bit random
 */
 const char *mode2str(int mode)
 {
@@ -56,6 +57,8 @@ const char *mode2str(int mode)
 		return "reversed presorted";
 	case 5:
 		return "16 bit random";
+	case 6:
+		return "8 bit random";
 	default:
 		fprintf(stderr, "ERR mode=%d in modeStr\n", mode);
 		exit(1);
@@ -100,6 +103,15 @@ void Init(uint32_t *a, size_t len, int mode = 0)
 			for (size_t i = 0; i < len; i++) {
 				uint32_t x = r.get();
 				a[i] = x & 0xffff;
+			}
+		}
+		break;
+	case 6:
+		{
+			XorShift128 r;
+			for (size_t i = 0; i < len; i++) {
+				uint32_t x = r.get();
+				a[i] = x & 0xff;
 			}
 		}
 		break;
@@ -274,11 +286,9 @@ int main()
 //	test_vector_merge();
 //	test_merge();
 	puts("test");
-	const int modeMax = 6;
-	for (int mode = 0; mode < 1; mode++) {
+	for (int mode = 0; mode < 7; mode++) {
 		printf("mode=%s\n", mode2str(mode));
-		/* i == 19 reaches max loop */
-		for (int i = 0; i < 22; i++) {
+		for (int i = 0; i < 20; i++) {
 			const size_t N = 16 * (1U << i);
 			AlignedArray<uint32_t> va(N);
 			uint32_t *const a = &va[0];

@@ -316,9 +316,11 @@ void put(const char *msg, const V128 *a, size_t N)
 
 inline void intsort(uint32_t *a, size_t N)
 {
+	assert((intptr_t(a) % 16) == 0);
+	assert((N % 16) == 0);
+	assert((N & (N - 1)) == 0); // now for only N is power of 2
 	size_t BN = 8192; // maybe fastest for Xeon, i7
 	const size_t N4 = N / 4;
-	assert((N % 16) == 0);
 	V128 *va = reinterpret_cast<V128 *>(a);
 	if (N4 <= BN) {
 		AlignedArray<uint32_t> work(N);
