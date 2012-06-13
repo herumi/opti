@@ -1,32 +1,6 @@
 /*
 	g++ -O3 -fno-operator-names -march=native -msse4 intsort_test.cpp && ./a.out
 	Xeon X5650
-N=     16, STL=     16.314Kclk SSE=     18.614Kclk(0.88)
-N=     32, STL=      5.034Kclk SSE=      3.966Kclk(1.27)
-N=     64, STL=      9.414Kclk SSE=      3.514Kclk(2.68)
-N=    128, STL=     20.034Kclk SSE=      6.174Kclk(3.24)
-N=    256, STL=     45.320Kclk SSE=     12.566Kclk(3.61)
-N=    512, STL=    100.646Kclk SSE=     28.688Kclk(3.51)
-N=   1024, STL=    216.054Kclk SSE=     50.520Kclk(4.28)
-N=   2048, STL=    477.180Kclk SSE=    104.614Kclk(4.56)
-N=   4096, STL=   1016.746Kclk SSE=    217.114Kclk(4.68)
-N=   8192, STL=   2222.946Kclk SSE=    505.354Kclk(4.40)
-N=  16384, STL=   4766.060Kclk SSE=   1050.340Kclk(4.54)
-N=  32768, STL=  10055.274Kclk SSE=   2431.974Kclk(4.13)
-N=  65536, STL=  21363.166Kclk SSE=   5497.000Kclk(3.89)
-N= 131072, STL=  44519.274Kclk SSE=  13496.912Kclk(3.30)
-N= 262144, STL=  93955.220Kclk SSE=  31077.720Kclk(3.02)
-N= 524288, STL= 196977.692Kclk SSE=  59143.712Kclk(3.33)
-N=1048576, STL= 415590.628Kclk SSE= 131437.020Kclk(3.16)
-N=2097152, STL= 864996.120Kclk SSE= 169437.825Kclk(5.11)
-N=4194304, STL= 955930.427Kclk SSE= 399368.311Kclk(2.39)
-
-	VC11 x64
-	Core i7 2600
-	sort by STL
-	isSorted=1:bb0579b6 6628.255
-	sort by SIMD
-	isSorted=1:bb0579b6 1551.794
 */
 #include <stdio.h>
 #include <numeric>
@@ -169,6 +143,7 @@ void STLsort(uint32_t *a, size_t N)
 
 void test_vector_merge()
 {
+	using namespace intsort_impl;
 	puts("test_vector_merge");
 	if (0) {
 		V128 a(7, 6, 5, 4);
@@ -210,10 +185,35 @@ void test_vector_merge()
 	}
 	puts("ok");
 }
+void put(const char *msg, const V128 *a, size_t N)
+{
+	printf("%s\n", msg);
+	for (int i = 0; i < (int)N; i++) {
+		printf("%2d", i);
+		a[i].put(":");
+	}
+}
 
 void test_merge()
 {
+	using namespace intsort_impl;
 	puts("test_merge");
+	{
+		const int N = 1;
+		MIE_ALIGN(16) uint32_t buf[N * 8];
+		MIE_ALIGN(16) uint32_t wk[N * 8];
+		MIE_ALIGN(16) uint32_t out[N * 8];
+		for (int i = 0; i < N * 4; i++) {
+			buf[i + N * 4] = i * 2;
+			wk[i] = i * 2 + 1;
+		}
+		put("buf", (V128*)buf,N * 2);
+		put("wk", (V128*)wk,N);
+		merge((V128*)out, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
+		put("out", (V128*)out, N * 2);
+		merge((V128*)buf, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
+		put("buf", (V128*)buf,N * 2);
+	}
 	for (int i = 0; i < 19; i++) {
 		const size_t N = 16 * (1U << i);
 		AlignedArray<uint32_t> va(N);
@@ -236,7 +236,7 @@ void test_merge()
 		{
 			Xbyak::util::Clock clk;
 			clk.begin();
-			std::set_union(a, a + N / 2, a + N / 2, a + N, &vo[0]);
+			std::merge(a, a + N / 2, a + N / 2, a + N, &vo[0]);
 			clk.end();
 			c1 = clk.getClock() * 1e-3;
 		}
@@ -263,28 +263,30 @@ void test_merge()
 	}
 }
 
-int main()
+void test_cmpswap_skew()
 {
-	if (0) {
-		const int N = 1;
-		MIE_ALIGN(16) uint32_t buf[N * 8];
-		MIE_ALIGN(16) uint32_t wk[N * 8];
-		MIE_ALIGN(16) uint32_t out[N * 8];
-		for (int i = 0; i < N * 4; i++) {
-			buf[i + N * 4] = i * 2;
-			wk[i] = i * 2 + 1;
-		}
-		put("buf", (V128*)buf,N * 2);
-		put("wk", (V128*)wk,N);
-		merge((V128*)out, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
-		put("out", (V128*)out, N * 2);
-		merge((V128*)buf, (V128*)&buf[N * 4], N, (V128*)&wk[0], N);
-		put("buf", (V128*)buf,N * 2);
-		return 1;
+	using namespace intsort_impl;
+	puts("cmpswap_skew");
+	V128 a(9, 7, 4, 3);
+	V128 b(6, 5, 2, 1);
+	a.put("a=");
+	b.put("b=");
+	vector_cmpswap_skew(a, b);
+	puts("compswap_skew");
+	a.put("a=");
+	b.put("b=");
+}
+
+int main(int argc, char *argv[])
+{
+	argc--, argv++;
+	if (argc > 0 && strcmp(*argv, "-test") == 0) {
+		test_vector_merge();
+		test_cmpswap_skew();
+		test_merge();
+		return 0;
 	}
 	printf("%8s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
-//	test_vector_merge();
-//	test_merge();
 	puts("test");
 	for (int mode = 0; mode < 7; mode++) {
 		printf("mode=%s\n", mode2str(mode));
@@ -295,26 +297,8 @@ int main()
 			Init(a, N, mode);
 			double c1 = test(STLsort, a, N);
 			Init(a, N, mode);
-			double c2 = test(intsort, a, N);
+			double c2 = test(mie::intsort, a, N);
 			printf("%8d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 		}
 	}
-#if 0
-	{
-		puts("cmpswap_skew");
-		V128 a(4, 5, 6, 7);
-		V128 b(8, 9, 3, 1);
-		a.put("a=");
-		b.put("b=");
-		vector_cmpswap_skew(a, b);
-		puts("compswap_skew");
-		a.put("a=");
-		b.put("b=");
-	}
-	put(a, N);
-	printf("isSorted=%d\n", isSorted(a, N));
-	puts("sort_step1");
-	sort_step1(a, N);
-	put(a, N);
-#endif
 }

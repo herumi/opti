@@ -9,7 +9,8 @@
 #include "v128.h"
 #include <assert.h>
 #include <string.h>
-#include <xbyak/xbyak_util.h>
+
+namespace intsort_impl {
 
 inline size_t nextGap(size_t N)
 {
@@ -121,30 +122,8 @@ inline bool isSortedVec(const V128 *va, size_t N)
 	return true;
 }
 
-static struct Log {
-	void set(int i)
-	{
-		m[i]++;
-	}
-	~Log()
-	{
-		if (m.empty()) return;
-		printf("Log\n");
-		for (Map::const_iterator i = m.begin(), ie = m.end(); i != ie; ++i) {
-			printf("%d:%d\n", i->first, i->second);
-		}
-	}
-	typedef std::map<int, int> Map;
-	Map m;
-} g_log;
-
-#define INTSORT_FALL_STD_SORT
 inline bool sort_step2(V128 *va, size_t N)
 {
-#ifndef INTSORT_FALL_STD_SORT
-	int retryNum = 0;
-RETRY:
-#endif
 	size_t gap = nextGap(N);
 	while (gap > 1) {
 		for (size_t i = 0; i < N - gap; i++) {
@@ -184,17 +163,7 @@ RETRY:
 	}
 //	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
 //	g_log.set(maxLoop);
-#ifdef INTSORT_FALL_STD_SORT
 	return false;
-#else
-	retryNum++;
-	if (retryNum == 10) {
-		printf("retry end\n");
-		exit(1);
-	}
-	goto RETRY;
-#endif
-	return true;
 }
 
 /*
@@ -305,14 +274,9 @@ inline void sort_step123(V128 *vw, V128 *va, size_t N)
 	}
 }
 
-void put(const char *msg, const V128 *a, size_t N)
-{
-	printf("%s\n", msg);
-	for (int i = 0; i < (int)N; i++) {
-		printf("%2d", i);
-		a[i].put(":");
-	}
-}
+} // intsort_impl
+
+namespace mie {
 
 inline void intsort(uint32_t *a, size_t N)
 {
@@ -325,7 +289,7 @@ inline void intsort(uint32_t *a, size_t N)
 	if (N4 <= BN) {
 		AlignedArray<uint32_t> work(N);
 		V128 *vw = (V128*)&work[0];
-		sort_step123(vw, va, N4);
+		intsort_impl::sort_step123(vw, va, N4);
 		memcpy(va, vw, N * sizeof(a[0]));
 		return;
 	}
@@ -336,20 +300,21 @@ inline void intsort(uint32_t *a, size_t N)
 		[ ] [<] [<] [<] [<] [<] [<] [<] ; va
 		                [ ] [ ] [ ] [<] ; vw
 	*/
-	sort_step123(&vw[N4 / 2 - BN], &va[N4 - BN], BN);
+	intsort_impl::sort_step123(&vw[N4 / 2 - BN], &va[N4 - BN], BN);
 
 	for (size_t i = N4 - BN; i >= BN; i -= BN) {
-		sort_step123(&va[i], &va[i - BN], BN);
+		intsort_impl::sort_step123(&va[i], &va[i - BN], BN);
 	}
 	while (BN < N4 / 2) {
-		merge(&vw[N4 / 2 - BN * 2], &va[N4 - BN * 2], BN, &vw[N4 / 2 - BN], BN);
+		intsort_impl::merge(&vw[N4 / 2 - BN * 2], &va[N4 - BN * 2], BN, &vw[N4 / 2 - BN], BN);
 		for (size_t i = N4 - BN * 4; i > 0; i -= BN * 2) {
-			merge(&va[i + BN * 2], &va[i], BN, &va[i + BN * 3], BN);
+			intsort_impl::merge(&va[i + BN * 2], &va[i], BN, &va[i + BN * 3], BN);
 		}
-		merge(&va[BN * 2], &va[BN], BN, &va[BN * 3], BN);
+		intsort_impl::merge(&va[BN * 2], &va[BN], BN, &va[BN * 3], BN);
 		BN *= 2;
 	}
-	merge(va, &va[BN], BN, vw, BN);
+	intsort_impl::merge(va, &va[BN], BN, vw, BN);
 }
 
+} // mie
 
