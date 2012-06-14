@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <numeric>
 #include <algorithm>
-#include "intsort.hpp"
 #include <xbyak/xbyak_util.h>
+#include "intsort.hpp"
+
 /*
 	mode = 0 : random
 	       1 : all zero
@@ -16,28 +17,16 @@
 	       5 : 16 bit random
 	       6 : 8 bit random
 */
-const char *mode2str(int mode)
-{
-	switch (mode) {
-	case 0:
-		return "random";
-	case 1:
-		return "all zero";
-	case 2:
-		return "almost presorted";
-	case 3:
-		return "forward presorted";
-	case 4:
-		return "reversed presorted";
-	case 5:
-		return "16 bit random";
-	case 6:
-		return "8 bit random";
-	default:
-		fprintf(stderr, "ERR mode=%d in modeStr\n", mode);
-		exit(1);
-	}
-}
+const char *modeTbl[] = {
+	"random",
+	"all zero",
+	"almost presorted",
+	"forward presorted",
+	"reversed presorted",
+	"16 bit random",
+	"8 bit random",
+};
+
 void Init(uint32_t *a, size_t len, int mode = 0)
 {
 	switch (mode) {
@@ -56,7 +45,7 @@ void Init(uint32_t *a, size_t len, int mode = 0)
 		}
 		break;
 	case 2:
-		a[0] = len;
+		a[0] = (uint32_t)len;
 		for (size_t i = 1; i < len; i++) {
 			a[i] = 1;
 		}
@@ -118,13 +107,13 @@ uint64_t sum(const uint32_t *a, size_t len)
 }
 
 template<class F>
-double test(F f, uint32_t *a, size_t N)
+double test(F f, uint32_t *a, size_t N, size_t BN)
 {
 	AlignedArray<uint32_t> wk(N);
 	memcpy(&wk[0], a, N * sizeof(a[0]));
 	Xbyak::util::Clock clk;
 	clk.begin();
-	f(&wk[0], N);
+	f(&wk[0], N, BN);
 	clk.end();
 	std::sort(a, a + N);
 	for (size_t i = 0; i < N; i++) {
@@ -136,14 +125,14 @@ double test(F f, uint32_t *a, size_t N)
 	return clk.getClock() * 1e-3;
 }
 
-void STLsort(uint32_t *a, size_t N)
+void STLsort(uint32_t *a, size_t N, size_t = 0)
 {
 	std::sort(a, a + N);
 }
 
 void test_vector_merge()
 {
-	using namespace intsort_impl;
+	using namespace mie::intsort_impl;
 	puts("test_vector_merge");
 	if (0) {
 		V128 a(7, 6, 5, 4);
@@ -196,7 +185,7 @@ void put(const char *msg, const V128 *a, size_t N)
 
 void test_merge()
 {
-	using namespace intsort_impl;
+	using namespace mie::intsort_impl;
 	puts("test_merge");
 	{
 		const int N = 1;
@@ -265,7 +254,7 @@ void test_merge()
 
 void test_cmpswap_skew()
 {
-	using namespace intsort_impl;
+	using namespace mie::intsort_impl;
 	puts("cmpswap_skew");
 	V128 a(9, 7, 4, 3);
 	V128 b(6, 5, 2, 1);
@@ -286,18 +275,43 @@ int main(int argc, char *argv[])
 		test_merge();
 		return 0;
 	}
+	int mode = -1;
+	size_t BN = 8;
+	while (argc > 0) {
+		if (argc > 1 && strcmp(*argv, "-m") == 0) {
+			argc--, argv++;
+			mode = atoi(*argv);
+		} else
+		if (argc > 1 && strcmp(*argv, "-b") == 0) {
+			argc--, argv++;
+			BN = atoi(*argv);
+		} else
+		{
+			fprintf(stderr, "intsort_test [-m <mode>] [-b <num>]\n");
+			fprintf(stderr, " -b <num> : BN = 1024 * <num>\n");
+			return 1;
+		}
+		argc--, argv++;
+	}
+	BN *= 1024;
+	fprintf(stderr, "mode=%d, BN=%d\n", mode, (int)BN);
+	if (mode >= (int)NUM_OF_ARRAY(modeTbl)) {
+		fprintf(stderr, "too large mode=%d\n", mode);
+		return 1;
+	}
 	printf("%8s %10s %10s %4s\n", "N", "STL", "SSE", "rate");
 	puts("test");
-	for (int mode = 0; mode < 7; mode++) {
-		printf("mode=%s\n", mode2str(mode));
+	for (int m = 0; m < (int)NUM_OF_ARRAY(modeTbl); m++) {
+		if (mode >= 0 && mode != m) continue;
+		printf("mode=%s\n", modeTbl[m]);
 		for (int i = 0; i < 20; i++) {
 			const size_t N = 16 * (1U << i);
 			AlignedArray<uint32_t> va(N);
 			uint32_t *const a = &va[0];
-			Init(a, N, mode);
-			double c1 = test(STLsort, a, N);
-			Init(a, N, mode);
-			double c2 = test(mie::intsort, a, N);
+			Init(a, N, m);
+			double c1 = test(STLsort, a, N, BN);
+			Init(a, N, m);
+			double c2 = test(mie::intsort, a, N, BN);
 			printf("%8d %11.2f %11.2f %.2f\n", (int)N, c1, c2, c1 / c2);
 		}
 	}

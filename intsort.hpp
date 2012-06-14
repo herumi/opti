@@ -10,11 +10,16 @@
 #include <assert.h>
 #include <string.h>
 
+namespace mie {
+
 namespace intsort_impl {
 
-inline size_t nextGap(size_t N)
+inline size_t nextGap(size_t n)
 {
-	return (N * 10) / 13;
+	n = (n * 10) / 13;
+	// Combsort11. http://cs.clackamas.cc.or.us/molatore/cs260Spr03/combsort.htm
+	if (n == 9 || n == 10) return 11;
+	return n;
 }
 
 /*
@@ -115,7 +120,10 @@ inline bool isSortedVec(const V128 *va, size_t N)
 		V128 a = va[i];
 		V128 b = va[i + 1];
 		V128 c = pmaxud(a, b);
-		if (!ptest_cf(b, c)) {
+		c = psubd(c, b);
+		// a <= b <=> max(a, b) == b
+		// pcmpgtd is for signed dword integer
+		if (!ptest_zf(c, c)) {
 			return false;
 		}
 	}
@@ -157,12 +165,10 @@ inline bool sort_step2(V128 *va, size_t N)
 #endif
 		vector_cmpswap_skew(va[N - 1], va[0]);
 		if (isSortedVec(va, N)) {
-//			g_log.set(i);
 			return true;
 		}
 	}
 //	printf("!!! max loop %d for N=%d\n", maxLoop, (int)N);
-//	g_log.set(maxLoop);
 	return false;
 }
 
@@ -276,14 +282,12 @@ inline void sort_step123(V128 *vw, V128 *va, size_t N)
 
 } // intsort_impl
 
-namespace mie {
 
-inline void intsort(uint32_t *a, size_t N)
+inline void intsort(uint32_t *a, size_t N, size_t BN = 8192)
 {
 	assert((intptr_t(a) % 16) == 0);
 	assert((N % 16) == 0);
 	assert((N & (N - 1)) == 0); // now for only N is power of 2
-	size_t BN = 8192; // maybe fastest for Xeon, i7
 	const size_t N4 = N / 4;
 	V128 *va = reinterpret_cast<V128 *>(a);
 	if (N4 <= BN) {
