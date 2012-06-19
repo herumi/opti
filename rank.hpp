@@ -67,8 +67,8 @@ public:
 		uint64_t b1 = blk_[round + 1];
 		uint64_t b2 = blk_[round + 2];
 		uint64_t b3 = blk_[round + 3];
+		uint64_t mask = (2ULL << r) - 1;
 #if 0
-		uint64_t mask = r == 63 ? (-1) : (1ULL << (r + 1)) - 1;
 		uint64_t m0 = q < 1 ? mask : (-1);
 		uint64_t m1 = q < 1 ? 0 : q == 1 ? mask : (-1);
 		uint64_t m2 = q < 2 ? 0 : q == 2 ? mask : (-1);
@@ -78,7 +78,6 @@ public:
 		ret += popCount64(b2 & m2);
 		ret += popCount64(b3 & m3);
 #else
-		uint64_t mask = r == 63 ? (-1) : (1ULL << (r + 1)) - 1;
 		if (q < 1) {
 			ret += popCount64(b0 & mask);
 			return ret;
