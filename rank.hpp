@@ -8,7 +8,8 @@ namespace mie {
 
 class BitVector {
 	size_t bitSize_;
-	std::vector<uint64_t> v_;
+//	std::vector<uint64_t> v_;
+	AlignedArray<uint64_t> v_;
 public:
 	BitVector()
 		: bitSize_(0)
