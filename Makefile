@@ -4,7 +4,7 @@ ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
     OPT+=-mtune=native
 endif
 
-TARGET=str_util_test intsort_test
+TARGET=str_util_test intsort_test rank_test
 
 BIT=32
 ifeq ($(shell uname -m),x86_64)
@@ -22,18 +22,22 @@ CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
 
-HEADER=str_util.hpp benchmark.hpp mischasan_strstr.hpp
+HEADER=util.hpp
+STR_HEADER=str_util.hpp benchmark.hpp mischasan_strstr.hpp
 all:$(TARGET)
 
 .SUFFIXES: .cpp
 
-str_util_test: str_util_test.o $(HEADER)
+str_util_test: str_util_test.o $(STR_HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m32
 
-str_util_test64: str_util_test.o $(HEADER)
+str_util_test64: str_util_test.o $(STR_HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m64
 
-intsort_test: intsort_test.o $(HEADER)
+intsort_test: intsort_test.o
+	$(CXX) $(CFLAGS) $< -o $@
+
+rank_test: rank_test.o
 	$(CXX) $(CFLAGS) $< -o $@
 
 .cpp.o:
@@ -46,4 +50,5 @@ clean:
 	$(RM) *.o $(TARGET)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
+rank_test.o: rank.hpp
 
