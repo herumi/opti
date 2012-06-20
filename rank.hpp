@@ -67,10 +67,10 @@ public:
 		uint64_t r = idx % 64;
 		uint64_t b0 = blk.b0;
 		uint64_t b1 = blk.b1;
-		uint64_t mask = (2ULL << r) - 1;
-		uint64_t m = (idx & 64) ? (-1) : 0;
-		uint64_t m0 = mask | m;
-		uint64_t m1 = mask & m;
+		uint64_t mask = (uint64_t(2) << r) - 1;
+		uint64_t m = (idx & 64) ? (-1) : 0; // why does gcc generate conditional jmp instead of cmov?
+		uint64_t m0 = mask | m; // (idx & 64) ? (-1) : mask;
+		uint64_t m1 = mask & m; // (idx & 64) ? mask : 0;
 		ret += popCount64(b0 & m0);
 		ret += popCount64(b1 & m1);
 		return (uint32_t)ret;
