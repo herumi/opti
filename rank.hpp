@@ -59,41 +59,25 @@ public:
 	}
 	inline uint32_t rank1(size_t idx) const
 	{
-		uint32_t ret = tbl_[idx / 256];
-		uint64_t q = (idx / 64) & 3;
+		uint32_t ret = tbl_[idx / 128];
+		uint64_t q = (idx / 64) & 1;
 		uint64_t r = idx % 64;
-		size_t round = (idx / 64) & ~size_t(3);
+		size_t round = (idx / 64) & ~size_t(1);
 		uint64_t b0 = blk_[round + 0];
 		uint64_t b1 = blk_[round + 1];
-		uint64_t b2 = blk_[round + 2];
-		uint64_t b3 = blk_[round + 3];
 		uint64_t mask = (2ULL << r) - 1;
-#if 0
-		uint64_t m0 = q < 1 ? mask : (-1);
-		uint64_t m1 = q < 1 ? 0 : q == 1 ? mask : (-1);
-		uint64_t m2 = q < 2 ? 0 : q == 2 ? mask : (-1);
-		uint64_t m3 = q < 3 ? 0 : mask;
+#if 1
+		uint64_t m0 = q == 0 ? mask : (-1);
+		uint64_t m1 = q == 0 ? 0 : mask;
 		ret += popCount64(b0 & m0);
 		ret += popCount64(b1 & m1);
-		ret += popCount64(b2 & m2);
-		ret += popCount64(b3 & m3);
 #else
-		if (q < 1) {
+		if (q == 0 ) {
 			ret += popCount64(b0 & mask);
 			return ret;
 		}
 		ret += popCount64(b0);
-		if (q < 2) {
-			ret += popCount64(b1 & mask);
-			return ret;
-		}
-		ret += popCount64(b1);
-		if (q < 3) {
-			ret += popCount64(b2 & mask);
-			return ret;
-		}
-		ret += popCount64(b2);
-		ret += popCount64(b3 & mask);
+		ret += popCount64(b1 & mask);
 #endif
 		return ret;
 	}
@@ -103,22 +87,22 @@ public:
 	}
 	void init(const uint64_t *blk, size_t blkNum)
 	{
-		assert((blkNum % 4) == 0);
+		assert((blkNum % 2) == 0);
 		blk_ = blk;
 		// set rank table and gTbl_
-		tbl_.resize((blkNum + 3) / 4);
+		tbl_.resize((blkNum + 1) / 2);
 
 		uint32_t r = 0;
 		size_t pos = 0;
 		for (size_t i = 0; i < tbl_.size(); i++) {
 			tbl_[i] = r;
-			for (int j = 0; j < 4; j++) {
+			for (int j = 0; j < 2; j++) {
 				if (pos < blkNum) {
 					r += popCount64(blk_[pos++]);
 				}
 			}
 		}
-		if (pos != ((blkNum + 3) & ~3)) {
+		if (pos != ((blkNum + 1) & ~1)) {
 			fprintf(stderr, "bad pos=%d\n", (int)pos);
 			exit(1);
 		}
