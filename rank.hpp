@@ -8,8 +8,7 @@ namespace mie {
 
 class BitVector {
 	size_t bitSize_;
-//	std::vector<uint64_t> v_;
-	AlignedArray<uint64_t> v_;
+	std::vector<uint64_t> v_;
 public:
 	BitVector()
 		: bitSize_(0)
@@ -46,11 +45,15 @@ public:
 };
 
 class SuccinctBitVector {
-	const uint64_t *blk_;
-	std::vector<uint32_t> tbl_; // 256-bit
+	struct Block {
+		uint64_t b0;
+		uint64_t b1;
+		uint32_t rank;
+		uint32_t padding;
+	};
+	AlignedArray<Block> blk_;
 public:
 	SuccinctBitVector()
-		: blk_(0)
 	{
 	}
 	SuccinctBitVector(const uint64_t *blk, size_t blkNum)
@@ -59,52 +62,38 @@ public:
 	}
 	inline uint32_t rank1(size_t idx) const
 	{
-		uint32_t ret = tbl_[idx / 128];
-		uint64_t q = (idx / 64) & 1;
+		const Block& blk = blk_[idx / 128];
+		size_t ret = blk.rank;
 		uint64_t r = idx % 64;
-		size_t round = (idx / 64) & ~size_t(1);
-		uint64_t b0 = blk_[round + 0];
-		uint64_t b1 = blk_[round + 1];
+		uint64_t b0 = blk.b0;
+		uint64_t b1 = blk.b1;
 		uint64_t mask = (2ULL << r) - 1;
-#if 1
-		uint64_t m0 = q == 0 ? mask : (-1);
-		uint64_t m1 = q == 0 ? 0 : mask;
+		uint64_t m = (idx & 64) ? (-1) : 0;
+		uint64_t m0 = mask | m;
+		uint64_t m1 = mask & m;
 		ret += popCount64(b0 & m0);
 		ret += popCount64(b1 & m1);
-#else
-		if (q == 0 ) {
-			ret += popCount64(b0 & mask);
-			return ret;
-		}
-		ret += popCount64(b0);
-		ret += popCount64(b1 & mask);
-#endif
-		return ret;
+		return (uint32_t)ret;
 	}
-	inline uint32_t popCount64(uint64_t x) const
+	inline uint64_t popCount64(uint64_t x) const
 	{
-		return (uint32_t)_mm_popcnt_u64(x);
+		return _mm_popcnt_u64(x);
 	}
 	void init(const uint64_t *blk, size_t blkNum)
 	{
-		assert((blkNum % 2) == 0);
-		blk_ = blk;
-		// set rank table and gTbl_
-		tbl_.resize((blkNum + 1) / 2);
+		size_t tblNum = (blkNum + 1) / 2;
+		blk_.resize(tblNum);
 
 		uint32_t r = 0;
 		size_t pos = 0;
-		for (size_t i = 0; i < tbl_.size(); i++) {
-			tbl_[i] = r;
-			for (int j = 0; j < 2; j++) {
-				if (pos < blkNum) {
-					r += popCount64(blk_[pos++]);
-				}
-			}
-		}
-		if (pos != ((blkNum + 1) & ~1)) {
-			fprintf(stderr, "bad pos=%d\n", (int)pos);
-			exit(1);
+		for (size_t i = 0; i < tblNum; i++, pos += 2) {
+			uint64_t b0 = blk[pos];
+			uint64_t b1 = (pos + 1 < blkNum) ? blk[pos + 1] : 0;
+			blk_[i].b0 = b0;
+			blk_[i].b1 = b1;
+			blk_[i].rank = r;
+			r += popCount64(b0);
+			r += popCount64(b1);
 		}
 	}
 };
