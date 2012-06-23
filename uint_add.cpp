@@ -1,9 +1,21 @@
 /*
-	WinXp(32bit) Core 2 Duo
-0 clk 230.77 15.38/u ret=e47da450
-1 clk 219.29 14.62/u ret=e47da450
-2 clk 220.64 14.71/u ret=e47da450
-3 clk  80.02  5.33/u ret=e47da450
+	WinXp(64bit) Core 2 Duo 1.8GHz
+add1
+0 clk 205.59 13.71/u ret=20be08be7406450
+1 clk 194.69 12.98/u ret=20be08be7406450
+2 clk 200.21 13.35/u ret=20be08be7406450
+3 clk  59.16  3.94/u ret=20be08be7406450
+addn
+0 clk 215.57 13.47/u ret=c7e3fd489320ca
+1 clk 229.60 14.35/u ret=c7e3fd489320ca
+2 clk 221.30 13.83/u ret=c7e3fd489320ca
+3 clk  55.88  3.49/u ret=c7e3fd489320ca
+i=0
+1788793664 2.989500
+i=1
+1788793664 3.170413
+i=2
+1788793664 2.920048
 
 	Linux(32bit) Xeon X5650
 add1
@@ -19,51 +31,60 @@ addn
 
 	Linux(64bit) Xeon X5650
 add1
-0 clk 188.82 12.59/u ret=20be08be7406450
-1 clk 190.72 12.71/u ret=20be08be7406450
-2 clk 190.52 12.70/u ret=20be08be7406450
-3 clk  66.99  4.47/u ret=20be08be7406450
+0 clk 189.31 12.62/u ret=20be08be7406450
+1 clk 190.65 12.71/u ret=20be08be7406450
+2 clk 190.91 12.73/u ret=20be08be7406450
+3 clk  67.01  4.47/u ret=20be08be7406450
 addn
-0 clk 215.07 13.44/u ret=0
-1 clk 201.85 12.62/u ret=0
-2 clk 202.50 12.66/u ret=0
-3 clk  68.74  4.30/u ret=0
+0 clk 208.62 13.04/u ret=c7e3fd489320ca
+1 clk 202.34 12.65/u ret=c7e3fd489320ca
+2 clk 202.77 12.67/u ret=c7e3fd489320ca
+3 clk  61.98  3.87/u ret=c7e3fd489320ca
+4 clk  62.92  3.93/u ret=c7e3fd489320ca
+i=0
+1788793664 2.612118
+i=1
+1788793664 2.610572
+i=2
+1788793664 2.610871
 
-	Win7(32bit) i7-2600
+	Linux(64bit) i7-2600
 add1
-0 clk  34.98  2.33/u ret=e47da450
-1 clk  49.01  3.27/u ret=e47da450
-2 clk  45.76  3.05/u ret=e47da450
-3 clk  44.99  3.00/u ret=e47da450
+0 clk  32.10  2.14/u ret=20be08be7406450
+1 clk  44.66  2.98/u ret=20be08be7406450
+2 clk  49.52  3.30/u ret=20be08be7406450
+3 clk  50.59  3.37/u ret=20be08be7406450
 addn
-0 clk  38.15  2.54/u ret=0
-1 clk  50.39  3.36/u ret=0
-2 clk  47.49  3.17/u ret=0
-3 clk  46.44  3.10/u ret=0
+0 clk  48.02  3.00/u ret=c7e3fd489320ca
+1 clk  49.10  3.07/u ret=c7e3fd489320ca
+2 clk  33.67  2.10/u ret=c7e3fd489320ca
+3 clk  52.14  3.26/u ret=c7e3fd489320ca
+4 clk  64.96  4.06/u ret=c7e3fd489320ca
+i=0
+1788793664 2.435156
+i=1
+1788793664 2.423111
+i=2
+1788793664 2.143504
 
 	Win7(64bit) i7-2600
 add1
-0 clk  30.65  2.04/u ret=20be08be7406450
-1 clk  44.45  2.96/u ret=20be08be7406450
-2 clk  50.04  3.34/u ret=20be08be7406450
-3 clk  51.02  3.40/u ret=20be08be7406450
+0 clk  31.62  2.11/u ret=20be08be7406450
+1 clk  44.22  2.95/u ret=20be08be7406450
+2 clk  52.93  3.53/u ret=20be08be7406450
+3 clk  51.61  3.44/u ret=20be08be7406450
 addn
-0 clk  32.36  2.16/u ret=0
-1 clk  44.16  2.94/u ret=0
-2 clk  46.46  3.10/u ret=0
-3 clk  46.61  3.11/u ret=0
+0 clk  47.56  2.97/u ret=c7e3fd489320ca
+1 clk  50.93  3.18/u ret=c7e3fd489320ca
+2 clk  36.16  2.26/u ret=c7e3fd489320ca
+3 clk  51.24  3.20/u ret=c7e3fd489320ca
+i=0
+1788793664 2.407932
+i=1
+1788793664 2.369505
+i=2
+1788793664 2.137700
 
-	Linux(32bit) i7-3930K
-0 clk  31.45  2.10/u ret=e47da450
-1 clk  47.64  3.18/u ret=e47da450
-2 clk  37.50  2.50/u ret=e47da450
-3 clk  37.91  2.53/u ret=e47da450
-
-	Linux(64bit) i7-3930K
-0 clk  28.70  1.91/u ret=20be08be7406450
-1 clk  41.36  2.76/u ret=20be08be7406450
-2 clk  48.36  3.22/u ret=20be08be7406450
-3 clk  47.28  3.15/u ret=20be08be7406450
 */
 #define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak_util.h>
@@ -210,15 +231,11 @@ struct Code_addn : public Xbyak::CodeGenerator {
 		lea(out, ptr [out + c * S]);
 		lea(x, ptr [x + c * S]);
 		lea(y, ptr [y + c * S]);
-		xor_(a, a);
 		neg(c);
-		mov(t, ptr [x + c * S]);
-		add(t, ptr [y + c * S]);
-		mov(ptr [out + c * S], t);
-		inc(c);
 		switch (mode) {
 		case 0:
 			jz(".exit");
+			xor_(a, a);
 		L(".lp");
 			mov(t, ptr [x + c * S]);
 			adc(t, ptr [y + c * S]);
@@ -227,7 +244,8 @@ struct Code_addn : public Xbyak::CodeGenerator {
 			jnz(".lp");
 			break;
 		case 1:
-			jecxz(".exit");
+			jz(".exit");
+			xor_(a, a);
 		L(".lp");
 			mov(t, ptr [x + c * S]);
 			adc(t, ptr [y + c * S]);
@@ -237,6 +255,21 @@ struct Code_addn : public Xbyak::CodeGenerator {
 			jmp(".lp");
 			break;
 		case 2:
+#if 1
+			mov(t, ptr [x + c * S]);
+			add(t, ptr [y + c * S]);
+			mov(ptr [out + c * S], t);
+			inc(c);
+			jz(".exit");
+		L(".lp");
+			mov(t, ptr [x + c * S]);
+			adc(t, ptr [y + c * S]);
+			mov(ptr [out + c * S], t);
+			inc(c);
+			jnz(".lp");
+#else
+			jz(".exit");
+			xor_(a, a);
 		L(".lp");
 			jecxz(".exit");
 			mov(t, ptr [x + c * S]);
@@ -244,8 +277,10 @@ struct Code_addn : public Xbyak::CodeGenerator {
 			mov(ptr [out + c * S], t);
 			inc(c);
 			jmp(".lp");
+#endif
 			break;
 		case 3:
+			xor_(a, a);
 		L(".lp");
 			jecxz(".exit");
 			mov(t, ptr [x + c * S]);
