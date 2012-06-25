@@ -41,8 +41,9 @@ void testBitVector()
 
 void test(const mie::BitVector& bv)
 {
-	printf("----------------------\n");
-	printf("bv.blockSize=%d, bitSize=%d\n", (int)bv.getBlockSize(), (int)bv.size());
+//	printf("----------------------\n");
+//bv.put();
+//	printf("bv.blockSize=%d, bitSize=%d\n", (int)bv.getBlockSize(), (int)bv.size());
 	mie::SuccinctBitVector s(bv.getBlock(), bv.getBlockSize());
 	uint32_t num = 0;
 	for (size_t i = 0; i < bv.size(); i++) {
@@ -58,7 +59,6 @@ void testSuccinctBitVector1()
 	{
 		mie::BitVector bv;
 		bv.resize(2048);
-bv.set(0, true);
 		test(bv);
 	}
 	for (int i = 0; i < 2048; i++) {

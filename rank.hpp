@@ -47,9 +47,9 @@ public:
 
 class SuccinctBitVector {
 	struct Block {
-		uint8_t s8[16];
+		uint8_t s8[8];
 		uint32_t rank;
-		uint8_t pad[12];
+		uint8_t pad[4];
 	};
 	const uint64_t *org_;
 	AlignedArray<Block> blk_;
@@ -83,21 +83,23 @@ public:
 		case 13: return psrldq<13>(a);
 		case 14: return psrldq<14>(a);
 		case 15: return psrldq<15>(a);
+		case 16: return Zero();
 		}
 	}
 	inline uint32_t rank1(size_t idx) const
 	{
-		const Block& blk = blk_[idx / 1024];
+		const Block& blk = blk_[idx / 512];
 		size_t ret = blk.rank;
-		uint64_t q = (idx % 1024) / 64;
-		uint64_t r = (idx % 1024) % 64;
+		uint64_t q = (idx / 64) % 8;
 		V128 vmask;
 		vmask = pcmpeqd(vmask, vmask); // all [-1]
-		vmask = shr_byte(vmask, 15 - q);
+		V128 shift((8 - q) * 8);
+		vmask = psrlq(vmask, shift);
 		V128 v = V128((uint32_t*)blk.s8);
+		v = pand(v, vmask);
 		v = psadbw(v, Zero());
 		ret += movd(v);
-		uint64_t mask = (uint64_t(2) << r) - 1;
+		uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
 		ret += popCount64(org_[idx / 64] & mask);
 		return ret;
 	}
@@ -108,7 +110,7 @@ public:
 	void init(const uint64_t *blk, size_t blkNum)
 	{
 		org_ = blk;
-		size_t tblNum = (blkNum + 15) / 16;
+		size_t tblNum = (blkNum + 7) / 8;
 		blk_.resize(tblNum);
 
 		uint32_t r = 0;
@@ -116,7 +118,7 @@ public:
 		for (size_t i = 0; i < tblNum; i++) {
 			Block& b = blk_[i];
 			b.rank = r;
-			for (size_t j = 0; j < 16; j++) {
+			for (size_t j = 0; j < 8; j++) {
 				uint64_t v = pos < blkNum ? blk[pos++] : 0;
 				uint64_t s8 = popCount64(v);
 				r += s8;
