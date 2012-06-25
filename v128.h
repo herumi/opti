@@ -235,6 +235,11 @@ inline uint32_t pmovmskb(const V128& a)
 {
 	return _mm_movemask_epi8(a.x_);
 }
+inline V128 pshufb(const V128& a, const V128& b)
+{
+	return _mm_shuffle_epi8(a.x_, b.x_);
+}
+
 template<int n>
 inline V128 pshufd(const V128& a)
 {
