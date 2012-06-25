@@ -263,6 +263,11 @@ inline int ptest_cf(const V128& a, const V128& b)
 	return _mm_testc_si128(a.x_, b.x_);
 }
 
+inline V128 psadbw(const V128& a, const V128& b)
+{
+	return _mm_sad_epu8(a.x_, b.x_);
+}
+
 inline void swap128(uint32_t *p, uint32_t *q)
 {
 	V128 t(p);
