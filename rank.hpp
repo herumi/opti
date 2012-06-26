@@ -70,8 +70,32 @@ public:
 	{
 		init(blk, blkNum);
 	}
+//#define USE_TABLE_1024
 	inline uint32_t rank1(size_t idx) const
 	{
+#ifdef USE_TABLE_1024
+		const Block& blk = blk_[idx / 1024];
+		size_t ret = blk.rank;
+		uint64_t q = (idx / 128) % 8;
+		V128 vmask;
+		vmask = pcmpeqd(vmask, vmask); // all [-1]
+		V128 shift((8 - q) * 8);
+		vmask = psrlq(vmask, shift);
+		V128 v = V128((uint32_t*)blk.s8);
+		v = pand(v, vmask);
+		v = psadbw(v, Zero());
+		ret += movd(v);
+		uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
+		uint64_t b0 = org_[(idx / 128) * 2 + 0];
+		uint64_t b1 = org_[(idx / 128) * 2 + 1];
+		uint64_t m0 = -1;
+		uint64_t m1 = 0;
+		if (!(idx & 64)) m0 = mask;
+		if(idx & 64) m1 = mask;
+		ret += popCount64(b0 & m0);
+		ret += popCount64(b1 & m1);
+		return (uint32_t)ret;
+#else
 		const Block& blk = blk_[idx / 512];
 		size_t ret = blk.rank;
 		uint64_t q = (idx / 64) % 8;
@@ -86,6 +110,7 @@ public:
 		uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
 		ret += popCount64(org_[idx / 64] & mask);
 		return ret;
+#endif
 	}
 	inline uint64_t popCount64(uint64_t x) const
 	{
@@ -93,6 +118,26 @@ public:
 	}
 	void init(const uint64_t *blk, size_t blkNum)
 	{
+#ifdef USE_TABLE_1024
+		org_ = blk;
+		size_t tblNum = (blkNum + 15) / 16;
+		blk_.resize(tblNum);
+
+		uint32_t r = 0;
+		size_t pos = 0;
+		for (size_t i = 0; i < tblNum; i++) {
+			Block& b = blk_[i];
+			b.rank = r;
+			for (size_t j = 0; j < 8; j++) {
+				uint64_t v0 = pos < blkNum ? blk[pos++] : 0;
+				uint64_t v1 = pos < blkNum ? blk[pos++] : 0;
+				uint64_t s8 = popCount64(v0);
+				s8 += popCount64(v1);
+				r += s8;
+				b.s8[j] = static_cast<uint8_t>(s8);
+			}
+		}
+#else
 		org_ = blk;
 		size_t tblNum = (blkNum + 7) / 8;
 		blk_.resize(tblNum);
@@ -109,6 +154,7 @@ public:
 				b.s8[j] = static_cast<uint8_t>(s8);
 			}
 		}
+#endif
 	}
 };
 
