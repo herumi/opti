@@ -53,7 +53,14 @@ class SuccinctBitVector {
 	};
 	const uint64_t *org_;
 	AlignedArray<Block> blk_;
+	SuccinctBitVector(const SuccinctBitVector&);
+	void operator=(const SuccinctBitVector&);
 public:
+	void swap(SuccinctBitVector& rhs) throw()
+	{
+		std::swap(org_, rhs.org_);
+		blk_.swap(rhs.blk_);
+	}
 	SuccinctBitVector()
 		: org_(0)
 	{
@@ -62,29 +69,6 @@ public:
 		: org_(0)
 	{
 		init(blk, blkNum);
-	}
-	V128 shr_byte(const V128& a, uint32_t idx) const
-	{
-		switch (idx) {
-		default:
-		case  0: return a;
-		case  1: return psrldq<1>(a);
-		case  2: return psrldq<2>(a);
-		case  3: return psrldq<3>(a);
-		case  4: return psrldq<4>(a);
-		case  5: return psrldq<5>(a);
-		case  6: return psrldq<6>(a);
-		case  7: return psrldq<7>(a);
-		case  8: return psrldq<8>(a);
-		case  9: return psrldq<9>(a);
-		case 10: return psrldq<10>(a);
-		case 11: return psrldq<11>(a);
-		case 12: return psrldq<12>(a);
-		case 13: return psrldq<13>(a);
-		case 14: return psrldq<14>(a);
-		case 15: return psrldq<15>(a);
-		case 16: return Zero();
-		}
 	}
 	inline uint32_t rank1(size_t idx) const
 	{
