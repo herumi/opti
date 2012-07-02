@@ -7,7 +7,7 @@
 #include "v128.h"
 #include <xbyak/xbyak.h>
 
-//#define USE_TABLE_1024
+//#define MIE_RANK_USE_TABLE_1024
 
 namespace mie {
 
@@ -51,7 +51,7 @@ public:
 
 namespace succ_impl {
 
-#ifdef USE_TABLE_1024
+#ifdef MIE_RANK_USE_TABLE_1024
 const size_t TABLE_SHIFT = 10;
 #else
 const size_t TABLE_SHIFT = 9;
@@ -110,7 +110,7 @@ private:
 //		shl(rax, 4);
 //		lea(rax, ptr [rax + rax * 4]);
 		add(blk, rax);
-#ifdef USE_TABLE_1024
+#ifdef MIE_RANK_USE_TABLE_1024
 		const Reg64& q = r10;
 		mov(q, idx);
 		shr(q, succ_impl::TABLE_SHIFT - 3);
@@ -192,7 +192,7 @@ public:
 		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
 		const succ_impl::Block& blk = blk_[idx >> succ_impl::TABLE_SHIFT];
 		uint64_t q = (idx >> (succ_impl::TABLE_SHIFT - 3)) % 8;
-#ifdef USE_TABLE_1024
+#ifdef MIE_RANK_USE_TABLE_1024
 		uint64_t b0 = blk.data[q * 2 + 0];
 		uint64_t b1 = blk.data[q * 2 + 1];
 		uint64_t m0 = -1;
