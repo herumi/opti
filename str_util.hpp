@@ -42,47 +42,36 @@ struct StringCode : Xbyak::CodeGenerator {
 		const bool isSandyBridge = cpu.has(Xbyak::util::Cpu::tAVX);
 
 		gen_strstr(isSandyBridge);
-		printf("strstr size=%d\n", (int)getSize());
 
 		nextOffset(strlenOffset);
 		gen_strlen();
-		printf("strlen size=%d\n", (int)(getSize() - strlenOffset));
 
 		nextOffset(strchrOffset);
 		gen_strchr(M_one);
-		printf("strchr size=%d\n", (int)(getSize() - strchrOffset));
 
 		nextOffset(strchr_anyOffset);
 		gen_strchr(M_any);
-		printf("strchr_any size=%d\n", (int)(getSize() - strchr_anyOffset));
 
 		nextOffset(strchr_rangeOffset);
 		gen_strchr(M_range);
-		printf("strchr_range size=%d\n", (int)(getSize() - strchr_rangeOffset));
 
 		nextOffset(findCharOffset);
 		gen_findChar(M_one);
-		printf("findChar size=%d\n", (int)(getSize() - findCharOffset));
 
 		nextOffset(findChar_anyOffset);
 		gen_findChar(M_any);
-		printf("findChar_any size=%d\n", (int)(getSize() - findChar_anyOffset));
 
 		nextOffset(findChar_rangeOffset);
 		gen_findChar(M_range);
-		printf("findChar_range size=%d\n", (int)(getSize() - findChar_rangeOffset));
 
 		nextOffset(findStrOffset);
 		gen_findStr(isSandyBridge);
-		printf("findStr size=%d\n", (int)(getSize() - findStrOffset));
 
 		nextOffset(strcasestrOffset);
 		gen_strstr(isSandyBridge, true);
-		printf("strcasestr size=%d\n", (int)(getSize() - strcasestrOffset));
 
 		nextOffset(findCaseStrOffset);
 		gen_findStr(isSandyBridge, true);
-		printf("findCaseStr size=%d\n", (int)(getSize() - findCaseStrOffset));
 	} catch (Xbyak::Error err) {
 		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
 		::exit(1);
