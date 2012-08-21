@@ -186,7 +186,7 @@ public:
 	}
 	inline uint64_t rank1(size_t idx) const
 	{
-#ifdef MIE_RANK_USE_TABLE_1024
+#if 1 //#ifdef MIE_RANK_USE_TABLE_1024
 		return ((uint64_t (*)(const succ_impl::Block*, size_t))((char*)succ_impl::InstanceIsHere<>::buf))(&blk_[0], idx);
 #else
 		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "rank.hpp"
+#include <xbyak/xbyak_util.h>
 
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
@@ -37,6 +38,34 @@ void testBitVector()
 		TEST_EQUAL(v.get(i + 1), false);
 	}
 	puts("ok");
+}
+
+double getDummyLoopClock(size_t n, size_t mask)
+{
+	int ret = 0;
+	Xbyak::util::Clock clk;
+	XorShift128 r;
+	clk.begin();
+	for (size_t i = 0; i < n; i++) {
+		ret += r.get() & mask;
+	}
+	clk.end();
+	printf("(%08x)", ret);
+	return clk.getClock() / double(n);
+}
+template<class T>
+void bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
+{
+	const T sbv(block, blockNum);
+	int ret = 0;
+	Xbyak::util::Clock clk;
+	XorShift128 r;
+	clk.begin();
+	for (size_t i = 0; i < n; i++) {
+		ret += sbv.rank1(r.get() & mask);
+	}
+	clk.end();
+	printf("%8d ret=%08x %fclk(%f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) - baseClk, baseClk);
 }
 
 void test(const mie::BitVector& bv)
@@ -100,6 +129,17 @@ void testSuccinctBitVector3()
 	puts("ok");
 }
 
+typedef std::vector<uint64_t> Vec;
+
+void initRand(Vec& vec, size_t n)
+{
+	XorShift128 r;
+	vec.resize(n);
+	for (size_t i = 0; i < n; i++) {
+		vec[i] = r.get();
+	}
+}
+
 int main()
 {
 	mie::BitVector bv;
@@ -107,4 +147,14 @@ int main()
 	testSuccinctBitVector1();
 	testSuccinctBitVector2();
 	testSuccinctBitVector3();
+
+	const size_t lp = 5000000;
+	for (size_t bitSize = 10; bitSize < 23; bitSize++) {
+		const size_t n = 1U << bitSize;
+		Vec vec;
+		initRand(vec, n / sizeof(uint64_t));
+		double baseClk = getDummyLoopClock(lp, n - 1);
+		bench<mie::SuccinctBitVector>(&vec[0], vec.size(), lp, n - 1, baseClk);
+	}
 }
+
