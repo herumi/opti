@@ -149,7 +149,7 @@ int main()
 	testSuccinctBitVector3();
 
 	const size_t lp = 5000000;
-	for (size_t bitSize = 10; bitSize < 23; bitSize++) {
+	for (size_t bitSize = 10; bitSize < 26; bitSize++) {
 		const size_t n = 1U << bitSize;
 		Vec vec;
 		initRand(vec, n / sizeof(uint64_t));
