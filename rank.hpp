@@ -168,7 +168,13 @@ struct DummyCall {
 
 } // mie::succ_impl
 
+inline uint32_t pack(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+	return (a << 24) | (b << 16) | (c << 8) | d;
+}
+
 class SuccinctBitVector {
+	const uint64_t *org_;
 	AlignedArray<succ_impl::Block> blk_;
 	SuccinctBitVector(const SuccinctBitVector&);
 	void operator=(const SuccinctBitVector&);
@@ -186,7 +192,11 @@ public:
 	}
 	inline uint64_t rank1(size_t idx) const
 	{
-#if 1 //#ifdef MIE_RANK_USE_TABLE_1024
+		return rank1m(idx);
+	}
+	inline uint64_t rank1m(size_t idx) const
+	{
+#ifdef MIE_RANK_USE_TABLE_1024
 		return ((uint64_t (*)(const succ_impl::Block*, size_t))((char*)succ_impl::InstanceIsHere<>::buf))(&blk_[0], idx);
 #else
 		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
@@ -206,16 +216,40 @@ public:
 		uint64_t m0 = b0 & mask;
 		uint64_t ret = popCount64(b0 & m0);
 #endif
+#if 0
+		for (uint64_t i = 0; i < q; i++) {
+			ret += popCount64(ss[i]);
+		}
+		ret += blk.rank;
+		return ret;
+#else
 		V128 vmask;
 		vmask = pcmpeqd(vmask, vmask); // all [-1]
 		V128 shift((8 - q) * 8);
 		vmask = psrlq(vmask, shift);
+#if 0
+		V128 v; v.clear();
+//		v = pinsrd<0>(v, pack(popCount64(ss[3]), popCount64(ss[2]), popCount64(ss[1]), popCount64(ss[0])));
+//		v = pinsrd<1>(v, pack(popCount64(ss[7]), popCount64(ss[6]), popCount64(ss[5]), popCount64(ss[4])));
+		v = pinsrb<0>(v, popCount64(ss[0]));
+		v = pinsrb<1>(v, popCount64(ss[1]));
+		v = pinsrb<2>(v, popCount64(ss[2]));
+		v = pinsrb<3>(v, popCount64(ss[3]));
+		v = pinsrb<4>(v, popCount64(ss[4]));
+		v = pinsrb<5>(v, popCount64(ss[5]));
+		v = pinsrb<6>(v, popCount64(ss[6]));
+		v = pinsrb<7>(v, popCount64(ss[7]));
+//		V128 v = V128(0, 0, pack(popCount64(ss[7]), popCount64(ss[6]), popCount64(ss[5]), popCount64(ss[4]))
+//			, pack(popCount64(ss[3]), popCount64(ss[2]), popCount64(ss[1]), popCount64(ss[0])));
+#else
 		V128 v = V128((uint32_t*)blk.s8);
+#endif
 		v = pand(v, vmask);
 		v = psadbw(v, Zero());
 		ret += movd(v);
 		ret += blk.rank;
 		return ret;
+#endif
 #endif
 	}
 	inline uint64_t popCount64(uint64_t x) const
@@ -224,6 +258,7 @@ public:
 	}
 	void init(const uint64_t *blk, size_t blkNum)
 	{
+		org_ = blk;
 		size_t tblNum = (blkNum + succ_impl::DATA_NUM - 1) / succ_impl::DATA_NUM;
 		blk_.resize(tblNum);
 

@@ -17,7 +17,7 @@ ifeq ($(BIT),64)
 TARGET += str_util_test64
 endif
 # ----------------------------------------------------------------
-CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g
+CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g -I../marisa-0.2.0/lib/
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
@@ -38,7 +38,7 @@ intsort_test: intsort_test.o
 	$(CXX) $(CFLAGS) $< -o $@
 
 rank_test: rank_test.o
-	$(CXX) $(CFLAGS) $< -o $@
+	$(CXX) $(CFLAGS) $< -o $@ -lmarisa -L$(HOME)/local/lib
 
 .cpp.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)

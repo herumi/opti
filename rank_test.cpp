@@ -57,7 +57,7 @@ double getDummyLoopClock(size_t n, size_t mask)
 	return clk.getClock() / double(n) / lp;
 }
 template<class T>
-void bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
+int bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
 {
 	const T sbv(block, blockNum);
 	int ret = 0;
@@ -72,6 +72,7 @@ void bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double
 		clk.end();
 	}
 	printf("%8d ret=%08x %6.2fclk(%6.2f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	return ret;
 }
 
 void test(const mie::BitVector& bv)
@@ -83,7 +84,7 @@ void test(const mie::BitVector& bv)
 	uint32_t num = 0;
 	for (size_t i = 0; i < bv.size(); i++) {
 		if (bv.get(i)) num++;
-		uint32_t rank = s.rank1(i);
+		uint32_t rank = s.rank1m(i);
 		TEST_EQUAL(rank, num);
 	}
 }
@@ -146,6 +147,39 @@ void initRand(Vec& vec, size_t n)
 	}
 }
 
+#include <marisa/grimoire/vector.h>
+
+struct MarisaVec {
+	marisa::grimoire::BitVector bv;
+	MarisaVec(const uint64_t *block, size_t blockNum)
+	{
+		for (size_t i = 0; i < blockNum; i++) {
+			for (size_t j = 0; j < 64; j++) {
+				bv.push_back(((block[i] >> j) & 1) != 0);
+			}
+		}
+		bv.build(true, true);
+	}
+	size_t rank1(size_t i) const
+	{
+		return bv.rank1(i + 1);
+	}
+};
+
+template<class T>
+void benchAll()
+{
+	const size_t lp = 5000000;
+	int ret = 0;
+	for (size_t bitSize = 7; bitSize < 20; bitSize++) {
+		const size_t n = 1U << bitSize;
+		Vec vec;
+		initRand(vec, n / sizeof(uint64_t));
+		double baseClk = getDummyLoopClock(lp, n - 1);
+		ret += bench<T>(&vec[0], vec.size(), lp, n - 1, baseClk);
+	}
+	printf("ret=%x\n", ret);
+}
 int main()
 {
 	mie::BitVector bv;
@@ -153,14 +187,9 @@ int main()
 	testSuccinctBitVector1();
 	testSuccinctBitVector2();
 	testSuccinctBitVector3();
-
-	const size_t lp = 5000000;
-	for (size_t bitSize = 7; bitSize < 27; bitSize++) {
-		const size_t n = 1U << bitSize;
-		Vec vec;
-		initRand(vec, n / sizeof(uint64_t));
-		double baseClk = getDummyLoopClock(lp, n - 1);
-		bench<mie::SuccinctBitVector>(&vec[0], vec.size(), lp, n - 1, baseClk);
-	}
+	puts("mie");
+	benchAll<mie::SuccinctBitVector>();
+	puts("marisa");
+	benchAll<MarisaVec>();
 }
 
