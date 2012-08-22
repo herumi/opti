@@ -45,13 +45,16 @@ double getDummyLoopClock(size_t n, size_t mask)
 	int ret = 0;
 	Xbyak::util::Clock clk;
 	XorShift128 r;
-	clk.begin();
-	for (size_t i = 0; i < n; i++) {
-		ret += r.get() & mask;
+	const int lp = 5;
+	for (int i = 0; i < lp; i++) {
+		clk.begin();
+		for (size_t i = 0; i < n; i++) {
+			ret += r.get() & mask;
+		}
+		clk.end();
 	}
-	clk.end();
 	printf("(%08x)", ret);
-	return clk.getClock() / double(n);
+	return clk.getClock() / double(n) / lp;
 }
 template<class T>
 void bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
@@ -60,12 +63,15 @@ void bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double
 	int ret = 0;
 	Xbyak::util::Clock clk;
 	XorShift128 r;
-	clk.begin();
-	for (size_t i = 0; i < n; i++) {
-		ret += sbv.rank1(r.get() & mask);
+	const int lp = 5;
+	for (int j = 0; j < lp; j++) {
+		clk.begin();
+		for (size_t i = 0; i < n; i++) {
+			ret += sbv.rank1(r.get() & mask);
+		}
+		clk.end();
 	}
-	clk.end();
-	printf("%8d ret=%08x %fclk(%f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) - baseClk, baseClk);
+	printf("%8d ret=%08x %6.2fclk(%6.2f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 }
 
 void test(const mie::BitVector& bv)
@@ -149,7 +155,7 @@ int main()
 	testSuccinctBitVector3();
 
 	const size_t lp = 5000000;
-	for (size_t bitSize = 10; bitSize < 26; bitSize++) {
+	for (size_t bitSize = 7; bitSize < 27; bitSize++) {
 		const size_t n = 1U << bitSize;
 		Vec vec;
 		initRand(vec, n / sizeof(uint64_t));
