@@ -148,7 +148,10 @@ void initRand(Vec& vec, size_t n)
 }
 
 #include <marisa/grimoire/vector.h>
-
+/*
+	use marisa-0.2.0.tar.gz
+	http://code.google.com/p/marisa-trie/
+*/
 struct MarisaVec {
 	marisa::grimoire::BitVector bv;
 	MarisaVec(const uint64_t *block, size_t blockNum)
@@ -160,6 +163,11 @@ struct MarisaVec {
 		}
 		bv.build(true, true);
 	}
+	/*
+		now my version rank1 is a little different from
+		starndard rank1, so use wrapper function.
+		the penalty may be less than a few clk cycles.
+	*/
 	size_t rank1(size_t i) const
 	{
 		return bv.rank1(i + 1);
