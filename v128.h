@@ -258,6 +258,12 @@ inline V128 pinsrd(const V128& a, uint32_t v)
 	return _mm_castsi128_ps(_mm_insert_epi32(a.x_, v, idx));
 }
 
+template<int idx>
+inline V128 pinsrb(const V128& a, uint8_t v)
+{
+	return _mm_castsi128_ps(_mm_insert_epi8(a.x_, v, idx));
+}
+
 inline int ptest_zf(const V128& a, const V128& b)
 {
 	return _mm_testz_si128(a.x_, b.x_);

@@ -79,7 +79,7 @@ struct XorShift128 {
 	}
 };
 
-template<class T>
+template<class T, size_t alignedByte = 64>
 struct AlignedArray {
 	T *p_;
 	size_t n_;
@@ -98,7 +98,7 @@ struct AlignedArray {
 	void resize(size_t n)
 	{
 		_aligned_free(p_);
-		p_ = (T*)_aligned_malloc(n * sizeof(T) + 16, 16);
+		p_ = (T*)_aligned_malloc(n * sizeof(T) + alignedByte, alignedByte);
 		n_ = n;
 	}
 	size_t size() const { return n_; }
