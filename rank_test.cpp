@@ -179,7 +179,7 @@ void benchAll()
 {
 	const size_t lp = 5000000;
 	int ret = 0;
-	for (size_t bitSize = 7; bitSize < 20; bitSize++) {
+	for (size_t bitSize = 11; bitSize < 27; bitSize++) {
 		const size_t n = 1U << bitSize;
 		Vec vec;
 		initRand(vec, n / sizeof(uint64_t));
