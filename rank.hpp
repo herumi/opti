@@ -218,38 +218,20 @@ public:
 #endif
 #if 0
 		for (uint64_t i = 0; i < q; i++) {
-			ret += popCount64(ss[i]);
+			ret += blk.s8[i];
 		}
-		ret += blk.rank;
-		return ret;
 #else
 		V128 vmask;
 		vmask = pcmpeqd(vmask, vmask); // all [-1]
 		V128 shift((8 - q) * 8);
 		vmask = psrlq(vmask, shift);
-#if 0
-		V128 v; v.clear();
-//		v = pinsrd<0>(v, pack(popCount64(ss[3]), popCount64(ss[2]), popCount64(ss[1]), popCount64(ss[0])));
-//		v = pinsrd<1>(v, pack(popCount64(ss[7]), popCount64(ss[6]), popCount64(ss[5]), popCount64(ss[4])));
-		v = pinsrb<0>(v, popCount64(ss[0]));
-		v = pinsrb<1>(v, popCount64(ss[1]));
-		v = pinsrb<2>(v, popCount64(ss[2]));
-		v = pinsrb<3>(v, popCount64(ss[3]));
-		v = pinsrb<4>(v, popCount64(ss[4]));
-		v = pinsrb<5>(v, popCount64(ss[5]));
-		v = pinsrb<6>(v, popCount64(ss[6]));
-		v = pinsrb<7>(v, popCount64(ss[7]));
-//		V128 v = V128(0, 0, pack(popCount64(ss[7]), popCount64(ss[6]), popCount64(ss[5]), popCount64(ss[4]))
-//			, pack(popCount64(ss[3]), popCount64(ss[2]), popCount64(ss[1]), popCount64(ss[0])));
-#else
 		V128 v = V128((uint32_t*)blk.s8);
-#endif
 		v = pand(v, vmask);
 		v = psadbw(v, Zero());
 		ret += movd(v);
+#endif
 		ret += blk.rank;
 		return ret;
-#endif
 #endif
 	}
 	inline uint64_t popCount64(uint64_t x) const

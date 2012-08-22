@@ -2,6 +2,8 @@
 #include "rank.hpp"
 #include <xbyak/xbyak_util.h>
 
+//#define COMPARE_MARISA
+
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
 void testBitVector()
@@ -71,7 +73,7 @@ int bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double 
 		}
 		clk.end();
 	}
-	printf("%8d ret=%08x %6.2fclk(%6.2f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	printf("%9d ret=%08x %6.2fclk(%6.2f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	return ret;
 }
 
@@ -147,6 +149,7 @@ void initRand(Vec& vec, size_t n)
 	}
 }
 
+#ifdef COMPARE_MARISA
 #include <marisa/grimoire/vector.h>
 /*
 	use marisa-0.2.0.tar.gz
@@ -173,13 +176,14 @@ struct MarisaVec {
 		return bv.rank1(i + 1);
 	}
 };
+#endif
 
 template<class T>
 void benchAll()
 {
 	const size_t lp = 5000000;
 	int ret = 0;
-	for (size_t bitSize = 11; bitSize < 27; bitSize++) {
+	for (size_t bitSize = 11; bitSize < 29; bitSize++) {
 		const size_t n = 1U << bitSize;
 		Vec vec;
 		initRand(vec, n / sizeof(uint64_t));
@@ -197,7 +201,9 @@ int main()
 	testSuccinctBitVector3();
 	puts("mie");
 	benchAll<mie::SuccinctBitVector>();
+#ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
+#endif
 }
 
