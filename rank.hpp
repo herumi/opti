@@ -173,6 +173,7 @@ inline uint32_t pack(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 	return (a << 24) | (b << 16) | (c << 8) | d;
 }
 
+#if 1
 class SuccinctBitVector {
 	const uint64_t *org_;
 	AlignedArray<succ_impl::Block> blk_;
@@ -262,6 +263,75 @@ public:
 		}
 	}
 };
+
+#else
+class SuccinctBitVector {
+	struct B2 {
+		uint64_t data[8];
+		uint32_t rank;
+		uint32_t carry;
+		uint8_t s8[8];
+	};
+	const uint64_t *org_;
+	AlignedArray<B2> blk_;
+	SuccinctBitVector(const SuccinctBitVector&);
+	void operator=(const SuccinctBitVector&);
+public:
+	SuccinctBitVector()
+	{
+	}
+	SuccinctBitVector(const uint64_t *blk, size_t blkNum)
+	{
+		init(blk, blkNum);
+	}
+	inline uint64_t rank1(size_t idx) const
+	{
+		return rank1m(idx);
+	}
+	inline uint64_t rank1m(size_t idx) const
+	{
+		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
+		const B2& blk = blk_[idx >> succ_impl::TABLE_SHIFT];
+		uint64_t q = (idx >> (succ_impl::TABLE_SHIFT - 3)) % 8;
+		uint64_t b0 = blk.data[q];
+		uint64_t m0 = b0 & mask;
+		uint64_t ret = popCount64(b0 & m0);
+		ret += blk.s8[q];
+		if ((blk.carry >> q) & 1) ret += 256;
+		ret += blk.rank;
+		return ret;
+	}
+	inline uint64_t popCount64(uint64_t x) const
+	{
+		return _mm_popcnt_u64(x);
+	}
+	void init(const uint64_t *blk, size_t blkNum)
+	{
+		org_ = blk;
+		size_t tblNum = (blkNum + 7) / 8;
+		blk_.resize(tblNum);
+
+		uint32_t r = 0;
+		size_t pos = 0;
+		for (size_t i = 0; i < tblNum; i++) {
+			B2& b = blk_[i];
+			b.rank = r;
+			uint16_t sum = 0;
+			b.carry = 0;
+			for (size_t j = 0; j < 8; j++) {
+				uint64_t s8 = 0;
+				uint64_t v = pos < blkNum ? blk[pos++] : 0;
+				b.data[j] = v;
+				s8 += popCount64(v);
+				r += s8;
+				b.s8[j] = (uint8_t)sum;
+				if (sum >= 256) b.carry |= 1U << j;
+				sum += s8;
+			}
+		}
+	}
+};
+#endif
 
 } // mie
 
