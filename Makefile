@@ -50,5 +50,5 @@ clean:
 	$(RM) *.o $(TARGET)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
-rank_test.o: rank.hpp
+rank_test.o: rank.hpp rank_comp.hpp
 

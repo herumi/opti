@@ -6,6 +6,8 @@
 
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
+#include "rank_comp.hpp"
+
 void testBitVector()
 {
 	puts("testBitVector");
@@ -73,16 +75,17 @@ int bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double 
 		}
 		clk.end();
 	}
-	printf("%9d ret=%08x %6.2fclk(%6.2f)\n", (int)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", (long long)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	return ret;
 }
 
+template<class T>
 void test(const mie::BitVector& bv)
 {
 //	printf("----------------------\n");
 //bv.put();
 //	printf("bv.blockSize=%d, bitSize=%d\n", (int)bv.getBlockSize(), (int)bv.size());
-	mie::SuccinctBitVector s(bv.getBlock(), bv.getBlockSize());
+	T s(bv.getBlock(), bv.getBlockSize());
 	uint32_t num = 0;
 	for (size_t i = 0; i < bv.size(); i++) {
 		if (bv.get(i)) num++;
@@ -91,23 +94,25 @@ void test(const mie::BitVector& bv)
 	}
 }
 
+template<class T>
 void testSuccinctBitVector1()
 {
 	puts("testSuccinctBitVector1");
 	{
 		mie::BitVector bv;
 		bv.resize(2048);
-		test(bv);
+		test<T>(bv);
 	}
 	for (int i = 0; i < 2048; i++) {
 		mie::BitVector bv;
 		bv.resize(2048);
 		bv.set(i, true);
-		test(bv);
+		test<T>(bv);
 	}
 	puts("ok");
 }
 
+template<class T>
 void testSuccinctBitVector2()
 {
 	puts("testSuccinctBitVector2");
@@ -115,10 +120,11 @@ void testSuccinctBitVector2()
 	bv.resize(2048);
 	for (int i = 0; i < 2048; i++) {
 		bv.set(i, true);
-		test(bv);
+		test<T>(bv);
 	}
 	puts("ok");
 }
+template<class T>
 void testSuccinctBitVector3()
 {
 	puts("testSuccinctBitVector3");
@@ -133,7 +139,7 @@ void testSuccinctBitVector3()
 			x = (x << 32) | r.get();
 			bv.getBlock()[j] = x;
 		}
-		test(bv);
+		test<T>(bv);
 	}
 	puts("ok");
 }
@@ -181,10 +187,10 @@ struct MarisaVec {
 template<class T>
 void benchAll()
 {
-	const size_t lp = 5000000;
+	const size_t lp = 1000000;
 	int ret = 0;
-	for (size_t bitSize = 11; bitSize < 29; bitSize++) {
-		const size_t n = 1U << bitSize;
+	for (size_t bitSize = 16; bitSize < 34; bitSize++) {
+		const size_t n = size_t(1) << bitSize;
 		Vec vec;
 		initRand(vec, n / sizeof(uint64_t));
 		double baseClk = getDummyLoopClock(lp, n - 1);
@@ -192,15 +198,22 @@ void benchAll()
 	}
 	printf("ret=%x\n", ret);
 }
+
+template<class T>
+void testAll()
+{
+	testSuccinctBitVector1<T>();
+	testSuccinctBitVector2<T>();
+	testSuccinctBitVector3<T>();
+	benchAll<T>();
+}
+
 int main()
 {
-	mie::BitVector bv;
 	testBitVector();
-	testSuccinctBitVector1();
-	testSuccinctBitVector2();
-	testSuccinctBitVector3();
-	puts("mie");
-	benchAll<mie::SuccinctBitVector>();
+//	testAll<mie::NaiveSV2>();
+	testAll<mie::SBV5>();
+//	testAll<mie::SuccinctBitVector>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
