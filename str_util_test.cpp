@@ -14,6 +14,7 @@
 #ifdef __GNUC__
 #include <strings.h>
 #endif
+//#define USE_BOOST_BM
 
 // strcasestr(key must not have capital character)
 const char *strcasestr_C(const char *str, const char *key)
@@ -70,6 +71,34 @@ struct Fstr_find {
 	size_t end() const { return std::string::npos; }
 	size_t find(size_t p) const { return str_->find(*key_, p); }
 };
+
+#ifdef USE_BOOST_BM
+#include <boost/algorithm/searching/boyer_moore.hpp>
+struct Frange_boost_bm_find {
+	boost::algorithm::boyer_moore<const char*> *bm_;
+	~Frange_boost_bm_find()
+	{
+		delete bm_;
+	}
+	const char *str_;
+	const char *end_;
+	const char *key_;
+	size_t keySize_;
+	typedef const char* type;
+	void set(const std::string& str, const std::string& key)
+	{
+		str_ = &str[0];
+		end_ = str_ + str.size();
+		key_ = &key[0];
+		keySize_ = key.size();
+		bm_ = new boost::algorithm::boyer_moore<const char*>(key_, key_ + keySize_);
+	}
+	Frange_boost_bm_find() : bm_(0), str_(0), end_(0), key_(0), keySize_(0) { }
+	const char *begin() const { return str_; }
+	const char *end() const { return end_; }
+	const char *find(const char *p) const { return (*bm_)(p, end_); }
+};
+#endif
 
 // std::string.find_first_of()
 struct Fstr_find_first_of {
@@ -610,6 +639,10 @@ int main(int argc, char *argv[])
 	}
 
 	try {
+#ifdef USE_BOOST_BM
+		benchmarkTbl("boost", Frange_boost_bm_find(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);
+		return 0;
+#endif
 #ifdef USE_MISCHASAN
 		benchmarkTbl("mischasan", Fmischasan_strstr(), "strstr", Fstrstr<STRSTR>(), text, keyTbl);
 		benchmarkTbl("mischasan", Fmischasan_strstr(), "mie::strstr", Fstrstr<mie::strstr>(), text, keyTbl);

@@ -17,7 +17,7 @@ ifeq ($(BIT),64)
 TARGET += str_util_test64
 endif
 # ----------------------------------------------------------------
-CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g -I../marisa-0.2.0/lib/
+CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g -I../marisa-0.2.0/lib/ -I$(HOME)/local/include
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
