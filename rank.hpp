@@ -107,8 +107,6 @@ private:
 		mov(rax, idx);
 		shr(rax, succ_impl::TABLE_SHIFT);
 		imul(rax, rax, sizeof(succ_impl::Block));
-//		shl(rax, 4);
-//		lea(rax, ptr [rax + rax * 4]);
 		add(blk, rax);
 #ifdef MIE_RANK_USE_TABLE_1024
 		const Reg64& q = r10;
@@ -118,7 +116,7 @@ private:
 		const Reg64& m0 = r11;
 		lea(rax, ptr [q + q]);
 		or(m0, -1);
-		and(idx, 64);
+		and(Reg32(idx.getIdx()), 64);
 		cmovz(m0, mask); // m0 = (!(idx & 64)) ? mask : -1
 		cmovz(mask, idx); // mask = (idx & 64) ? mask : 0
 		and(m0, ptr [blk + rax * 8 + 0]);
@@ -134,18 +132,17 @@ private:
 		popcnt(rax, mask);
 #endif
 		neg(q);
-		add(q, 8);
-		shl(q, 3);
+		add(rax, ptr [blk + offsetof(succ_impl::Block, rank)]);
+		lea(q, ptr [q * 8 + 64]);
 		movq(shift, q);
 		pcmpeqd(vmask, vmask);
-		psrlq(vmask, shift);
 		movq(v, ptr [blk + offsetof(succ_impl::Block, s8)]);
+		psrlq(vmask, shift);
 		pand(v, vmask);
 		pxor(vmask, vmask);
 		psadbw(v, vmask);
 		movq(q, v);
 		add(rax, q);
-		add(rax, ptr [blk + offsetof(succ_impl::Block, rank)]);
 		ret();
 	}
 };
@@ -187,7 +184,7 @@ public:
 	}
 	uint64_t rank1m(size_t idx) const
 	{
-#if 0//#ifdef MIE_RANK_USE_TABLE_1024
+#if 1//#ifdef MIE_RANK_USE_TABLE_1024
 		return ((uint64_t (*)(const succ_impl::Block*, size_t))((char*)succ_impl::InstanceIsHere<>::buf))(&blk_[0], idx);
 #else
 		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;

@@ -23,7 +23,7 @@ public:
 	{
 		init(blk, blkNum);
 	}
-	
+
 	void init(const uint64_t *blk, size_t blkNum)
 	{
 		org_ = blk;
@@ -76,7 +76,7 @@ public:
 	{
 		init(blk, blkNum);
 	}
-	
+
 	void init(const uint64_t *blk, size_t blkNum)
 	{
 		org_ = blk;
@@ -129,7 +129,7 @@ public:
 	{
 		init(blk, blkNum);
 	}
-	
+
 	void init(const uint64_t *blk, size_t blkNum)
 	{
 		size_t tblNum = (blkNum + 3) / 4;
@@ -481,6 +481,98 @@ public:
 				uint64_t v = pos < blkNum ? blk[pos++] : 0;
 				b.data[j] = v;
 				r += popCount64(v);
+			}
+		}
+	}
+};
+/*
+	(32 + 8 * 4) / 512 = 1/8
+*/
+class SBV6 {
+	struct B2 {
+		uint32_t rank;
+		union {
+			uint8_t s8[4];
+			uint32_t s;
+		} ci;
+		uint64_t data[8];
+	};
+	AlignedArray<B2> blk_;
+	SBV6(const SBV6&);
+	void operator=(const SBV6&);
+public:
+	SBV6()
+	{
+	}
+	SBV6(const uint64_t *blk, size_t blkNum)
+	{
+		init(blk, blkNum);
+	}
+	uint64_t rank1(size_t idx) const
+	{
+		return rank1m(idx);
+	}
+	uint64_t rank1m(size_t idx) const
+	{
+		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
+		const B2& blk = blk_[idx / 512];
+		uint64_t ret = blk.rank;
+		uint64_t q = (idx / 128) % 4;
+		uint64_t b0 = blk.data[q * 2 + 0];
+		uint64_t b1 = blk.data[q * 2 + 1];
+		uint64_t m0 = -1;
+		uint64_t m1 = 0;
+		if (!(idx & 64)) m0 = mask;
+		if (idx & 64) m1 = mask;
+		ret += popCount64(b0 & m0);
+		ret += popCount64(b1 & m1);
+#if 1
+#if 1
+		V128 vmask;
+		vmask = pcmpeqd(vmask, vmask); // all [-1]
+		V128 shift((8 - q) * 8);
+		vmask = psrlq(vmask, shift);
+		V128 v(blk.ci.s);
+		v = pand(v, vmask);
+		v = psadbw(v, Zero());
+		ret += movd(v);
+#else
+		switch (q) {
+		case 3: ret += blk.ci.s8[2];
+		case 2: ret += blk.ci.s8[1];
+		case 1: ret += blk.ci.s8[0];
+		}
+#endif
+#else
+		for (uint64_t i = 0; i < q; i++) {
+			ret += blk.ci.s8[i];
+		}
+#endif
+		return ret;
+	}
+	uint64_t popCount64(uint64_t x) const
+	{
+		return _mm_popcnt_u64(x);
+	}
+	void init(const uint64_t *blk, size_t blkNum)
+	{
+		size_t tblNum = (blkNum + 7) / 8;
+		blk_.resize(tblNum);
+
+		uint32_t r = 0;
+		size_t pos = 0;
+		for (size_t i = 0; i < tblNum; i++) {
+			B2& b = blk_[i];
+			b.rank = r;
+			uint8_t s8 = 0;
+			for (size_t j = 0; j < 4; j++) {
+				uint64_t vL = pos < blkNum ? blk[pos++] : 0;
+				uint64_t vH = pos < blkNum ? blk[pos++] : 0;
+				b.data[j * 2 + 0] = vL;
+				b.data[j * 2 + 1] = vH;
+				s8 = popCount64(vL) + popCount64(vH);
+				b.ci.s8[j] = s8;
+				r += s8;
 			}
 		}
 	}

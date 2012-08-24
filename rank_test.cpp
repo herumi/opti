@@ -61,10 +61,10 @@ double getDummyLoopClock(size_t n, size_t mask)
 	return clk.getClock() / double(n) / lp;
 }
 template<class T>
-int bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
+uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
 {
 	const T sbv(block, blockNum);
-	int ret = 0;
+	uint64_t ret = 0;
 	Xbyak::util::Clock clk;
 	XorShift128 r;
 	const int lp = 5;
@@ -75,7 +75,7 @@ int bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double 
 		}
 		clk.end();
 	}
-	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", (long long)mask + 1, ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", (long long)mask + 1, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	return ret;
 }
 
@@ -212,7 +212,7 @@ int main()
 {
 	testBitVector();
 //	testAll<mie::NaiveSV2>();
-	testAll<mie::SBV5>();
+	testAll<mie::SBV6>();
 //	testAll<mie::SuccinctBitVector>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
