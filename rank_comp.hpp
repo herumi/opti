@@ -528,12 +528,8 @@ public:
 		ret += popCount64(b1 & m1);
 #if 1
 #if 1
-		V128 vmask;
-		vmask = pcmpeqd(vmask, vmask); // all [-1]
-		V128 shift((8 - q) * 8);
-		vmask = psrlq(vmask, shift);
-		V128 v(blk.ci.s);
-		v = pand(v, vmask);
+		uint32_t x = blk.ci.s & ((1U << (q * 8)) - 1);
+		V128 v(x);
 		v = psadbw(v, Zero());
 		ret += movd(v);
 #else
