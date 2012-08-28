@@ -40,8 +40,14 @@ intsort_test: intsort_test.o
 rank_test: rank_test.o
 	$(CXX) $(CFLAGS) $< -o $@ -lmarisa -L$(HOME)/local/lib
 
+rank_test_sux : rank_test_sux.o sux-0.7/rank9.o
+	$(CXX) $(CFLAGS) -o $@ $< sux-0.7/rank9.o
+rank_test_suxb : rank_test_suxb.o sux-0.7/rank9b.o
+	$(CXX) $(CFLAGS) -o $@ $< sux-0.7/rank9b.o
+
 .cpp.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)
+
 
 .c.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)
@@ -49,6 +55,14 @@ rank_test: rank_test.o
 clean:
 	$(RM) *.o $(TARGET)
 
+rank_test_sux.o: rank_test.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUX -Isux-0.7
+rank_test_suxb.o: rank_test.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUXB -Isux-0.7
+sux-0.7/rank9.o: sux-0.7/rank9.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUX -Isux-0.7
+sux-0.7/rank9b.o: sux-0.7/rank9b.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUXB -Isux-0.7
+
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank.hpp rank_comp.hpp
-

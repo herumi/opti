@@ -3,6 +3,7 @@
 #include <xbyak/xbyak_util.h>
 
 //#define COMPARE_MARISA
+//#define COMPARE_SUX
 
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
@@ -184,6 +185,35 @@ struct MarisaVec {
 };
 #endif
 
+#ifdef COMPARE_SUX
+#include <rank9.h>
+struct SucVec {
+	rank9 bv;
+	SucVec(const uint64_t *block, size_t blockNum)
+		: bv(block, blockNum * sizeof(uint64_t))
+	{
+	}
+	size_t rank1(size_t i) const
+	{
+		return const_cast<rank9&>(bv).rank(i + 1);
+	}
+};
+#endif
+#ifdef COMPARE_SUXB
+#include <rank9b.h>
+struct SucbVec {
+	rank9b bv;
+	SucbVec(const uint64_t *block, size_t blockNum)
+		: bv(block, blockNum * sizeof(uint64_t))
+	{
+	}
+	size_t rank1(size_t i) const
+	{
+		return const_cast<rank9b&>(bv).rank(i + 1);
+	}
+};
+#endif
+
 template<class T>
 void benchAll()
 {
@@ -211,12 +241,20 @@ void testAll()
 int main()
 {
 	testBitVector();
-//	testAll<mie::NaiveSV2>();
-	testAll<mie::SBV6>();
+	testAll<mie::NaiveSV2>();
+//	testAll<mie::SBV6>();
 //	testAll<mie::SuccinctBitVector>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
+#endif
+#ifdef COMPARE_SUX
+	puts("sux");
+	benchAll<SucVec>();
+#endif
+#ifdef COMPARE_SUXB
+	puts("suxb");
+	benchAll<SucbVec>();
 #endif
 }
 
