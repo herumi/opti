@@ -1,7 +1,7 @@
 /*
 gcc ; gcc-4.6.3
 Xeon x5650
-                i3  i7    Xeon core2duo(32bit)
+                i3  i7    Xeon core2duo
 bitblt_jmpC    gcc  VC11  gcc  VC10
 op=0 db2d2bdd 1.94  1.83 1.75  1.99
 op=1 374b2e97 3.47  3.65 1.75  3.65
@@ -28,15 +28,11 @@ op=1 374b2e97 5.11  2.71 3.48  2.74
 op=2 59acebf1 6.72  3.62 4.35  4.84
 op=3 2f89b2a9 8.34  4.55 5.23  5.82
 bitblt_jmpTbl
-op=0 db2d2bdd 2.82  1.82 2.62  3.31
-op=1 374b2e97 2.88  1.87 4.35  3.31
-op=2 59acebf1 3.13  2.04 4.36  3.63
-op=3 2f89b2a9 4.23  2.79 4.35  3.59
+op=0 db2d2bdd 2.82  1.82 2.62  3.02
+op=1 374b2e97 2.88  1.87 4.35  2.90
+op=2 59acebf1 3.13  2.04 4.36  2.99
+op=3 2f89b2a9 4.23  2.79 4.35  2.99
 */
-
-
-
-
 
 #include <stdio.h>
 #include <stdint.h>
