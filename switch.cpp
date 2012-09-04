@@ -1,7 +1,7 @@
 /*
 gcc ; gcc-4.6.3
 Xeon x5650
-                i3  i7    Xeon core2duo
+                i3  i7    Xeon core2duo(32bit)
 bitblt_jmpC    gcc  VC11  gcc  VC10
 op=0 db2d2bdd 1.94  1.83 1.75  1.99
 op=1 374b2e97 3.47  3.65 1.75  3.65
@@ -27,7 +27,17 @@ op=0 db2d2bdd 3.43  1.82 2.62  2.75
 op=1 374b2e97 5.11  2.71 3.48  2.74
 op=2 59acebf1 6.72  3.62 4.35  4.84
 op=3 2f89b2a9 8.34  4.55 5.23  5.82
+bitblt_jmpTbl
+op=0 db2d2bdd 2.82  1.82 2.62  3.31
+op=1 374b2e97 2.88  1.87 4.35  3.31
+op=2 59acebf1 3.13  2.04 4.36  3.63
+op=3 2f89b2a9 4.23  2.79 4.35  3.59
 */
+
+
+
+
+
 #include <stdio.h>
 #include <stdint.h>
 #include <numeric>
@@ -36,10 +46,6 @@ op=3 2f89b2a9 8.34  4.55 5.23  5.82
 #include <xbyak/xbyak_util.h>
 
 const int OP_NUM = 4;
-
-#if defined(_WIN32) && !defined(_WIN64)
-	#define USE_WIN32_ASM
-#endif
 
 typedef std::vector<uint32_t> Vec;
 
@@ -308,6 +314,100 @@ struct CodeJmp2 : public Xbyak::CodeGenerator {
 	}
 };
 
+struct CodeJmpTbl : public Xbyak::CodeGenerator {
+
+	size_t jmpTbl[4];
+	// bitblt_sub(uint32_t *dst, const uint32_t *src, int n, int op);
+	CodeJmpTbl()
+	{
+		using namespace Xbyak;
+#ifdef XBYAK32
+		const Reg32& dst = edi;
+		const Reg32& src = esi;
+		const Reg32& n = ecx;
+		const Reg32& op = edx;
+		const Reg32& tbl = ebx;
+		const int P = 4 * 3;
+		push(esi);
+		push(edi);
+		push(ebx);
+		mov(dst, ptr [esp + P + 4]);
+		mov(src, ptr [esp + P + 8]);
+		mov(n, ptr [esp + P + 12]);
+		mov(op, ptr [esp + P + 16]);
+#elif defined(XBYAK64_WIN)
+		const Reg64& dst = rcx;
+		const Reg64& src = rdx;
+		const Reg64& n = r8;
+		const Reg64& op = r9;
+		const Reg64& tbl = r10;
+#else
+		const Reg64& dst = rdi;
+		const Reg64& src = rsi;
+		const Reg64& n = rdx;
+		const Reg64& op = rcx;
+		const Reg64& tbl = r8;
+#endif
+		inLocalLabel();
+		xor(eax, eax);
+		mov(tbl, (size_t)jmpTbl);
+
+	L("@@");
+		jmp(ptr [tbl + op * sizeof(size_t)]);
+
+		align(16);
+	L(".lp0");
+		jmpTbl[0] = (size_t)getCurr();
+		mov(ptr [dst], eax);
+		add(dst, 4);
+		add(src, 4);
+		sub(n, 1);
+		jnz("@b");
+		jmp(".exit");
+
+		align(16);
+	L(".lp1");
+		jmpTbl[1] = (size_t)getCurr();
+		mov(eax, ptr [src]);
+		mov(ptr [dst], eax);
+		add(dst, 4);
+		add(src, 4);
+		sub(n, 1);
+		jnz("@b");
+		jmp(".exit");
+
+		align(16);
+	L(".lp2");
+		jmpTbl[2] = (size_t)getCurr();
+		mov(eax, ptr [src]);
+		xor(ptr [dst], eax);
+		add(dst, 4);
+		add(src, 4);
+		sub(n, 1);
+		jnz("@b");
+		jmp(".exit");
+
+		align(16);
+	L(".lp3");
+		jmpTbl[3] = (size_t)getCurr();
+		mov(eax, ptr [src]);
+		or(ptr [dst], eax);
+		add(dst, 4);
+		add(src, 4);
+		sub(n, 1);
+		jnz("@b");
+
+	L(".exit");
+#ifdef XBYAK32
+		pop(ebx);
+		pop(edi);
+		pop(esi);
+#endif
+		ret();
+		outLocalLabel();
+	}
+};
+
 void bitblt_noJmp(uint32_t *dst, const uint32_t *src, int n, int op)
 {
 	static const CodeNoJmp cTbl[OP_NUM] = { 0, 1, 2, 3 };
@@ -323,6 +423,12 @@ void bitblt_jmp1(uint32_t *dst, const uint32_t *src, int n, int op)
 void bitblt_jmp2(uint32_t *dst, const uint32_t *src, int n, int op)
 {
 	static const CodeJmp2 c;
+	((void (*)(uint32_t*, const uint32_t*, int, int))c.getCode())(dst, src, n, op);
+}
+
+void bitblt_jmpTbl(uint32_t *dst, const uint32_t *src, int n, int op)
+{
+	static const CodeJmpTbl c;
 	((void (*)(uint32_t*, const uint32_t*, int, int))c.getCode())(dst, src, n, op);
 }
 
@@ -353,63 +459,6 @@ void init(Vec& v, RG& rg, size_t n)
 		v[i] = rg.get();
 	}
 }
-
-#ifdef USE_WIN32_ASM
-__declspec(naked) void bitblt_vc(uint32_t* /*dst*/, const uint32_t* /*src*/, int /*n*/, int /*op*/)
-{
-	enum {
-		P = 8
-	};
-	__asm {
-		push	esi
-		push	edi
-
-		mov		edi, [esp + P + 4] // dst
-		mov		esi, [esp + P + 8] // src
-		mov		ecx, [esp + P + 12] // n
-		mov		edx, [esp + P + 16] // op
-
-		xor		eax, eax
-	lp:
-		test	edx, edx
-		je		lp_0
-		cmp		edx, 1
-		je		lp_1
-		cmp		edx, 2
-		je		lp_2
-		jmp		lp_3
-
-		align	16
-	lp_0:
-		mov		[edi], eax
-		jmp		next
-		align	16
-	lp_1:
-		mov		eax, [esi]
-		mov		[edi], eax
-		jmp		next
-		align	16
-	lp_2:
-		mov		eax, [esi]
-		xor		[edi], eax
-		jmp		next
-		align	16
-	lp_3:
-		mov		eax, [esi]
-		or		[edi], eax
-		align	16
-	next:
-		add		edi, 4
-		add		esi, 4
-		sub		ecx, 1
-		jnz		lp
-
-		pop		edi
-		pop		esi
-		ret
-	};
-}
-#endif
 
 int main()
 {
@@ -446,11 +495,9 @@ int main()
 		dst = org;
 		bench(bitblt_jmp2, dst, src, op, &expect[op]);
 	}
-#ifdef USE_WIN32_ASM
-	puts("bitblt_vc");
+	puts("bitblt_jmpTbl");
 	for (int op = 0; op < OP_NUM; op++) {
 		dst = org;
-		bench(bitblt_vc, dst, src, op, &expect[op]);
+		bench(bitblt_jmpTbl, dst, src, op, &expect[op]);
 	}
-#endif
 }
