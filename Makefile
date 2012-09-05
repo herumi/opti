@@ -17,10 +17,25 @@ ifeq ($(BIT),64)
 TARGET += str_util_test64
 endif
 # ----------------------------------------------------------------
-CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g -I../marisa-0.2.0/lib/ -I$(HOME)/local/include
+CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
+ifeq ($(COMPARE_MARISA),1)
+	RANK_CFLAGS+=-DCOMPARE_MARISA -Icomp/marisa-0.2.0/lib/
+	RANK_LDFLAGS+=-lmarisa -Lcomp/lib
+	MARISA_LIB=comp/lib/libmarisa.a
+endif
+ifeq ($(COMPARE_SUX),1)
+	RANK_CFLAGS+=-DCOMPARE_SUX -Icomp/sux-0.7
+	RANK_LDFLAGS+=comp/sux-0.7/rank9.o
+	SUX_LIB=comp/sux-0.7/rank9.o
+endif
+ifeq ($(COMPARE_SDSL),1)
+	RANK_CFLAGS+=-DCOMPARE_SDSL -Icomp/include
+	RANK_LDFLAGS+=-lsdsl -ldivsufsort -ldivsufsort64 -Lcomp/lib
+	SUX_LIB=comp/lib/libsdsl.a
+endif
 
 HEADER=util.hpp
 STR_HEADER=str_util.hpp benchmark.hpp mischasan_strstr.hpp
@@ -28,26 +43,20 @@ all:$(TARGET)
 
 .SUFFIXES: .cpp
 
-str_util_test: str_util_test.o $(STR_HEADER)
+str_util_test: str_util_test.cpp $(STR_HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m32
 
-str_util_test64: str_util_test.o $(STR_HEADER)
+str_util_test64: str_util_test.cpp $(STR_HEADER)
 	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m64
 
 intsort_test: intsort_test.o
-	$(CXX) $(CFLAGS) $< -o $@
-
-rank_test: rank_test.o
-	$(CXX) $(CFLAGS) $< -o $@ -lmarisa -L$(HOME)/local/lib
-
-rank_test_sux : rank_test_sux.o sux-0.7/rank9.o
-	$(CXX) $(CFLAGS) -o $@ $< sux-0.7/rank9.o
-rank_test_suxb : rank_test_suxb.o sux-0.7/rank9b.o
-	$(CXX) $(CFLAGS) -o $@ $< sux-0.7/rank9b.o
+	$(CXX) $(LDFLAGS) $< -o $@
 
 .cpp.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)
 
+.cc.o:
+	$(CXX) -c $< -o $@ $(CFLAGS)
 
 .c.o:
 	$(CXX) -c $< -o $@ $(CFLAGS)
@@ -55,14 +64,24 @@ rank_test_suxb : rank_test_suxb.o sux-0.7/rank9b.o
 clean:
 	$(RM) *.o $(TARGET)
 
-rank_test_sux.o: rank_test.cpp
-	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUX -Isux-0.7
-rank_test_suxb.o: rank_test.cpp
-	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUXB -Isux-0.7
-sux-0.7/rank9.o: sux-0.7/rank9.cpp
-	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUX -Isux-0.7
-sux-0.7/rank9b.o: sux-0.7/rank9b.cpp
-	$(CXX) -c $< -o $@ $(CFLAGS) -DCOMPARE_SUXB -Isux-0.7
+rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB)
+	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS)
+
+rank_test.o: rank_test.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS)
+
+comp/lib/libmarisa.a:
+	(cd comp && ./build-marisa.sh)
+
+comp/sux-0.7/rank9.cpp:
+	(cd comp && ./build-sux.sh)
+
+comp/sux-0.7/rank9.o: comp/sux-0.7/rank9.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS)
+
+comp/lib/libsdsl.a:
+	(cd comp && ./build-sdsl.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank.hpp rank_comp.hpp
+

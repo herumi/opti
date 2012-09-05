@@ -2,9 +2,6 @@
 #include "rank.hpp"
 #include <xbyak/xbyak_util.h>
 
-//#define COMPARE_MARISA
-//#define COMPARE_SUX
-
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
 
 #include "rank_comp.hpp"
@@ -136,23 +133,25 @@ void testSuccinctBitVector3()
 	for (int i = 0; i < 10000; i++) {
 		XorShift128 r;
 		for (int j = 0; j < blockNum; j++) {
-			uint64_t x = r.get();
-			x = (x << 32) | r.get();
-			bv.getBlock()[j] = x;
+			uint64_t v = r.get();
+			v = (v << 32) | r.get();
+			bv.getBlock()[j] = v;
 		}
 		test<T>(bv);
 	}
 	puts("ok");
 }
 
-typedef std::vector<uint64_t> Vec;
+typedef std::vector<uint64_t> Vec64;
 
-void initRand(Vec& vec, size_t n)
+void initRand(Vec64& vec, size_t n)
 {
 	XorShift128 r;
 	vec.resize(n);
 	for (size_t i = 0; i < n; i++) {
-		vec[i] = r.get();
+		uint64_t v = r.get();
+		v = (v << 32) | r.get();
+		vec[i] = v;
 	}
 }
 
@@ -190,7 +189,7 @@ struct MarisaVec {
 struct SucVec {
 	rank9 bv;
 	SucVec(const uint64_t *block, size_t blockNum)
-		: bv(block, blockNum * sizeof(uint64_t))
+		: bv(block, blockNum * sizeof(uint64_t) * 8)
 	{
 	}
 	size_t rank1(size_t i) const
@@ -199,17 +198,30 @@ struct SucVec {
 	}
 };
 #endif
-#ifdef COMPARE_SUXB
-#include <rank9b.h>
-struct SucbVec {
-	rank9b bv;
-	SucbVec(const uint64_t *block, size_t blockNum)
-		: bv(block, blockNum * sizeof(uint64_t))
+#ifdef COMPARE_SDSL
+#define and &&
+#define or ||
+#define not !
+#include <sdsl/vectors.hpp>
+#undef and
+#undef or
+#undef not
+struct SdslVec {
+	sdsl::bit_vector bv;
+	sdsl::rank_support_v<> rs;
+	SdslVec(const uint64_t *block, size_t blockNum)
+		: bv(blockNum * sizeof(uint64_t) * 8)
 	{
+		for (size_t i = 0;i < blockNum; i++) {
+			for (size_t j = 0; j < 64; j++) {
+				bv[i * 64 + j] = ((block[i] >> j) & 1) !=0 ? 1 : 0;
+			}
+		}
+		rs.init(&bv);
 	}
 	size_t rank1(size_t i) const
 	{
-		return const_cast<rank9b&>(bv).rank(i + 1);
+		return rs.rank(i + 1);
 	}
 };
 #endif
@@ -219,12 +231,13 @@ void benchAll()
 {
 	const size_t lp = 1000000;
 	int ret = 0;
-	for (size_t bitSize = 16; bitSize < 34; bitSize++) {
-		const size_t n = size_t(1) << bitSize;
-		Vec vec;
-		initRand(vec, n / sizeof(uint64_t));
-		double baseClk = getDummyLoopClock(lp, n - 1);
-		ret += bench<T>(&vec[0], vec.size(), lp, n - 1, baseClk);
+	for (size_t bitLen = 16; bitLen < 32; bitLen++) {
+//	for (size_t bitLen = 16; bitLen < 29; bitLen++) {
+		const size_t bitSize = size_t(1) << bitLen;
+		Vec64 vec;
+		initRand(vec, bitSize / (sizeof(uint64_t) * 8));
+		double baseClk = getDummyLoopClock(lp, bitSize - 1);
+		ret += bench<T>(&vec[0], vec.size(), lp, bitSize - 1, baseClk);
 	}
 	printf("ret=%x\n", ret);
 }
@@ -241,9 +254,13 @@ void testAll()
 int main()
 {
 	testBitVector();
+#if 0
+	puts("NaiveSV2");
 	testAll<mie::NaiveSV2>();
-//	testAll<mie::SBV6>();
-//	testAll<mie::SuccinctBitVector>();
+#else
+	puts("SBV6");
+	testAll<mie::SBV6>();
+#endif
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
@@ -252,9 +269,9 @@ int main()
 	puts("sux");
 	benchAll<SucVec>();
 #endif
-#ifdef COMPARE_SUXB
-	puts("suxb");
-	benchAll<SucbVec>();
+#ifdef COMPARE_SDSL
+	puts("sdsl");
+	benchAll<SdslVec>();
 #endif
 }
 
