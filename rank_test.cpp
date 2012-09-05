@@ -231,8 +231,7 @@ void benchAll()
 {
 	const size_t lp = 1000000;
 	int ret = 0;
-	for (size_t bitLen = 16; bitLen < 32; bitLen++) {
-//	for (size_t bitLen = 16; bitLen < 29; bitLen++) {
+	for (size_t bitLen = 16; bitLen < 33; bitLen++) {
 		const size_t bitSize = size_t(1) << bitLen;
 		Vec64 vec;
 		initRand(vec, bitSize / (sizeof(uint64_t) * 8));
@@ -254,13 +253,12 @@ void testAll()
 int main()
 {
 	testBitVector();
-#if 0
+	// extra memory (32 + 8 * 4) / 256 = 1/4
 	puts("NaiveSV2");
 	testAll<mie::NaiveSV2>();
-#else
+	// extra memory (32 + 8 * 4) / 512 = 1/8
 	puts("SBV6");
 	testAll<mie::SBV6>();
-#endif
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
