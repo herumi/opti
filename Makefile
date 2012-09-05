@@ -80,7 +80,7 @@ comp/sux-0.7/rank9.o: comp/sux-0.7/rank9.cpp
 	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS)
 
 comp/lib/libsdsl.a:
-	(cd comp && ./build-sdsl.sh)
+	-(cd comp && ./build-sdsl.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank.hpp rank_comp.hpp
