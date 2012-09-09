@@ -4,7 +4,7 @@ ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
     OPT+=-mtune=native
 endif
 
-TARGET=str_util_test intsort_test rank_test
+TARGET=intsort_test rank_test
 
 BIT=32
 ifeq ($(shell uname -m),x86_64)
@@ -14,7 +14,6 @@ ifeq ($(shell uname -s),Darwin)
 BIT=64
 endif
 ifeq ($(BIT),64)
-TARGET += str_util_test64
 endif
 # ----------------------------------------------------------------
 CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g
@@ -38,16 +37,9 @@ ifeq ($(COMPARE_SDSL),1)
 endif
 
 HEADER=util.hpp
-STR_HEADER=str_util.hpp benchmark.hpp mischasan_strstr.hpp
 all:$(TARGET)
 
 .SUFFIXES: .cpp
-
-str_util_test: str_util_test.cpp $(STR_HEADER)
-	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m32
-
-str_util_test64: str_util_test.cpp $(STR_HEADER)
-	$(CXX) $(CFLAGS) str_util_test.cpp -o $@ -m64
 
 intsort_test: intsort_test.o
 	$(CXX) $(LDFLAGS) $< -o $@
@@ -80,7 +72,7 @@ comp/sux-0.7/rank9.o: comp/sux-0.7/rank9.cpp
 	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS)
 
 comp/lib/libsdsl.a:
-	(cd comp && ./build-sdsl.sh)
+	-(cd comp && ./build-sdsl.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank.hpp rank_comp.hpp
