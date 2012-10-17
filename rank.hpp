@@ -165,6 +165,139 @@ struct DummyCall {
 
 } // mie::succ_impl
 
+/*
+	extra memory
+	(32 + 8 * 4) / 256 = 1/4
+*/
+struct SBV1 {
+	struct B {
+		uint64_t org[4];
+		uint32_t a;
+		uint8_t b[4];
+	};
+	std::vector<B> blk_;
+	uint64_t popCount64(uint64_t x) const
+	{
+		return _mm_popcnt_u64(x);
+	}
+public:
+	SBV1()
+	{
+	}
+	SBV1(const uint64_t *blk, size_t blkNum)
+	{
+		init(blk, blkNum);
+	}
+
+	void init(const uint64_t *blk, size_t blkNum)
+	{
+		size_t tblNum = (blkNum + 3) / 4;
+		blk_.resize(tblNum);
+
+		uint32_t av = 0;
+		size_t pos = 0;
+		for (size_t i = 0; i < tblNum; i++) {
+			B& b = blk_[i];
+			b.a = av;
+			uint32_t bv = 0;
+			for (size_t j = 0; j < 4; j++) {
+				uint64_t v = pos < blkNum ? blk[pos++] : 0;
+				b.org[j] = v;
+				int c = popCount64(v);
+				av += c;
+				b.b[j] = bv;
+				bv += c;
+			}
+		}
+	}
+	uint32_t rank1(size_t idx) const
+	{
+		return rank1m(idx);
+	}
+	uint32_t rank1m(uint32_t i) const
+	{
+		size_t q = i / 256;
+		size_t r = (i / 64) & 3;
+		const B& b = blk_[q];
+		return b.a + b.b[r] + popCount64(b.org[r] & ((2ULL << (i & 63)) - 1));
+	}
+};
+
+/*
+	extra memory
+	(32 + 8 * 4) / 512 = 1/8
+*/
+class SBV2 {
+	struct B2 {
+		uint32_t rank;
+		union {
+			uint8_t s8[4];
+			uint32_t s;
+		} ci;
+		uint64_t data[8];
+	};
+	AlignedArray<B2> blk_;
+public:
+	SBV2()
+	{
+	}
+	SBV2(const uint64_t *blk, size_t blkNum)
+	{
+		init(blk, blkNum);
+	}
+	uint64_t rank1(size_t idx) const
+	{
+		return rank1m(idx);
+	}
+	uint64_t rank1m(size_t idx) const
+	{
+		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
+		const B2& blk = blk_[idx / 512];
+		uint64_t ret = blk.rank;
+		uint64_t q = (idx / 128) % 4;
+		uint64_t b0 = blk.data[q * 2 + 0];
+		uint64_t b1 = blk.data[q * 2 + 1];
+		uint64_t m0 = -1;
+		uint64_t m1 = 0;
+		if (!(idx & 64)) m0 = mask;
+		if (idx & 64) m1 = mask;
+		ret += popCount64(b0 & m0);
+		ret += popCount64(b1 & m1);
+		uint32_t x = blk.ci.s & ((1U << (q * 8)) - 1);
+		V128 v(x);
+		v = psadbw(v, Zero());
+		ret += movd(v);
+		return ret;
+	}
+	uint64_t popCount64(uint64_t x) const
+	{
+		return _mm_popcnt_u64(x);
+	}
+	void init(const uint64_t *blk, size_t blkNum)
+	{
+		size_t tblNum = (blkNum + 7) / 8;
+		blk_.resize(tblNum);
+
+		uint32_t r = 0;
+		size_t pos = 0;
+		for (size_t i = 0; i < tblNum; i++) {
+			B2& b = blk_[i];
+			b.rank = r;
+			uint8_t s8 = 0;
+			for (size_t j = 0; j < 4; j++) {
+				uint64_t vL = pos < blkNum ? blk[pos++] : 0;
+				uint64_t vH = pos < blkNum ? blk[pos++] : 0;
+				b.data[j * 2 + 0] = vL;
+				b.data[j * 2 + 1] = vH;
+				s8 = popCount64(vL) + popCount64(vH);
+				b.ci.s8[j] = s8;
+				r += s8;
+			}
+		}
+	}
+};
+
+
 class SuccinctBitVector {
 	const uint64_t *org_;
 	AlignedArray<succ_impl::Block> blk_;

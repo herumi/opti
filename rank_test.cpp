@@ -254,11 +254,11 @@ int main()
 {
 	testBitVector();
 	// extra memory (32 + 8 * 4) / 256 = 1/4
-	puts("NaiveSV2");
-	testAll<mie::NaiveSV2>();
+	puts("SBV1");
+	testAll<mie::SBV1>();
 	// extra memory (32 + 8 * 4) / 512 = 1/8
-	puts("SBV6");
-	testAll<mie::SBV6>();
+	puts("SBV2");
+	testAll<mie::SBV2>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
