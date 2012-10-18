@@ -15,6 +15,9 @@ BIT=64
 endif
 ifeq ($(BIT),64)
 endif
+ifeq ($(USE_C11),1)
+	CFLAGS+=-std=c++0x -DUSE_C11
+endif
 # ----------------------------------------------------------------
 CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
@@ -75,5 +78,5 @@ comp/lib/libsdsl.a:
 	-(cd comp && ./build-sdsl.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
-rank_test.o: rank.hpp rank_comp.hpp
+rank_test.o: rank_test.cpp rank.hpp
 
