@@ -1,10 +1,15 @@
 #include <stdio.h>
 #include "rank.hpp"
+#include "util.hpp"
 #include <xbyak/xbyak_util.h>
+//#define USE_C11
+
+#ifdef USE_C11
+#include <random>
+std::mt19937 g_rg;
+#endif
 
 #define TEST_EQUAL(a, b) { if ((a) != (b)) { fprintf(stderr, "%s:%d err lhs=%lld, rhs=%lld\n", __FILE__, __LINE__, (long long)(a), (long long)(b)); exit(1); } }
-
-#include "rank_comp.hpp"
 
 void testBitVector()
 {
@@ -42,16 +47,29 @@ void testBitVector()
 	puts("ok");
 }
 
-double getDummyLoopClock(size_t n, size_t mask)
+double getDummyLoopClock(size_t n, size_t bitLen)
 {
 	int ret = 0;
 	Xbyak::util::Clock clk;
+#ifdef USE_C11
+	g_rg.seed(0);
+	std::uniform_int_distribution<uint64_t> dist(0, (1ULL << bitLen) - 1);
+#else
 	XorShift128 r;
+	const uint64_t mask = (1ULL << bitLen) - 1;
+#endif
 	const int lp = 5;
 	for (int i = 0; i < lp; i++) {
 		clk.begin();
 		for (size_t i = 0; i < n; i++) {
-			ret += r.get() & mask;
+#ifdef USE_C11
+			uint64_t v = dist(g_rg);
+#else
+			uint64_t v = r.get64();
+			v += r.get() >> 5;
+			v &= mask;
+#endif
+			ret += v;
 		}
 		clk.end();
 	}
@@ -59,21 +77,33 @@ double getDummyLoopClock(size_t n, size_t mask)
 	return clk.getClock() / double(n) / lp;
 }
 template<class T>
-uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t mask, double baseClk)
+uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, double baseClk)
 {
 	const T sbv(block, blockNum);
 	uint64_t ret = 0;
 	Xbyak::util::Clock clk;
+#ifdef USE_C11
+	std::uniform_int_distribution<uint64_t> dist(0, (1ULL << bitLen) - 1);
+#else
 	XorShift128 r;
+	const uint64_t mask = (1ULL << bitLen) - 1;
+#endif
 	const int lp = 5;
 	for (int j = 0; j < lp; j++) {
 		clk.begin();
 		for (size_t i = 0; i < n; i++) {
-			ret += sbv.rank1(r.get() & mask);
+#ifdef USE_C11
+			uint64_t v = dist(g_rg);
+#else
+			uint64_t v = r.get64();
+			v += r.get() >> 5;
+			v &= mask;
+#endif
+			ret += sbv.rank1(v);
 		}
 		clk.end();
 	}
-	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", (long long)mask + 1, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", 1LL << bitLen, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	return ret;
 }
 
@@ -84,10 +114,10 @@ void test(const mie::BitVector& bv)
 //bv.put();
 //	printf("bv.blockSize=%d, bitSize=%d\n", (int)bv.getBlockSize(), (int)bv.size());
 	T s(bv.getBlock(), bv.getBlockSize());
-	uint32_t num = 0;
+	uint64_t num = 0;
 	for (size_t i = 0; i < bv.size(); i++) {
 		if (bv.get(i)) num++;
-		uint32_t rank = s.rank1m(i);
+		uint64_t rank = s.rank1m(i);
 		TEST_EQUAL(rank, num);
 	}
 }
@@ -229,16 +259,16 @@ struct SdslVec {
 template<class T>
 void benchAll()
 {
-	const size_t lp = 1000000;
-	int ret = 0;
+	const size_t lp = 100000;
+	uint64_t ret = 0;
 	for (size_t bitLen = 16; bitLen < 33; bitLen++) {
 		const size_t bitSize = size_t(1) << bitLen;
 		Vec64 vec;
 		initRand(vec, bitSize / (sizeof(uint64_t) * 8));
-		double baseClk = getDummyLoopClock(lp, bitSize - 1);
-		ret += bench<T>(&vec[0], vec.size(), lp, bitSize - 1, baseClk);
+		double baseClk = getDummyLoopClock(lp, bitLen);
+		ret += bench<T>(&vec[0], vec.size(), lp, bitLen, baseClk);
 	}
-	printf("ret=%x\n", ret);
+	printf("ret=%x\n", (int)ret);
 }
 
 template<class T>
@@ -254,11 +284,11 @@ int main()
 {
 	testBitVector();
 	// extra memory (32 + 8 * 4) / 256 = 1/4
-	puts("NaiveSV2");
-	testAll<mie::NaiveSV2>();
+	puts("SBV1");
+	testAll<mie::SBV1>();
 	// extra memory (32 + 8 * 4) / 512 = 1/8
-	puts("SBV6");
-	testAll<mie::SBV6>();
+	puts("SBV2");
+	testAll<mie::SBV2>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();

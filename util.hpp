@@ -77,6 +77,12 @@ struct XorShift128 {
 		w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
 		return w;
 	}
+	uint64_t get64()
+	{
+		uint64_t x = get();
+		uint64_t y = get();
+		return (y << 32) | x;
+	}
 };
 
 template<class T, size_t alignedByte = 64>
