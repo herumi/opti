@@ -80,34 +80,34 @@ private:
 #endif
 #ifdef XBYAK64_WIN
 		const Reg64& blk = r8;
-		const Reg64& idx = rdx;
+		const Reg32& idx = edx;
 		mov(r8, rcx);
 #else
 		const Reg64& blk = rdi;
-		const Reg64& idx = rsi;
+		const Reg32& idx = esi;
 #endif
 		const Reg64& mask = r9;
 		const Reg64& m0 = r11;
 		const Xmm& zero = xm0;
 		const Xmm& v = xm1;
 
-		mov(rcx, idx);
+		mov(ecx, idx);
 		and(ecx, 63);
 		xor(eax, eax);
 		mov(al, 2);
 		shl(rax, cl);
 		sub(rax, 1);
 		mov(mask, rax);
-		mov(rax, idx);
-		shr(rax, 9);
-		imul(rax, rax, sizeof(succ_impl::Block));
+		mov(eax, idx);
+		shr(eax, 9);
+		imul(eax, eax, sizeof(succ_impl::Block));
 		add(blk, rax);
 		mov(rcx, idx);
 		shr(ecx, 7);
 		and(ecx, 3); // q
 		shl(ecx, 3); // q * 8
 		or(m0, uint32_t(-1));
-		and(Reg32(idx.getIdx()), 64);
+		and(idx, 64);
 		cmovz(m0, mask); // m0 = !(idx & 64) ? mask : -1
 		cmovz(mask, idx); // mask = (idx & 64) ? 0(=idx) : mask
 		// idx is free, so use edx
