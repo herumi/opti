@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "rank.hpp"
+#include <cybozu/sucvector.hpp>
 #include "util.hpp"
 #include <xbyak/xbyak_util.h>
 //#define USE_C11
@@ -80,6 +81,12 @@ template<class T>
 uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, double baseClk)
 {
 	const T sbv(block, blockNum);
+#if 0
+const mie::SBV1 org(block, blockNum);
+for(int i = 0; i < 5; i++) {
+	printf("%llx\n", (long long)block[i]);
+}
+#endif
 	uint64_t ret = 0;
 	Xbyak::util::Clock clk;
 #ifdef USE_C11
@@ -100,6 +107,16 @@ uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, 
 			v &= mask;
 #endif
 			ret += sbv.rank1(v);
+#if 0
+{
+	size_t a = sbv.rank1(v);
+	size_t b = org.rank1(v);
+	if (a != b) {
+		printf("ERR v=%d a=%d b=%d\n", (int)v, (int)a, (int)b);
+		exit(1);
+	}
+}
+#endif
 		}
 		clk.end();
 	}
@@ -117,7 +134,7 @@ void test(const mie::BitVector& bv)
 	uint64_t num = 0;
 	for (size_t i = 0; i < bv.size(); i++) {
 		if (bv.get(i)) num++;
-		uint64_t rank = s.rank1m(i);
+		uint64_t rank = s.rank1(i);
 		TEST_EQUAL(rank, num);
 	}
 }
@@ -202,14 +219,9 @@ struct MarisaVec {
 		}
 		bv.build(true, true);
 	}
-	/*
-		now my version rank1 is a little different from
-		starndard rank1, so use wrapper function.
-		the penalty may be less than a few clk cycles.
-	*/
 	size_t rank1(size_t i) const
 	{
-		return bv.rank1(i + 1);
+		return bv.rank1(i);
 	}
 };
 #endif
@@ -224,7 +236,7 @@ struct SucVec {
 	}
 	size_t rank1(size_t i) const
 	{
-		return const_cast<rank9&>(bv).rank(i + 1);
+		return static_cast<rank9&>(bv).rank1(i);
 	}
 };
 #endif
@@ -251,10 +263,22 @@ struct SdslVec {
 	}
 	size_t rank1(size_t i) const
 	{
-		return rs.rank(i + 1);
+		return rs.rank(i);
 	}
 };
 #endif
+
+struct CySucVec {
+	cybozu::SucVector bv;
+	CySucVec(const uint64_t *block, size_t blockNum)
+	{
+		bv.init(block, blockNum * 64);
+	}
+	size_t rank1(size_t i) const
+	{
+		return bv.rank1(i);
+	}
+};
 
 template<class T>
 void benchAll()
@@ -284,11 +308,13 @@ int main()
 {
 	testBitVector();
 	// extra memory (32 + 8 * 4) / 256 = 1/4
-	puts("SBV1");
-	testAll<mie::SBV1>();
 	// extra memory (32 + 8 * 4) / 512 = 1/8
-	puts("SBV2");
-	testAll<mie::SBV2>();
+	puts("SBV1");
+	benchAll<mie::SBV1>();
+//	puts("SBV2");
+//	benchAll<mie::SBV2>();
+	puts("cybozu::SucVector");
+	benchAll<CySucVec>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();

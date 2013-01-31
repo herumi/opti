@@ -194,16 +194,13 @@ public:
 			}
 		}
 	}
-	uint32_t rank1(size_t idx) const
+	uint32_t rank1(size_t i) const
 	{
-		return (uint32_t)rank1m(idx);
-	}
-	uint32_t rank1m(size_t i) const
-	{
+		if (i == 0) return 0;
 		size_t q = i / 256;
 		size_t r = (i / 64) & 3;
 		const B& b = blk_[q];
-		return uint32_t(b.a + b.b[r] + popCount64(b.org[r] & ((2ULL << (i & 63)) - 1)));
+		return uint32_t(b.a + b.b[r] + popCount64(b.org[r] & ((1ULL << (i & 63)) - 1)));
 	}
 };
 
