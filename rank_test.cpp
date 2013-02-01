@@ -81,12 +81,6 @@ template<class T>
 uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, double baseClk)
 {
 	const T sbv(block, blockNum);
-#if 0
-const mie::SBV1 org(block, blockNum);
-for(int i = 0; i < 5; i++) {
-	printf("%llx\n", (long long)block[i]);
-}
-#endif
 	uint64_t ret = 0;
 	Xbyak::util::Clock clk;
 #ifdef USE_C11
@@ -107,16 +101,6 @@ for(int i = 0; i < 5; i++) {
 			v &= mask;
 #endif
 			ret += sbv.rank1(v);
-#if 0
-{
-	size_t a = sbv.rank1(v);
-	size_t b = org.rank1(v);
-	if (a != b) {
-		printf("ERR v=%d a=%d b=%d\n", (int)v, (int)a, (int)b);
-		exit(1);
-	}
-}
-#endif
 		}
 		clk.end();
 	}
