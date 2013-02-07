@@ -39,6 +39,23 @@ ifeq ($(COMPARE_SDSL),1)
 	SUX_LIB=comp/lib/libsdsl.a
 endif
 
+# for wm_test.cpp
+
+ifeq ($(COMPARE_WAT),1)
+	WAT_CFLAGS+=-DCOMPARE_WAT -Icomp/wat_array/src
+	WAT_LDFLAGS+=-lwat_array -Lcomp/lib
+	WAT_LIB=comp/lib/libwat_array.a
+endif
+ifeq ($(COMPARE_WAVELET),1)
+	WAVELET_CFLAGS+=-DCOMPARE_WAVELET -Icomp/wavelet-matrix-cpp/src
+	WAVELET_LDFLAGS+=-lwavelet_matrix -Lcomp/lib
+	WAVELET_LIB=comp/lib/libwavelet_matrix.a
+endif
+ifeq ($(COMPARE_SHELLINFORD),1)
+	SHELLINFORD_CFLAGS+=-DCOMPARE_SHELLINFORD -Icomp/shellinford/src
+	SHELLINFORD_LDFLAGS=-lshellinford -Lcomp/lib
+	SHELLINFORD_SRC=comp/shellinford/src/shellinford_bit_vector.cc
+endif
 HEADER=util.hpp
 all:$(TARGET)
 
@@ -65,6 +82,12 @@ rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB)
 rank_test.o: rank_test.cpp
 	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS)
 
+wm_test: wm_test.o $(WAVELET_LIB) $(WAT_LIB) $(SHELLINFORD_LIB)
+	$(CXX) $< -o $@ $(LDFLAGS) $(WAVELET_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS)
+
+wm_test.o: wm_test.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) $(WAVELET_CFLAGS) $(WAT_CFLAGS) $(SHELLINFORD_CFLAGS)
+
 comp/lib/libmarisa.a:
 	(cd comp && ./build-marisa.sh)
 
@@ -76,6 +99,15 @@ comp/sux-0.7/rank9.o: comp/sux-0.7/rank9.cpp
 
 comp/lib/libsdsl.a:
 	-(cd comp && ./build-sdsl.sh)
+
+comp/lib/libwavelet_matrix.a:
+	-(cd comp && ./build-wavelet.sh)
+
+comp/lib/libwat_array.a:
+	-(cd comp && ./build-wat.sh)
+
+comp/shellinford/src/shellinford_bit_vector.cc:
+	-(cd comp && ./buld-shellinford.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank_test.cpp rank.hpp
