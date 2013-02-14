@@ -78,7 +78,7 @@ double getDummyLoopClock(size_t n, size_t bitLen)
 	return clk.getClock() / double(n) / lp;
 }
 template<class T>
-uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, double baseClk)
+uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, double baseClk, bool useSelect)
 {
 	const T sbv(block, blockNum);
 	uint64_t ret = 0;
@@ -104,22 +104,24 @@ uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, 
 		clk.end();
 	}
 	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", 1LL << bitLen, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
-	clk.clear();
-	const size_t maxNum = sbv.rank1(blockNum * 64 - 1);
-	for (int j = 0; j < lp; j++) {
-		clk.begin();
-		for (size_t i = 0; i < n; i++) {
+	if (useSelect) {
+		clk.clear();
+		const size_t maxNum = sbv.rank1(blockNum * 64 - 1);
+		for (int j = 0; j < lp; j++) {
+			clk.begin();
+			for (size_t i = 0; i < n; i++) {
 #ifdef USE_C11
-			uint64_t v = dist(g_rg);
+				uint64_t v = dist(g_rg);
 #else
-			uint64_t v = r.get64();
-			v %= maxNum;
+				uint64_t v = r.get64();
+				v %= maxNum;
 #endif
-			ret += sbv.select1(v);
+				ret += sbv.select1(v);
+			}
+			clk.end();
 		}
-		clk.end();
+		printf("%11lld ret %08x %6.2f clk(%6.2f)\n", 1LL << bitLen, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	}
-	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", 1LL << bitLen, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
 	return ret;
 }
 
@@ -257,16 +259,22 @@ struct SucVec {
 #undef not
 struct SdslVec {
 	sdsl::bit_vector bv;
+	sdsl::int_vector<1> iv;
 	sdsl::rank_support_v<> rs;
+	sdsl::select_support_bs<> ss;
 	SdslVec(const uint64_t *block, size_t blockNum)
 		: bv(blockNum * sizeof(uint64_t) * 8)
+		, iv(blockNum * sizeof(uint64_t) * 8)
 	{
-		for (size_t i = 0;i < blockNum; i++) {
+		for (size_t i = 0; i < blockNum; i++) {
 			for (size_t j = 0; j < 64; j++) {
-				bv[i * 64 + j] = ((block[i] >> j) & 1) !=0 ? 1 : 0;
+				bool b = ((block[i] >> j) & 1) !=0 ? 1 : 0;
+				bv[i * 64 + j] = b;
+				iv[i * 64 + j] = b;
 			}
 		}
 		rs.init(&bv);
+		ss.set_vector(&iv);
 	}
 	size_t rank1(size_t i) const
 	{
@@ -274,7 +282,8 @@ struct SdslVec {
 	}
 	size_t select1(size_t i) const
 	{
-		return rs.select1(i);
+		return 0;
+//		return ss.select(i);
 	}
 };
 #endif
@@ -296,7 +305,7 @@ struct CySucVec {
 };
 
 template<class T>
-void benchAll()
+void benchAll(bool useSelect = true)
 {
 	const size_t lp = 100000;
 	uint64_t ret = 0;
@@ -305,7 +314,7 @@ void benchAll()
 		Vec64 vec;
 		initRand(vec, bitSize / (sizeof(uint64_t) * 8));
 		double baseClk = getDummyLoopClock(lp, bitLen);
-		ret += bench<T>(&vec[0], vec.size(), lp, bitLen, baseClk);
+		ret += bench<T>(&vec[0], vec.size(), lp, bitLen, baseClk, useSelect);
 	}
 	printf("ret=%x\n", (int)ret);
 }
@@ -328,8 +337,6 @@ int main()
 //	benchAll<mie::SBV1>();
 //	puts("SBV2");
 //	benchAll<mie::SBV2>();
-	puts("cybozu::SucVector");
-	benchAll<CySucVec>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
@@ -340,7 +347,9 @@ int main()
 #endif
 #ifdef COMPARE_SDSL
 	puts("sdsl");
-	benchAll<SdslVec>();
+	benchAll<SdslVec>(false);
 #endif
+	puts("cybozu::SucVector");
+	benchAll<CySucVec>();
 }
 
