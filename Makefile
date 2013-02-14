@@ -30,8 +30,8 @@ ifeq ($(COMPARE_MARISA),1)
 endif
 ifeq ($(COMPARE_SUX),1)
 	RANK_CFLAGS+=-DCOMPARE_SUX -Icomp/sux-0.7
-	RANK_LDFLAGS+=comp/sux-0.7/rank9.o
-	SUX_LIB=comp/sux-0.7/rank9.o
+	RANK_LDFLAGS+=comp/sux-0.7/rank9sel.o
+	SUX_LIB=comp/sux-0.7/rank9sel.o
 endif
 ifeq ($(COMPARE_SDSL),1)
 	RANK_CFLAGS+=-DCOMPARE_SDSL -Icomp/include

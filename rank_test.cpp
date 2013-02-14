@@ -97,10 +97,25 @@ uint64_t bench(const uint64_t *block, size_t blockNum, size_t n, size_t bitLen, 
 			uint64_t v = dist(g_rg);
 #else
 			uint64_t v = r.get64();
-			v += r.get() >> 5;
 			v &= mask;
 #endif
 			ret += sbv.rank1(v);
+		}
+		clk.end();
+	}
+	printf("%11lld ret %08x %6.2f clk(%6.2f)\n", 1LL << bitLen, (int)ret, (double)clk.getClock() / double(n) / lp - baseClk, baseClk);
+	clk.clear();
+	const size_t maxNum = sbv.rank1(blockNum * 64 - 1);
+	for (int j = 0; j < lp; j++) {
+		clk.begin();
+		for (size_t i = 0; i < n; i++) {
+#ifdef USE_C11
+			uint64_t v = dist(g_rg);
+#else
+			uint64_t v = r.get64();
+			v %= maxNum;
+#endif
+			ret += sbv.select1(v);
 		}
 		clk.end();
 	}
@@ -207,20 +222,28 @@ struct MarisaVec {
 	{
 		return bv.rank1(i);
 	}
+	size_t select1(size_t i) const
+	{
+		return bv.select1(i);
+	}
 };
 #endif
 
 #ifdef COMPARE_SUX
-#include <rank9.h>
+#include <rank9sel.h>
 struct SucVec {
-	rank9 bv;
+	rank9sel bv;
 	SucVec(const uint64_t *block, size_t blockNum)
 		: bv(block, blockNum * sizeof(uint64_t) * 8)
 	{
 	}
 	size_t rank1(size_t i) const
 	{
-		return static_cast<rank9&>(bv).rank1(i);
+		return const_cast<rank9sel&>(bv).rank(i);
+	}
+	size_t select1(size_t i) const
+	{
+		return const_cast<rank9sel&>(bv).select(i);
 	}
 };
 #endif
@@ -249,6 +272,10 @@ struct SdslVec {
 	{
 		return rs.rank(i);
 	}
+	size_t select1(size_t i) const
+	{
+		return rs.select1(i);
+	}
 };
 #endif
 
@@ -261,6 +288,10 @@ struct CySucVec {
 	size_t rank1(size_t i) const
 	{
 		return bv.rank1(i);
+	}
+	size_t select1(size_t i) const
+	{
+		return bv.select1(i);
 	}
 };
 
@@ -293,8 +324,8 @@ int main()
 	testBitVector();
 	// extra memory (32 + 8 * 4) / 256 = 1/4
 	// extra memory (32 + 8 * 4) / 512 = 1/8
-	puts("SBV1");
-	benchAll<mie::SBV1>();
+//	puts("SBV1");
+//	benchAll<mie::SBV1>();
 //	puts("SBV2");
 //	benchAll<mie::SBV2>();
 	puts("cybozu::SucVector");
