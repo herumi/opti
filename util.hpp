@@ -25,6 +25,7 @@ typedef signed char int8_t;
 	#endif
 #endif
 #ifdef _WIN32
+	#include <winsock2.h>
 	#include <intrin.h>
 	#define my_bsf(x) (_BitScanForward(&x, x), x)
 //	#define my_bsr(x) (_BitScanReverse(&x, x), x)

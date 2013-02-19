@@ -50,7 +50,7 @@ void testBitVector()
 
 double getDummyLoopClock(size_t n, size_t bitLen)
 {
-	int ret = 0;
+	uint64_t ret = 0;
 	Xbyak::util::Clock clk;
 #ifdef USE_C11
 	g_rg.seed(0);
@@ -74,7 +74,7 @@ double getDummyLoopClock(size_t n, size_t bitLen)
 		}
 		clk.end();
 	}
-	printf("(%08x)", ret);
+	printf("(%llx)", (long long)ret);
 	return clk.getClock() / double(n) / lp;
 }
 template<class T>
@@ -287,6 +287,33 @@ struct SdslVec {
 	}
 };
 #endif
+#ifdef COMPARE_WAT
+#include "bit_array.hpp"
+struct WatVec {
+	wat_array::BitArray ba;
+	WatVec(const uint64_t *block, size_t blockNum)
+	{
+		ba.Init(blockNum * 64);
+		for (size_t i = 0; i < blockNum; i++) {
+			uint8_t v = block[i];
+			for (size_t j = 0; j < 64; j++) {
+				if (v & (uint64_t(1) << j)) {
+					ba.SetBit(1, i * 64 + j);
+				}
+			}
+		}
+		ba.Build();
+	}
+	size_t rank1(size_t i) const
+	{
+		return ba.Rank(1, i);
+	}
+	size_t select1(size_t i) const
+	{
+		return ba.Select(1, i);
+	}
+};
+#endif
 
 struct CySucVec {
 	cybozu::SucVector bv;
@@ -337,6 +364,8 @@ int main()
 //	benchAll<mie::SBV1>();
 //	puts("SBV2");
 //	benchAll<mie::SBV2>();
+	puts("cybozu::SucVector");
+	benchAll<CySucVec>();
 #ifdef COMPARE_MARISA
 	puts("marisa");
 	benchAll<MarisaVec>();
@@ -349,7 +378,9 @@ int main()
 	puts("sdsl");
 	benchAll<SdslVec>(false);
 #endif
-	puts("cybozu::SucVector");
-	benchAll<CySucVec>();
+#ifdef COMPARE_WAT
+	puts("wat");
+	benchAll<WatVec>();
+#endif
 }
 
