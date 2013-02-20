@@ -76,11 +76,11 @@ intsort_test: intsort_test.o
 clean:
 	$(RM) *.o $(TARGET)
 
-rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB) $(WAT_LIB) ../cybozulib/include/cybozu/sucvector.hpp
-	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS)
+rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB) $(WAT_LIB) $(SHELLINFORD_LIB) ../cybozulib/include/cybozu/sucvector.hpp
+	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS)
 
 rank_test.o: rank_test.cpp
-	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS) $(WAT_CFLAGS)
+	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS) $(WAT_CFLAGS) $(SHELLINFORD_CFLAGS)
 
 wm_test: wm_test.o $(WAVELET_LIB) $(WAT_LIB) $(SHELLINFORD_LIB)
 	$(CXX) $< -o $@ $(LDFLAGS) $(WAVELET_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS)

@@ -314,6 +314,32 @@ struct WatVec {
 	}
 };
 #endif
+#ifdef COMPARE_SHELLINFORD
+#include "shellinford_wavelet_matrix.h"
+struct Shellinford {
+	shellinford::bit_vector bv;
+	Shellinford(const uint64_t *block, size_t blockNum)
+	{
+		for (size_t i = 0; i < blockNum; i++) {
+			uint64_t v = block[i];
+			for (size_t j = 0; j < 64; j++) {
+				if (v & (uint64_t(1) << j)) {
+					bv.set(i * 64 + j);
+				}
+			}
+		}
+		bv.build();
+	}
+	size_t rank1(size_t i) const
+	{
+		return bv.rank(i);
+	}
+	size_t select1(size_t i) const
+	{
+		return bv.select(i);
+	}
+};
+#endif
 
 struct CySucVec {
 	cybozu::SucVector bv;
@@ -364,15 +390,16 @@ int main()
 //	benchAll<mie::SBV1>();
 //	puts("SBV2");
 //	benchAll<mie::SBV2>();
+	const bool runSelect = true;
 	puts("cybozu::SucVector");
-	benchAll<CySucVec>();
+	benchAll<CySucVec>(runSelect);
 #ifdef COMPARE_MARISA
 	puts("marisa");
-	benchAll<MarisaVec>();
+	benchAll<MarisaVec>(runSelect);
 #endif
 #ifdef COMPARE_SUX
 	puts("sux");
-	benchAll<SucVec>();
+	benchAll<SucVec>(runSelect);
 #endif
 #ifdef COMPARE_SDSL
 	puts("sdsl");
@@ -380,7 +407,11 @@ int main()
 #endif
 #ifdef COMPARE_WAT
 	puts("wat");
-	benchAll<WatVec>();
+	benchAll<WatVec>(runSelect);
+#endif
+#ifdef COMPARE_SHELLINFORD
+	puts("shellinford");
+	benchAll<Shellinford>(runSelect);
 #endif
 }
 
