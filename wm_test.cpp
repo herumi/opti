@@ -1,3 +1,20 @@
+/*
+make COMPARE_WAVELET=1 wm_test
+./wm_test -b 30
+040000000
+init
+start
+wm
+get     07998a55      0.74usec
+rank    552df6a9      0.73usec
+rankLt  3e7ea212      0.79usec
+select  14a45a07      3.65usec
+wavelet
+get     07998a55      1.53usec
+rank    552df6a9      1.75usec
+rankLt  3e7ea212      1.78usec
+select  14a45a07      9.35usec
+*/
 #include <stdio.h>
 #include "rank.hpp"
 #include <cybozu/wavelet_matrix.hpp>
