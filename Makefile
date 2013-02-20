@@ -4,7 +4,7 @@ ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
     OPT+=-mtune=native
 endif
 
-TARGET=intsort_test rank_test
+TARGET=intsort_test rank_test wm_test
 
 BIT=32
 ifeq ($(shell uname -m),x86_64)
