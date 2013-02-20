@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "rank.hpp"
 #include <cybozu/wavelet_matrix.hpp>
+#include <cybozu/time.hpp>
 #include "util.hpp"
 #include <xbyak/xbyak_util.h>
 //#define USE_C11
@@ -164,12 +165,12 @@ void bench_get(const T& wm, const Vec8& v8, RG& rg, size_t C, size_t N)
 {
 	cybozu::disable_warning_unused_variable(v8);
 	size_t ret = 0;
-	clock_t begin = clock();
+	double begin = cybozu::GetCurrentTimeSec();
 	for (size_t i = 0; i < C; i++) {
 		size_t pos = rg() & (N - 1);
 		ret += wm.get(pos);
 	}
-	double t = (clock() - begin) / double(CLOCKS_PER_SEC);
+	double t = cybozu::GetCurrentTimeSec() - begin;
 	printf("get     %08x %9.2fusec\n", (int)ret, t / C * 1e6);
 }
 
@@ -178,7 +179,7 @@ void bench_rank(const T& wm, const Vec8& v8, RG& rg, size_t C, size_t N)
 {
 	cybozu::disable_warning_unused_variable(v8);
 	size_t ret = 0;
-	clock_t begin = clock();
+	double begin = cybozu::GetCurrentTimeSec();
 	for (size_t i = 0; i < C; i++) {
 		size_t pos = rg() & (N - 1);
 		uint8_t c = uint8_t(rg());
@@ -192,7 +193,7 @@ void bench_rank(const T& wm, const Vec8& v8, RG& rg, size_t C, size_t N)
 #endif
 		ret += a;
 	}
-	double t = (clock() - begin) / double(CLOCKS_PER_SEC);
+	double t = cybozu::GetCurrentTimeSec() - begin;
 	printf("rank    %08x %9.2fusec\n", (int)ret, t / C * 1e6);
 }
 
@@ -201,13 +202,13 @@ void bench_rankLt(const T& wm, const Vec8& v8, RG& rg, size_t C, size_t N)
 {
 	cybozu::disable_warning_unused_variable(v8);
 	size_t ret = 0;
-	clock_t begin = clock();
+	double begin = cybozu::GetCurrentTimeSec();
 	for (size_t i = 0; i < C; i++) {
 		size_t pos = rg() & (N - 1);
 		uint8_t c = uint8_t(rg());
 		ret += wm.rankLt(c, pos);
 	}
-	double t = (clock() - begin) / double(CLOCKS_PER_SEC);
+	double t = cybozu::GetCurrentTimeSec() - begin;
 	printf("rankLt  %08x %9.2fusec\n", (int)ret, t / C * 1e6);
 }
 
@@ -223,7 +224,7 @@ void bench_select(const T& wm, const Vec8& v8, RG& rg, size_t C)
 		if (v == 0) v = 1;
 		maxTbl[i] = v;
 	}
-	clock_t begin = clock();
+	double begin = cybozu::GetCurrentTimeSec();
 	for (size_t i = 0; i < C; i++) {
 		uint8_t c = uint8_t(rg());
 		size_t pos = rg() % maxTbl[c];
@@ -237,7 +238,7 @@ void bench_select(const T& wm, const Vec8& v8, RG& rg, size_t C)
 #endif
 		ret += a;
 	}
-	double t = (clock() - begin) / double(CLOCKS_PER_SEC);
+	double t = cybozu::GetCurrentTimeSec() - begin;
 	printf("select  %08x %9.2fusec\n", (int)ret, t / C * 1e6);
 }
 
