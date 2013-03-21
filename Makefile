@@ -24,9 +24,9 @@ CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
 ifeq ($(COMPARE_MARISA),1)
-	RANK_CFLAGS+=-DCOMPARE_MARISA -Icomp/marisa-0.2.0/lib/
+	RANK_CFLAGS+=-DCOMPARE_MARISA -Icomp/marisa-0.2.2/lib/
 	RANK_LDFLAGS+=-lmarisa -Lcomp/lib
-	MARISA_LIB=comp/lib/libmarisa.a
+	MARISA_LIB=comp/lib/libmarisa.a comp/marisa-0.2.2/lib/marisa/grimoire/vector/bit-vector.o
 endif
 ifeq ($(COMPARE_SUX),1)
 	RANK_CFLAGS+=-DCOMPARE_SUX -Icomp/sux-0.7
@@ -77,7 +77,7 @@ clean:
 	$(RM) *.o $(TARGET)
 
 rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB) $(WAT_LIB) $(SHELLINFORD_LIB) ../cybozulib/include/cybozu/sucvector.hpp
-	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS)
+	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS) $(MARISA_LIB)
 
 rank_test.o: rank_test.cpp
 	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS) $(WAT_CFLAGS) $(SHELLINFORD_CFLAGS)
