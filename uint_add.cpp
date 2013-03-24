@@ -326,11 +326,89 @@ void test(const char *msg, void test(F))
 	}
 }
 
+struct Code_abs : Xbyak::CodeGenerator {
+	// int loop_abs()
+	Code_abs(int N, int mode)
+	{
+		mov(ecx, N);
+		push(ebx);
+		xor_(ebx, ebx);
+	L("@@");
+		switch (mode) {
+		case 0:
+			// gcc 4.7
+			mov(edx, ecx);
+			sar(edx, 31);
+			mov(eax, edx);
+			xor_(eax, ecx);
+			sub(eax, edx);
+			break;
+		case 1:
+			// clang 3.3
+			mov(eax, ecx);
+			mov(edx, ecx);
+			neg(eax);
+			cmovl(eax, edx);
+			break;
+		case 2:
+			// VC 2008
+			mov(eax, ecx);
+			cdq();
+			xor_(eax, edx);
+			sub(eax, edx);
+			break;
+		}
+		add(ebx, eax);
+		dec(ecx);
+		jnz("@b");
+		mov(eax, ebx);
+		pop(ebx);
+		ret();
+	}
+};
+
+/*
+Xeon X5650
+i=0
+1788793664 2.613038
+i=1
+1788793664 2.612897
+i=2
+1788793664 2.610362
+
+i7-2600K
+i=0
+1788793664 2.455864
+i=1
+1788793664 2.321397
+i=2
+1788793664 2.070405
+*/
+void test_abs()
+{
+	const int N = 100000;
+	for (int i = 0; i < 3; i++) {
+		printf("i=%d\n", i);
+		Code_abs code(N, i);
+		int (*abs_loop)() = code.getCode<int (*)()>();
+		const int C = 100;
+		Xbyak::util::Clock clk;
+		int ret = 0;
+		clk.begin();
+		for (int j = 0; j < C; j++) {
+			ret += abs_loop();
+		}
+		clk.end();
+		printf("%d %f\n", ret, clk.getClock() / double(N) / C);
+	}
+}
+
 int main()
 	try
 {
 	test<Code_add1>("add1", test0);
 	test<Code_addn>("addn", test1);
+	test_abs();
 } catch (Xbyak::Error e) {
 	printf("err=%s\n", Xbyak::ConvertErrorToString(e));
 }
