@@ -6,28 +6,52 @@
 3 clk  80.02  5.33/u ret=e47da450
 
 	Linux(32bit) Xeon X5650
-0 clk 200.16 13.34/u ret=e47da450
-1 clk 200.11 13.34/u ret=e47da450
-2 clk 200.30 13.35/u ret=e47da450
-3 clk  75.71  5.05/u ret=e47da450
+add1
+0 clk 200.36 13.36/u ret=e47da450
+1 clk 200.12 13.34/u ret=e47da450
+2 clk 200.29 13.35/u ret=e47da450
+3 clk  75.69  5.05/u ret=e47da450
+addn
+0 clk 224.47 14.03/u ret=0
+1 clk 213.32 13.33/u ret=0
+2 clk 214.01 13.38/u ret=0
+3 clk  80.05  5.00/u ret=0
 
 	Linux(64bit) Xeon X5650
-0 clk 189.01 12.60/u ret=20be08be7406450
-1 clk 190.55 12.70/u ret=20be08be7406450
+add1
+0 clk 188.82 12.59/u ret=20be08be7406450
+1 clk 190.72 12.71/u ret=20be08be7406450
 2 clk 190.52 12.70/u ret=20be08be7406450
-3 clk  67.17  4.48/u ret=20be08be7406450
+3 clk  66.99  4.47/u ret=20be08be7406450
+addn
+0 clk 215.07 13.44/u ret=0
+1 clk 201.85 12.62/u ret=0
+2 clk 202.50 12.66/u ret=0
+3 clk  68.74  4.30/u ret=0
 
 	Win7(32bit) i7-2600
-0 clk  34.59  2.31/u ret=e47da450
-1 clk  48.56  3.24/u ret=e47da450
-2 clk  45.18  3.01/u ret=e47da450
-3 clk  45.77  3.05/u ret=e47da450
+add1
+0 clk  34.98  2.33/u ret=e47da450
+1 clk  49.01  3.27/u ret=e47da450
+2 clk  45.76  3.05/u ret=e47da450
+3 clk  44.99  3.00/u ret=e47da450
+addn
+0 clk  38.15  2.54/u ret=0
+1 clk  50.39  3.36/u ret=0
+2 clk  47.49  3.17/u ret=0
+3 clk  46.44  3.10/u ret=0
 
 	Win7(64bit) i7-2600
-0 clk  30.72  2.05/u ret=20be08be7406450
-1 clk  44.10  2.94/u ret=20be08be7406450
-2 clk  53.45  3.56/u ret=20be08be7406450
-3 clk  53.47  3.56/u ret=20be08be7406450
+add1
+0 clk  30.65  2.04/u ret=20be08be7406450
+1 clk  44.45  2.96/u ret=20be08be7406450
+2 clk  50.04  3.34/u ret=20be08be7406450
+3 clk  51.02  3.40/u ret=20be08be7406450
+addn
+0 clk  32.36  2.16/u ret=0
+1 clk  44.16  2.94/u ret=0
+2 clk  46.46  3.10/u ret=0
+3 clk  46.61  3.11/u ret=0
 
 	Linux(32bit) i7-3930K
 0 clk  31.45  2.10/u ret=e47da450
@@ -189,7 +213,7 @@ struct Code_addn : public Xbyak::CodeGenerator {
 		xor_(a, a);
 		neg(c);
 		mov(t, ptr [x + c * S]);
-		add(t, ptr [y]);
+		add(t, ptr [y + c * S]);
 		mov(ptr [out + c * S], t);
 		inc(c);
 		switch (mode) {
@@ -245,30 +269,30 @@ struct Code_addn : public Xbyak::CodeGenerator {
 
 void test0(bool add1(size_t *, const size_t *, size_t, size_t))
 {
-	const int outN = 15;
-	size_t out[outN];
-	for (int i = 0; i < outN; i++) {
-		out[i] = 0x12345678;
+	const int xN = 15;
+	size_t x[xN];
+	for (int i = 0; i < xN; i++) {
+		x[i] = 0x12345678;
 	}
 	const int N = 3000000;
 	Xbyak::util::Clock clk;
 	clk.begin();
 	for (int i = 0; i < N; i++) {
-		add1(out, out, outN, i);
+		add1(x, x, xN, i);
 	}
 	clk.end();
 	size_t ret = 0;
-	for (int i = 0; i < outN; i++) {
-		ret = (ret ^ out[i]) << 1;
+	for (int i = 0; i < xN; i++) {
+		ret = (ret ^ x[i]) << 1;
 	}
 	double c = clk.getClock() / double(N);
-	printf("clk %6.2f %5.2f/u ", c, c / outN);
+	printf("clk %6.2f %5.2f/u ", c, c / xN);
 	printf("ret=%llx\n", (long long)ret);
 }
 
 void test1(bool addn(size_t *, const size_t *, const size_t *, size_t))
 {
-	const int xN = 15;
+	const int xN = 16;
 	size_t x[xN];
 	for (int i = 0; i < xN; i++) {
 		x[i] = 0x12345678 + i;
