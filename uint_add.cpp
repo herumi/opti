@@ -293,15 +293,16 @@ void test0(bool add1(size_t *, const size_t *, size_t, size_t))
 void test1(bool addn(size_t *, const size_t *, const size_t *, size_t))
 {
 	const int xN = 16;
-	size_t x[xN];
+	size_t x[xN], y[xN];
 	for (int i = 0; i < xN; i++) {
 		x[i] = 0x12345678 + i;
+		y[i] = x[i] * x[i] + i;
 	}
 	const int N = 3000000;
 	Xbyak::util::Clock clk;
 	clk.begin();
 	for (int i = 0; i < N; i++) {
-		addn(x, x, x, xN);
+		addn(x, x, y, xN);
 	}
 	clk.end();
 	size_t ret = 0;
@@ -383,6 +384,14 @@ i=1
 1788793664 2.321397
 i=2
 1788793664 2.070405
+
+Core i3-2120T
+i=0
+1788793664 4.375069
+i=1
+1788793664 4.218742
+i=2
+1788793664 3.711571
 */
 void test_abs()
 {
@@ -403,11 +412,16 @@ void test_abs()
 	}
 }
 
+extern "C" bool addnLLVM(size_t *, const size_t *, const size_t *, size_t);
 int main()
 	try
 {
 	test<Code_add1>("add1", test0);
 	test<Code_addn>("addn", test1);
+#ifdef COMPARE_LLVM
+	printf("4 ");
+	test1(addnLLVM);
+#endif
 	test_abs();
 } catch (Xbyak::Error e) {
 	printf("err=%s\n", Xbyak::ConvertErrorToString(e));
