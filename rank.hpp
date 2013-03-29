@@ -94,7 +94,7 @@ private:
 		mov(ecx, idx);
 		and(ecx, 63);
 		xor(eax, eax);
-		mov(al, 2);
+		inc(eax);
 		shl(rax, cl);
 		sub(rax, 1);
 		mov(mask, rax);
@@ -227,7 +227,7 @@ public:
 #if 1
 		return ((uint64_t (*)(const succ_impl::Block*, size_t))((char*)succ_impl::InstanceIsHere<>::buf))(&blk_[0], idx);
 #else
-		const uint64_t mask = (uint64_t(2) << (idx & 63)) - 1;
+		const uint64_t mask = (uint64_t(1) << (idx & 63)) - 1;
 		const succ_impl::Block& blk = blk_[idx / 512];
 		uint64_t ret = blk.rank;
 		uint64_t q = (idx / 128) % 4;
@@ -244,6 +244,7 @@ public:
 		return ret;
 #endif
 	}
+	uint64_t select1(uint64_t) const { return 0; }
 	uint64_t popCount64(uint64_t x) const
 	{
 		return _mm_popcnt_u64(x);

@@ -388,8 +388,8 @@ int main()
 	// extra memory (32 + 8 * 4) / 512 = 1/8
 //	puts("SBV1");
 //	benchAll<mie::SBV1>();
-//	puts("SBV2");
-//	benchAll<mie::SBV2>();
+	puts("SBV2");
+	benchAll<mie::SBV2>(false);
 	const bool runSelect = true;
 	puts("cybozu::SucVector");
 	benchAll<CySucVec>(runSelect);

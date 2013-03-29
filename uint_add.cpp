@@ -69,26 +69,31 @@ i=2
 
 	Win7(64bit) i7-2600
 add1
-0 clk  31.62  2.11/u ret=20be08be7406450
-1 clk  44.22  2.95/u ret=20be08be7406450
-2 clk  52.93  3.53/u ret=20be08be7406450
-3 clk  51.61  3.44/u ret=20be08be7406450
+0 clk  31.52  2.10/u ret=20be08be7406450
+1 clk  43.55  2.90/u ret=20be08be7406450
+2 clk  55.02  3.67/u ret=20be08be7406450
+3 clk  55.51  3.70/u ret=20be08be7406450
 addn
-0 clk  47.56  2.97/u ret=c7e3fd489320ca
-1 clk  50.93  3.18/u ret=c7e3fd489320ca
-2 clk  36.16  2.26/u ret=c7e3fd489320ca
-3 clk  51.24  3.20/u ret=c7e3fd489320ca
+0 clk  46.98  2.94/u ret=c7e3fd489320ca
+1 clk  50.42  3.15/u ret=c7e3fd489320ca
+2 clk  35.34  2.21/u ret=c7e3fd489320ca
+3 clk  51.74  3.23/u ret=c7e3fd489320ca
 i=0
-1788793664 2.407932
+1788793664 2.402813
 i=1
-1788793664 2.369505
+1788793664 2.350968
 i=2
-1788793664 2.137700
-
+1788793664 2.083104
 */
 #define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak_util.h>
 #include <cybozu/inttype.hpp>
+
+#ifdef XBYAK64
+	#define JRCXZ(x) jrcxz(x)
+#else
+	#define JRCXZ(x) jecxz(x)
+#endif
 
 struct Code_add1 : public Xbyak::CodeGenerator {
 	// bool add1(uint32_t *out, const uint32_t *x, size_t n, uint32_t y)
@@ -148,18 +153,18 @@ struct Code_add1 : public Xbyak::CodeGenerator {
 			jnz(".lp");
 			break;
 		case 1:
-			jecxz(".exit");
+			JRCXZ(".exit");
 		L(".lp");
 			mov(t, ptr [x + c * S]);
 			adc(t, a);
 			mov(ptr [out + c * S], t);
 			inc(c);
-			jecxz(".exit");
+			JRCXZ(".exit");
 			jmp(".lp");
 			break;
 		case 2:
 		L(".lp");
-			jecxz(".exit");
+			JRCXZ(".exit");
 			mov(t, ptr [x + c * S]);
 			adc(t, a);
 			mov(ptr [out + c * S], t);
@@ -168,7 +173,7 @@ struct Code_add1 : public Xbyak::CodeGenerator {
 			break;
 		case 3:
 		L(".lp");
-			jecxz(".exit");
+			JRCXZ(".exit");
 			mov(t, ptr [x + c * S]);
 			adc(t, a);
 			mov(ptr [out + c * S], t);
@@ -251,7 +256,7 @@ struct Code_addn : public Xbyak::CodeGenerator {
 			adc(t, ptr [y + c * S]);
 			mov(ptr [out + c * S], t);
 			inc(c);
-			jecxz(".exit");
+			JRCXZ(".exit");
 			jmp(".lp");
 			break;
 		case 2:
@@ -271,7 +276,7 @@ struct Code_addn : public Xbyak::CodeGenerator {
 			jz(".exit");
 			xor_(a, a);
 		L(".lp");
-			jecxz(".exit");
+			JRCXZ(".exit");
 			mov(t, ptr [x + c * S]);
 			adc(t, ptr [y + c * S]);
 			mov(ptr [out + c * S], t);
@@ -282,7 +287,7 @@ struct Code_addn : public Xbyak::CodeGenerator {
 		case 3:
 			xor_(a, a);
 		L(".lp");
-			jecxz(".exit");
+			JRCXZ(".exit");
 			mov(t, ptr [x + c * S]);
 			adc(t, ptr [y + c * S]);
 			mov(ptr [out + c * S], t);

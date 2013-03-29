@@ -1,7 +1,7 @@
+#include "v128.h"
 #include <stdio.h>
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
-#include "v128.h"
 #include "util.hpp"
 
 int sum1(const uint8_t data[8], int n)
