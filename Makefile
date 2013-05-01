@@ -110,5 +110,5 @@ comp/shellinford/src/shellinford_bit_vector.cc:
 	-(cd comp && ./buld-shellinford.sh)
 
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
-rank_test.o: rank_test.cpp rank.hpp
+rank_test.o: rank_test.cpp rank.hpp ../cybozulib/include/cybozu/sucvector.hpp
 
