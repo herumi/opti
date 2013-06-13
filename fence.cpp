@@ -44,6 +44,7 @@ mode:  lock num=       0  1896942  8103056        2 clk=439.686Mclk
 #include <cybozu/thread.hpp>
 #endif
 #include <memory.h>
+#define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak.h>
 #include <xbyak/xbyak_util.h>
 

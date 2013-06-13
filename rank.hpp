@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include "v128.h"
+#define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak.h>
 
 namespace mie {
@@ -92,8 +93,8 @@ private:
 		const Xmm& v = xm1;
 
 		mov(ecx, idx);
-		and(ecx, 63);
-		xor(eax, eax);
+		and_(ecx, 63);
+		xor_(eax, eax);
 		inc(eax);
 		shl(rax, cl);
 		sub(rax, 1);
@@ -104,15 +105,15 @@ private:
 		add(blk, rax);
 		mov(rcx, idx);
 		shr(ecx, 7);
-		and(ecx, 3); // q
+		and_(ecx, 3); // q
 		shl(ecx, 3); // q * 8
-		or(m0, uint32_t(-1));
-		and(idx, 64);
+		or_(m0, uint32_t(-1));
+		and_(idx, 64);
 		cmovz(m0, mask); // m0 = !(idx & 64) ? mask : -1
 		cmovz(mask, idx); // mask = (idx & 64) ? 0(=idx) : mask
 		// idx is free, so use edx
-		and(m0,   ptr [blk + offsetof(succ_impl::Block, data) + rcx * 2 + 0]);
-		and(mask, ptr [blk + offsetof(succ_impl::Block, data) + rcx * 2 + 8]);
+		and_(m0,   ptr [blk + offsetof(succ_impl::Block, data) + rcx * 2 + 0]);
+		and_(mask, ptr [blk + offsetof(succ_impl::Block, data) + rcx * 2 + 8]);
 		popcnt(m0, m0);
 		popcnt(rax, mask);
 		add(rax, m0);
@@ -121,7 +122,7 @@ private:
 		add(eax, ptr [blk + offsetof(succ_impl::Block, rank)]);
 		shl(edx, cl);
 		sub(edx, 1);
-		and(edx, ptr [blk + offsetof(succ_impl::Block, ci.s)]);
+		and_(edx, ptr [blk + offsetof(succ_impl::Block, ci.s)]);
 		movd(v, edx);
 
 		pxor(zero, zero);

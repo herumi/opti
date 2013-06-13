@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <numeric>
 #include <algorithm>
+#define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak_util.h>
 #include "intsort.hpp"
 

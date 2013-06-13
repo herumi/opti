@@ -2,6 +2,7 @@
 #include "rank.hpp"
 #include <cybozu/sucvector.hpp>
 #include "util.hpp"
+#define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak_util.h>
 //#define USE_C11
 

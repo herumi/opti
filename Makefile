@@ -19,7 +19,7 @@ ifeq ($(USE_C11),1)
 	CFLAGS+=-std=c++0x -DUSE_C11
 endif
 # ----------------------------------------------------------------
-CFLAGS+= -fno-operator-names $(OPT) -I../xbyak/ -g -I../cybozulib/include
+CFLAGS+= $(OPT) -I../xbyak/ -g -I../cybozulib/include
 CFLAGS_WARN=-Wall -Wextra -Wformat=2 -Wcast-qual -Wwrite-strings -Wfloat-equal -Wpointer-arith # -Wcast-align 
 CFLAGS+=$(CFLAGS_WARN)
 # ----------------------------------------------------------------
