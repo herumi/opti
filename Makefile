@@ -4,7 +4,7 @@ ifeq ($(shell expr $(GCC_VER) \>= 4.2),1)
     OPT+=-mtune=native
 endif
 
-TARGET=intsort_test rank_test wm_test
+TARGET=intsort_test rank_test wm_test csucvector_test
 
 BIT=32
 ifeq ($(shell uname -m),x86_64)
@@ -87,6 +87,12 @@ wm_test: wm_test.o $(WAVELET_LIB) $(WAT_LIB) $(SHELLINFORD_LIB)
 
 wm_test.o: wm_test.cpp ../cybozulib/include/cybozu/wavelet_matrix.hpp
 	$(CXX) -c $< -o $@ $(CFLAGS) $(WAVELET_CFLAGS) $(WAT_CFLAGS) $(SHELLINFORD_CFLAGS)
+
+csucvector_test: csucvector_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB) $(WAT_LIB) $(SHELLINFORD_LIB) ../cybozulib/include/cybozu/sucvector.hpp ../cybozulib/include/cybozu/csucvector.hpp
+	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS) $(MARISA_LIB)
+
+csucvector_test.o: csucvector_test.cpp
+	$(CXX) -c $< -o $@ $(CFLAGS) $(RANK_CFLAGS) $(WAT_CFLAGS) $(SHELLINFORD_CFLAGS)
 
 comp/lib/libmarisa.a:
 	(cd comp && ./build-marisa.sh)

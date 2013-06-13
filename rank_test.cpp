@@ -251,13 +251,7 @@ struct SucVec {
 };
 #endif
 #ifdef COMPARE_SDSL
-#define and &&
-#define or ||
-#define not !
 #include <sdsl/vectors.hpp>
-#undef and
-#undef or
-#undef not
 struct SdslVec {
 	sdsl::bit_vector bv;
 	sdsl::int_vector<1> iv;
