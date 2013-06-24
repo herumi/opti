@@ -7,6 +7,7 @@
 #include <cybozu/csucvector.hpp>
 #include <cybozu/bitvector.hpp>
 #include <cybozu/benchmark.hpp>
+#include <cybozu/file.hpp>
 #include <fstream>
 #include <algorithm>
 #include <vector>
@@ -49,9 +50,10 @@ struct SdslVec {
 };
 #endif
 
-void add(int& z, int x)
+template<class N>
+void add(int& z, N x)
 {
-	z += x;
+	z += (int)x;
 }
 
 int main(int argc, char *argv[])
@@ -67,8 +69,16 @@ int main(int argc, char *argv[])
 	const size_t bitSize = m.size() * 8;
 	cybozu::SucVector sv;
 	sv.init(blk, bitSize);
+	{
+		std::ofstream ofs("sv.data", std::ios::binary);
+		sv.save(ofs);
+	}
 	cybozu::BitVector bv(blk, bitSize);
 	cybozu::CSucVector csv(blk, bitSize);
+	{
+		std::ofstream ofs("csv.data", std::ios::binary);
+		csv.save(ofs);
+	}
 #ifdef COMPARE_SDSL
 	SdslVec sdsl(blk, bitSize / 64);
 	sdsl.save("sdsl.data");
@@ -91,7 +101,6 @@ int main(int argc, char *argv[])
 	}
 
 	puts("test get");
-	cybozu::CpuClock clk;
 	for (size_t pos = 0; pos < std::min<size_t>(1000000ull, bitSize); pos++) {
 		bool a = csv.get(pos);
 		bool b = sv.get(pos);
@@ -109,17 +118,21 @@ int main(int argc, char *argv[])
 	}
 	int z = 0;
 	cybozu::XorShift rg;
-	CYBOZU_BENCH("sb   get", add, z, sv.get(rg() % bitSize));
-	CYBOZU_BENCH("sb  rank", add, z, (int)sv.rank1(rg() % bitSize));
+	CYBOZU_BENCH("sb     get", add, z, sv.get(rg() % bitSize));
+	CYBOZU_BENCH("sb    rank", add, z, sv.rank1(rg() % bitSize));
 
-	CYBOZU_BENCH("csv  get", add, z, csv.get(rg() % bitSize));
-	CYBOZU_BENCH("csv rank", add, z, (int)csv.rank1(rg() % bitSize));
-
+	long long size = (long long)cybozu::file::GetSize("csv.data");
+	printf("csv  %9llu(%5.2f%%)\n", size, size * 100.0 / m.size());
+	CYBOZU_BENCH("csv   get", add, z, csv.get(rg() % bitSize));
+	CYBOZU_BENCH("csv  rank", add, z, csv.rank1(rg() % bitSize));
 #ifdef COMPARE_SDSL
-	CYBOZU_BENCH("sds  get", add, z, sdsl.get(rg() % bitSize));
-	CYBOZU_BENCH("sds rank", add, z, (int)sdsl.rank1(rg() % bitSize));
+	size = (long long)cybozu::file::GetSize("sdsl.data");
+	printf("sdsl  %9llu(%5.2f%%)\n", size, size * 100.0 / m.size());
+	CYBOZU_BENCH("sdsl  get", add, z, sdsl.get(rg() % bitSize));
+	CYBOZU_BENCH("sdsl rank", add, z, sdsl.rank1(rg() % bitSize));
 #endif
-	return z * 0;
+
+	return z;
 
 } catch (std::exception& e) {
 	printf("err %s\n", e.what());
