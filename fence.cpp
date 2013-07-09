@@ -83,7 +83,7 @@ struct Code : Xbyak::CodeGenerator {
 #ifdef XBYAK64
 			mov(addr, 1);
 			db(0xf0); // lock
-			or(dword [rsp], 0);
+			or_(dword [rsp], 0);
 #else
 			mov(ebx, 1);
 			xchg(addr, ebx);
