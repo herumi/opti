@@ -1,4 +1,7 @@
 #include <stdio.h>
+#ifdef _WIN32
+	#include <winsock2.h>
+#endif
 #include "rank.hpp"
 #include <cybozu/sucvector.hpp>
 #include "util.hpp"

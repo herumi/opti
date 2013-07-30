@@ -165,7 +165,7 @@ void Test2(DoubleVec& dv, const IntVec& a, const IntVec& b, size_t f(const int*,
 	const size_t n = a.size();
 	const int *p = &a[0];
 	const int *q = &b[0];
-	int ret = 0;
+	size_t ret = 0;
 	for (int i = 0; i < MaxCount; i++) {
 		clk.begin();
 		ret += f(p, q, n);
@@ -173,7 +173,7 @@ void Test2(DoubleVec& dv, const IntVec& a, const IntVec& b, size_t f(const int*,
 	}
 	double c = clk.getClock() / ((double)MaxCount * n);
 	dv.push_back(c);
-	printf("ret=%d, %fclk\n", ret / MaxCount, c);
+	printf("ret=%d, %fclk\n", (int)ret / MaxCount, c);
 }
 
 static struct Func1Info {
@@ -398,7 +398,7 @@ int main()
 		for (size_t i = 1; i < NUM_OF_ARRAY(func1Tbl); i++) {
 			code.align(16);
 			func1Tbl[i].f = (int (*)(const int*, size_t))code.getCurr();
-			code.genGetMax(i - 1);
+			code.genGetMax((int)i - 1);
 		}
 
 		/* 乱数 */
@@ -412,7 +412,7 @@ int main()
 		Test1All(ret1, a);
 		puts("inc");
 		/* 単調増加 */
-		for (size_t i = 0; i < a.size(); i++) {
+		for (int i = 0; i < (int)a.size(); i++) {
 			a[i] = i;
 		}
 		Test1All(ret1, a);
@@ -420,7 +420,7 @@ int main()
 		/* やや単調増加 */
 		puts("inc2");
 		XorShift128 r;
-		for (size_t i = 0; i < a.size(); i += 4) {
+		for (int i = 0; i < (int)a.size(); i += 4) {
 			a[i] = (r.get() % 1) ? i : i - 2;
 			a[i + 1] = i - 1;
 			a[i + 2] = i - 1;
