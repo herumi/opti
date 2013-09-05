@@ -82,6 +82,12 @@ struct Code : Xbyak::CodeGenerator {
 	}
 } s_code;
 
+void putResult(const char *msg, int n)
+{
+	double clk = cybozu::bench::g_clk.getClock();
+	double cnt = cybozu::bench::g_clk.getCount() * cybozu::bench::g_loopNum;
+	printf("%s %.2f byte/clk\n", msg, n * cnt / clk);
+}
 
 int main()
 {
@@ -93,13 +99,14 @@ int main()
 	char *x = &vx[0];
 	char *y = &vy[0];
 
+	Xbyak::util::Cpu cpu;
+	printf("enhanced rep(ermsb) %s\n", cpu.has(Xbyak::util::Cpu::tENHANCED_REP) ? "on" : "off");
 	{
 		char buf[] = "hello this";
 		char buf2[64] = "";
 		copy_movsb(buf2, buf, sizeof(buf));
 		printf("buf2=%s\n", buf2);
 	}
-
 	const int tbl[] = {
 		1024 * 2,
 		1024 * 4,
@@ -113,8 +120,20 @@ int main()
 	for (size_t i = 0; i < CYBOZU_NUM_OF_ARRAY(tbl); i++) {
 		const int n = tbl[i];
 		printf("size %d byte\n", n);
-		CYBOZU_BENCH("movsb", copy_movsb, x, y, n);
-		CYBOZU_BENCH("xmm  ", copy_xmm, x, y, n);
+		CYBOZU_BENCH("", copy_movsb, x, y, n); putResult("movsb", n);
+		CYBOZU_BENCH("", copy_xmm, x, y, n); putResult("xmm  ", n);
+	}
+	const int tbl2[] = {
+		1024 * 2,
+		1024 * 1024 * 4,
+	};
+	puts("non align");
+	for (size_t i = 0; i < CYBOZU_NUM_OF_ARRAY(tbl2); i++) {
+		const int n = tbl2[i];
+		for (int j = 0; j < 4; j++) {
+			printf("n=%d ", n - j);
+			CYBOZU_BENCH("", copy_movsb, x + j, y, n - j); putResult("", n - j);
+		}
 	}
 }
 
