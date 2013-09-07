@@ -35,6 +35,10 @@ strlenSSE42_C  12.39   5.08   3.98   3.24   2.98   2.62   2.35   1.59   0.73   0
 #include <xbyak/xbyak_util.h>
 #include "util.hpp"
 
+#ifdef COMPARE_LATEST_GLIBC
+extern "C" size_t gcc_strlen(const char *p);
+#endif
+
 size_t strlenSSE2(const char *p)
 {
 	const char *const top = p;
@@ -217,6 +221,9 @@ int main()
 		size_t (*func)(const char*);
 	} funcTbl[] = {
 		{ "strlenLIBC   ", strlen },
+#ifdef COMPARE_LATEST_GLIBC
+		{ "gcc_strlen   ", gcc_strlen },
+#endif
 		{ "strlenC      ", strlenC },
 		{ "strlenSSE2   ", strlenSSE2 },
 		{ "strlenSSE42  ", strlenSSE42 },
