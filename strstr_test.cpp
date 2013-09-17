@@ -197,8 +197,8 @@ int main(int argc, char *argv[])
 	}
 	const std::string dir = argv[0];
 	const std::string key = argc == 2 ? argv[1] : "";
-	std::vector<cybozu::file::FileInfo> v;
-	if (!cybozu::file::GetFilesInDir(v, dir)) {
+	cybozu::FileList v;
+	if (!cybozu::GetFileList(v, dir)) {
 		fprintf(stderr, "not find in %s\n", dir.c_str());
 		return 1;
 	}
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 		if (!v[i].isFile) continue;
 		std::string fileName = dir + '/' + v[i].name;
 		cybozu::File f;
-		if (!f.openR(fileName)) continue;
+		f.openR(fileName);
 		size_t cur = text.size();
 		int fileSize = (int)f.getSize();
 //		printf("file %s %d\n", fileName.c_str(), fileSize);
