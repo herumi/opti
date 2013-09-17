@@ -94,8 +94,8 @@ int main()
 	int (*f)() = (int (*)())c.getCode();
 	int (*g)() = (int (*)())c2.getCode();
 
-	printf("f:%p, %d\n", f, c.getSize());
-	printf("g:%p, %d\n", g, c2.getSize());
+	printf("f:%p, %d\n", f, (int)c.getSize());
+	printf("g:%p, %d\n", g, (int)c2.getSize());
 #ifdef USE_CODEANALYST
 	puts("use CodeAnalyst API");
 	CAJIT_Initialize();

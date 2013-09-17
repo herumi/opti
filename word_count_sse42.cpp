@@ -61,7 +61,7 @@ void test_toshi(const char *text)
 
 size_t countWord_C(const char *p)
 {
-	static const char alp_map8[32] = { 0, 0, 0, 0, 0x80, 0, 0xff, 0x3, 0xfe, 0xff, 0xff, 0x7, 0xfe, 0xff, 0xff, 0x7 };
+	static const char alp_map8[32] = { 0, 0, 0, 0, (char)0x80, 0, (char)0xff, 0x3, (char)0xfe, (char)0xff, (char)0xff, 0x7, (char)0xfe, (char)0xff, (char)0xff, 0x7 };
 	size_t i = 1,  cnt = 0;
 	unsigned char cc, cc2;
 	bool flag[3];

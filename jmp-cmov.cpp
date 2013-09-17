@@ -496,8 +496,8 @@ int main()
 			printf("\n");
 		}
 
-	} catch (Xbyak::Error err) {
-		printf("ERR:%s(%d)\n", Xbyak::ConvertErrorToString(err), err);
+	} catch (std::exception& e) {
+		printf("ERR:%s\n", e.what());
 	} catch (...) {
 		printf("unknown error\n");
 	}

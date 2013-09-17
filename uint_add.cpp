@@ -358,12 +358,16 @@ template<class Code, class F>
 void test(const char *msg, void test(F))
 {
 	puts(msg);
-	static const Code tbl[] = {
-		0, 1, 2, 3
+	static const Code c0(0);
+	static const Code c1(1);
+	static const Code c2(2);
+	static const Code c3(3);
+	static const Code *tbl[] = {
+		&c0, &c1, &c2, &c3
 	};
 	for (size_t i = 0; i < CYBOZU_NUM_OF_ARRAY(tbl); i++) {
 		printf("%d ", (int)i);
-		test(tbl[i].template getCode<F>());
+		test(tbl[i]->template getCode<F>());
 	}
 }
 

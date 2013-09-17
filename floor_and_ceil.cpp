@@ -110,7 +110,7 @@ bool compare(F f1, F f2, uint32_t limit)
 	return true;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *[])
 {
 #if 1
 	return my_FLP2(argc);

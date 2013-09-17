@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	CYBOZU_BENCH("sb    get", add, z, sv.get(rg() % bitSize));
 	CYBOZU_BENCH("sb   rank", add, z, sv.rank1(rg() % bitSize));
 
-	long long size = (long long)cybozu::file::GetSize("csv.data");
+	long long size = (long long)cybozu::GetFileSize("csv.data");
 	printf("csv   %9llu(%5.2f%%)\n", size, size * 100.0 / m.size());
 	CYBOZU_BENCH("csv   get", add, z, csv.get(rg() % bitSize));
 	CYBOZU_BENCH("csv  rank", add, z, csv.rank1(rg() % bitSize));
