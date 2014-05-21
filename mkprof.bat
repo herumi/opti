@@ -7,16 +7,14 @@ set bit=%FrameworkDir:~-2%
 set pg="%ProgramFiles(x86)%
 set prof_path=
 
-if not %bit% == 64 (
+if %bit% == 64 (
+	set pg="c:/Program Files
+) else (
 	set bit=32
 )
 echo bit: %bit%
 echo prof_path: %prof_path%
 echo pg: %pg%
-
-if "%ProgramFiles(x86)%" == "" (
-	set pg="c:/Program Files
-)
 
 if "%1" == "a" (
 set msg=AMD : useCodeAnalyst
@@ -41,8 +39,8 @@ echo path: %prof_path%
 echo inc : %profinc%
 echo lib : %proflib%
 
-cl /EHsc /Ox /Zi /arch:SSE2 %2.cpp -I c:/prog/xbyak -I %profinc%" /DUNICODE /D_UNICODE /D%prof% /link /LIBPATH:%proflib%" /DEBUG
-echo cl /EHsc /Ox /Zi /arch:SSE2 %2.cpp -I c:/prog/xbyak -I %profinc%" /DUNICODE /D_UNICODE /D%prof% /link /LIBPATH:%proflib%" /DEBUG
+cl /EHsc /Ox /Zi %2 -I c:/prog/xbyak -I %profinc%" -I "c:/Program Files/AMD/CodeAnalyst/API/include" /DUNICODE /D_UNICODE /D%prof% /link /LIBPATH:%proflib%" /DEBUG
+echo cl /EHsc /Ox /Zi %2 -I c:/prog/xbyak -I %profinc%" -I "c:/Program Files/AMD/CodeAnalyst/API/include" /DUNICODE /D_UNICODE /D%prof% /link /LIBPATH:%proflib%" /DEBUG
 
 goto exit
 :err

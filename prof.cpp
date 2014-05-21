@@ -6,6 +6,7 @@
 */
 #include <stdio.h>
 #include <math.h>
+#define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak.h>
 
 #ifdef USE_CODEANALYST
@@ -89,6 +90,11 @@ void SetJitCode(void *ptr, size_t size, const char *name)
 
 int main()
 {
+#ifdef XBYAK64
+	puts("64bit profile sample");
+#else
+	puts("32bit profile sample");
+#endif
 	Code c;
 	Code2 c2;
 	int (*f)() = (int (*)())c.getCode();
