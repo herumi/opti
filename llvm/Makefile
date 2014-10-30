@@ -4,11 +4,12 @@ CC=clang
 COPTS=-O3 -Wall -Wextra
 LLVM_OPT_OPTS=-std-compile-opts
 
-LLVM_AS=llvm-as
-LLVM_LINK=llvm-link
-LLVM_LLC=llc
-LLVM_OPT=opt
-LLVM_DIS=llvm-dis
+VER=-3.5
+LLVM_AS=llvm-as$(VER)
+LLVM_LINK=llvm-link$(VER)
+LLVM_LLC=llc$(VER)
+LLVM_OPT=opt$(VER)
+LLVM_DIS=llvm-dis$(VER)
 
 test: test.cpp test0.s
 	g++ test.cpp test0.s -O3 -o test
@@ -43,10 +44,10 @@ test1.s: test1.cpp rank1.hpp
 	clang++ -O3 -S -emit-llvm -march=corei7 test1.cpp
 
 test1-asm.s: test1-asm.ll
-	llvm-as -o test1-asm.s test1.asm.ll
+	$(LLVM_AS) -o test1-asm.s test1.asm.ll
 
 test1.bc: test1.s test1-asm.s
-	llvm-link -o test1.bc test1.s test1-asm.s
+	$(LLVM_LINK) -o test1.bc test1.s test1-asm.s
 
 test1-2.bc: test1.bc
 #	opt -O3 -std-link-opts -o test1-2.bc test1.bc
