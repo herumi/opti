@@ -12,26 +12,26 @@ define i64 @extract(i192 %x, i192 %shift) {
 	ret i64 %t1
 }
 
-define void @mul192x64(i256* %pz, i192 %x, i64 %y) {
+define i256 @mul192x64(i192 %x, i64 %y) {
 entry:
 	%x0 = call i64 @extract(i192 %x, i192 0)
 	%x1 = call i64 @extract(i192 %x, i192 64)
 	%x2 = call i64 @extract(i192 %x, i192 128)
+
 	%x0y = call i128 @mul64x64(i64 %x0, i64 %y)
 	%x1y = call i128 @mul64x64(i64 %x1, i64 %y)
 	%x2y = call i128 @mul64x64(i64 %x2, i64 %y)
+
 	%x0y0 = zext i128 %x0y to i256
 	%x1y0 = zext i128 %x1y to i256
 	%x2y0 = zext i128 %x2y to i256
 
 	%x1y1 = shl i256 %x1y0, 64
-	%x2y1 = shl i256 %x2y0, 64
+	%x2y1 = shl i256 %x2y0, 128
 
 	%t = add i256 %x0y0, %x1y1
 	%z = add i256 %t, %x2y1
-	store i256 %z, i256* %pz
-;	ret i256 %z
-	ret void
+	ret i256 %z
 }
 
 define void @mie_mul192x192(i192* %pz, i128* %px, i64* %py) {

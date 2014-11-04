@@ -21,5 +21,5 @@ opt: modp.ll
 	$(ASM) modp.ll -o modp.bc
 	$(OPT) -O3 modp.bc -o modp.opt.bc
 	$(DIS) modp.opt.bc -o modp.opt.ll
-	$(LLC) modp.opt.ll -o - -x86-asm-syntax=intel
+	$(LLC) modp.opt.ll -o - -x86-asm-syntax=intel -mattr=bmi2
 
