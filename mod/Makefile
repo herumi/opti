@@ -4,6 +4,8 @@ OPT=opt$(VER)
 DIS=llvm-dis$(VER)
 ASM=llvm-as$(VER)
 
+OPT_LLC= $(ASM) -o - | $(OPT) -O3 -o - | $(DIS) -o - | $(LLC) -
+
 x64:
 	$(LLC) modp.ll -o - -x86-asm-syntax=intel
 x86:
@@ -18,8 +20,5 @@ test: modp_test.cpp modp.ll
 	clang++ -O3 modp_test.cpp modp.ll -o test -Wall -Wextra -I ../../cybozulib/include -I ../../mie/include -lgmp -lgmpxx
 
 opt: modp.ll
-	$(ASM) modp.ll -o modp.bc
-	$(OPT) -O3 modp.bc -o modp.opt.bc
-	$(DIS) modp.opt.bc -o modp.opt.ll
-	$(LLC) modp.opt.ll -o - -x86-asm-syntax=intel -mattr=bmi2
+	cat modp.ll|$(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2
 
