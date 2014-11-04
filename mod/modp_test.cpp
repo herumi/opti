@@ -1,7 +1,9 @@
 #include <mie/gmp_util.hpp>
 #include <iostream>
 
-extern "C" void mie_modNIST_P192(uint64_t *z, const uint64_t *x);
+namespace mie {
+void modNIST_P192(uint64_t *z, const uint64_t *x);
+}
 
 int main()
 {
@@ -15,7 +17,7 @@ int main()
 	uint64_t buf[6];
 	uint64_t out[3];
 	memcpy(buf, mie::Gmp::getBlock(xy), sizeof(buf));
-	mie_modNIST_P192(out, buf);
+	mie::modNIST_P192(out, buf);
 	mpz_class w;
 	mie::Gmp::setRaw(w, out, 3);
 	std::cout << w << std::endl;

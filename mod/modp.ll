@@ -1,23 +1,47 @@
-define void @mie_mul192x192(i384* %pz, i192* %px, i64* %py) {
+
+define i128 @mul64x64(i64 %x, i64 %y) {
+	%x0 = zext i64 %x to i128
+	%y0 = zext i64 %y to i128
+	%z = mul i128 %x0, %y0
+	ret i128 %z
+}
+
+define i64 @extract(i192 %x, i192 %shift) {
+	%t0 = lshr i192 %x, %shift
+	%t1 = trunc i192 %t0 to i64
+	ret i64 %t1
+}
+
+define void @mul192x64(i256* %pz, i192 %x, i64 %y) {
 entry:
-	%x192 = load i192* %px, align 64
-	%py1 = getelementptr i64* %py, i64 1
-	%py2 = getelementptr i64* %py, i64 2
-	%x = zext i192 %x192 to i384
-	%y0_64 = load i64* %py
-	%y1_64 = load i64* %py1
-	%y2_64 = load i64* %py2
-	%y0 = zext i64 %y0_64 to i384
-	%y1 = zext i64 %y1_64 to i384
-	%y2 = zext i64 %y2_64 to i384
-	%xy0 = mul i384 %x, %y0
-	%xy1 = mul i384 %x, %y1
-	%xy2 = mul i384 %x, %y2
-	%xy1s = shl i384 %xy1, 64
-	%xy2s = shl i384 %xy2, 128
-	%t = add i384 %xy0, %xy1s
-	%z = add i384 %t, %xy2s
-	store i384 %z, i384* %pz
+	%x0 = call i64 @extract(i192 %x, i192 0)
+	%x1 = call i64 @extract(i192 %x, i192 64)
+	%x2 = call i64 @extract(i192 %x, i192 128)
+	%x0y = call i128 @mul64x64(i64 %x0, i64 %y)
+	%x1y = call i128 @mul64x64(i64 %x1, i64 %y)
+	%x2y = call i128 @mul64x64(i64 %x2, i64 %y)
+	%x0y0 = zext i128 %x0y to i256
+	%x1y0 = zext i128 %x1y to i256
+	%x2y0 = zext i128 %x2y to i256
+
+	%x1y1 = shl i256 %x1y0, 64
+	%x2y1 = shl i256 %x2y0, 64
+
+	%t = add i256 %x0y0, %x1y1
+	%z = add i256 %t, %x2y1
+	store i256 %z, i256* %pz
+;	ret i256 %z
+	ret void
+}
+
+define void @mie_mul192x192(i192* %pz, i128* %px, i64* %py) {
+entry:
+;	%t0 = load i128* %px
+;	%t1 = zext i128 %t0 to i192
+;	%y0_64 = load i64* %py
+;	%y0 = zext i64 %y0_64 to i192
+;	%xy0 = mul i192 %t1, %y0
+;	store i192 %xy0, i192* %pz
 	ret void
 }
 
@@ -39,7 +63,8 @@ entry:
 ;[e:x] = L + H + [H1:H0:H2] + [H2:0] ; 2bit(e) over
 ;      = x + e + (e << 64)
 
-define void @mie_modNIST_P192(i192* %out, i64* %px) {
+; void mie::modNIST_P192(uint64_t *z, const uint64_t *x);
+define void @_ZN3mie12modNIST_P192EPmPKm(i192* %out, i64* %px) {
 entry:
 	%pL = bitcast i64* %px to i192*
 	%pH64 = getelementptr i64* %px, i64 3
