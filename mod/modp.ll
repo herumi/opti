@@ -34,7 +34,8 @@ entry:
 	ret i256 %z
 }
 
-define void @mie_mul192x192(i384* %pz, i192* %px, i192* %py) {
+; void mie::mul192x192(uint64_t *z, const uint64_t *x, const uint64_t *y);
+define void @_ZN3mie10mul192x192EPmPKmS2_(i384* %pz, i192* %px, i192* %py) {
 entry:
 	%x = load i192* %px
 	%y = load i192* %py
