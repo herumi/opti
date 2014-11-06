@@ -52,14 +52,14 @@ entry:
 	%xy1 = call i256 @mul192x64(i192 %x, i64 %y1)
 	%t2 = add i256 %t1, %xy1
 	%t3 = trunc i256 %t2 to i64
-	%z1 = getelementptr i64* %pz, i64 1
+	%z1 = getelementptr i64* %pz, i32 1
 	store i64 %t3, i64* %z1
 
 	%t4 = lshr i256 %t2, 64
 	%xy2 = call i256 @mul192x64(i192 %x, i64 %y2)
 	%t5 = add i256 %xy2, %t4
 
-	%z2 = getelementptr i64* %pz, i64 2
+	%z2 = getelementptr i64* %pz, i32 2
 	%p = bitcast i64* %z2 to i256*
 	store i256 %t5, i256* %p
 	ret void
@@ -84,44 +84,38 @@ entry:
 ;      = t + e + (e << 64)
 
 ; void mie::modNIST_P192(uint64_t *z, const uint64_t *x);
-define void @_ZN3mie12modNIST_P192EPmPKm(i192* %out, i64* %px) {
+define void @_ZN3mie12modNIST_P192EPmPKm(i192* %out, i192* %px) {
 entry:
-	%pL = bitcast i64* %px to i192*
-	%pH64 = getelementptr i64* %px, i64 3
-	%pH = bitcast i64* %pH64 to i192*
-	%L192 = load i192* %pL
-	%H192 = load i192* %pH
+	%L192 = load i192* %px
 	%L = zext i192 %L192 to i256
+
+	%pH = getelementptr i192* %px, i32 1
+	%H192 = load i192* %pH
 	%H = zext i192 %H192 to i256
-	%t1 = add i256 %L, %H ; %t1 = L + H
 
-	%px3 = getelementptr i64* %px, i64 3
-	%px4 = getelementptr i64* %px, i64 4
-	%px5 = getelementptr i64* %px, i64 5
-	%H0_ = load i64* %px3
-	%H1_ = load i64* %px4
-	%H2_ = load i64* %px5
+	%H10_ = shl i192 %H192, 64
+	%H10 = zext i192 %H10_ to i256
 
-	%H0 = zext i64 %H0_ to i256
-	%H1 = zext i64 %H1_ to i256
+	%H2_ = call i64 @extract(i192 %H192, i192 128)
 	%H2 = zext i64 %H2_ to i256
-	%H0_1 = shl i256 %H0, 64
-	%H1_1 = shl i256 %H1, 128
-	%H10 = or i256 %H1_1, %H0_1
-	%H102 = or i256 %H10, %H2 ; [H1:H0:H2]
-	%t2 = add i256 %t1, %H102 ; %t2 = L + H + [H1:H0:H2]
+	%H102 = or i256 %H10, %H2
 
-	%H2_1 = shl i256 %H2, 64
-	%t3 = add i256 %t2, %H2_1 ; %t3 = L + H + [H1:H0:H2] + [H2:0]
+	%H2s = shl i256 %H2, 64
 
-	%e = lshr i256 %t3, 192
-	%e64 = shl i256 %e, 64
-	%t4 = add i256 %t3, %e
-	%t5 = add i256 %t4, %e64 ; t3 + e + (e << 64)
+	%t0 = add i256 %L, %H
+	%t1 = add i256 %t0, %H102
+	%t2 = add i256 %t1, %H2s
 
-	%t6 = trunc i256 %t5 to i192
+	%e = lshr i256 %t2, 192
+	%t3 = trunc i256 %t2 to i192
+	%e1 = trunc i256 %e to i192
 
-	store i192 %t6, i192* %out
+
+	%t4 = add i192 %t3, %e1
+	%e2 = shl i192 %e1, 64
+	%t5 = add i192 %t4, %e2
+
+	store i192 %t5, i192* %out
 
 	ret void
 }
