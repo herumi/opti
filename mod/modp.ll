@@ -80,8 +80,8 @@ entry:
 ; mod p
 ;    x = L + H + (H << 64)
 ;      = L + H + [H1:H0:0] + H2 + (H2 << 64)
-;[e:x] = L + H + [H1:H0:H2] + [H2:0] ; 2bit(e) over
-;      = x + e + (e << 64)
+;[e:t] = L + H + [H1:H0:H2] + [H2:0] ; 2bit(e) over
+;      = t + e + (e << 64)
 
 ; void mie::modNIST_P192(uint64_t *z, const uint64_t *x);
 define void @_ZN3mie12modNIST_P192EPmPKm(i192* %out, i64* %px) {
