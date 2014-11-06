@@ -35,7 +35,7 @@ entry:
 }
 
 ; void mie::mul192x192(uint64_t *z, const uint64_t *x, const uint64_t *y);
-define void @_ZN3mie10mul192x192EPmPKmS2_(i384* %pz, i192* %px, i192* %py) {
+define void @_ZN3mie10mul192x192EPmPKmS2_(i64* %pz, i192* %px, i192* %py) {
 entry:
 	%x = load i192* %px
 	%y = load i192* %py
@@ -44,19 +44,24 @@ entry:
 	%y2 = call i64 @extract(i192 %y, i192 128)
 
 	%xy0 = call i256 @mul192x64(i192 %x, i64 %y0)
+
+	%t0 = trunc i256 %xy0 to i64
+	store i64 %t0, i64* %pz
+
+	%t1 = lshr i256 %xy0, 64
 	%xy1 = call i256 @mul192x64(i192 %x, i64 %y1)
+	%t2 = add i256 %t1, %xy1
+	%t3 = trunc i256 %t2 to i64
+	%z1 = getelementptr i64* %pz, i64 1
+	store i64 %t3, i64* %z1
+
+	%t4 = lshr i256 %t2, 64
 	%xy2 = call i256 @mul192x64(i192 %x, i64 %y2)
+	%t5 = add i256 %xy2, %t4
 
-	%xy0_1 = zext i256 %xy0 to i384
-	%xy1_1 = zext i256 %xy1 to i384
-	%xy2_1 = zext i256 %xy2 to i384
-
-	%xy1_2 = shl i384 %xy1_1, 64
-	%xy2_2 = shl i384 %xy2_1, 128
-
-	%t = add i384 %xy0_1, %xy1_2
-	%z = add i384 %t, %xy2_2
-	store i384 %z, i384* %pz
+	%z2 = getelementptr i64* %pz, i64 2
+	%p = bitcast i64* %z2 to i256*
+	store i256 %t5, i256* %p
 	ret void
 }
 
