@@ -71,7 +71,7 @@ void put(__m128i x)
 */
 int match_small_str(const char *text, const char *key, size_t keyLen)
 {
-	assert(keyLen < 32);
+	assert(keyLen <= 32);
 #ifdef __AVX2__
 	__m256i t = toLowerAVX(text);
 	__m256i k = _mm256_loadu_si256((const __m256i*)key);
