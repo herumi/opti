@@ -77,7 +77,7 @@ int match_small_str(const char *text, const char *key, size_t keyLen)
 	__m256i k = _mm256_loadu_si256((const __m256i*)key);
 	t = _mm256_cmpeq_epi8(t, k);
 	uint64_t m = _mm256_movemask_epi8(t);
-	uint64_t mask = (1 << keyLen) - 1;
+	uint64_t mask = ((uint64_t)1 << keyLen) - 1;
 	return (m & mask) == mask;
 #else
 	if (keyLen <= 16) {
@@ -97,7 +97,7 @@ int match_small_str(const char *text, const char *key, size_t keyLen)
 	uint64_t m1 = _mm_movemask_epi8(t1);
 	uint64_t m2 = _mm_movemask_epi8(t2);
 	m1 |= m2 << 16;
-	uint32_t mask =(1 << keyLen) - 1;
+	uint64_t mask =((uint64_t)1 << keyLen) - 1;
 	return (m1 & mask) == mask;
 #endif
 }
