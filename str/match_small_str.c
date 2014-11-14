@@ -67,9 +67,10 @@ void put(__m128i x)
 }
 /*
 	does text begin with [key, keyLen)?
+	ignore case of text.
 	@note key must not contain [A-Z].
 */
-int match_small_str(const char *text, const char *key, size_t keyLen)
+int match_case_small_str(const char *text, const char *key, size_t keyLen)
 {
 	assert(keyLen <= 32);
 #ifdef __AVX2__
@@ -129,7 +130,7 @@ int main()
 	for (i = 0; i < sizeof(tbl) / sizeof(*tbl); i++) {
 		const char *text = tbl[i].text;
 		const char *key = tbl[i].key;
-		int ret = match_small_str(text, key, strlen(key));
+		int ret = match_case_small_str(text, key, strlen(key));
 		if (ret != tbl[i].expect) {
 			printf("ERR %d %d %d\n", i, ret, tbl[i].expect);
 			err++;
