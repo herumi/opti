@@ -49,9 +49,9 @@ void test_findCaseStr()
 		{ "aBcdEfgh", "abcdefg" },
 		{ "abcDEFGh", "def" },
 		{ "abcdefgh", "fgh" },
-		{ "abcdefgh", "a" },
-		{ "abcdefgh", "abcdefghi" },
-		{ "01234567890abcdefghijklmnopqrstuvwxyz", "fghijklmnopqrstuvwx" },
+		{ "AbcadefAgh", "a" },
+		{ "abcdEfgH", "abcdefghi" },
+		{ "01234567890abcdefGhiJklmnopqrstuVwxyz", "fghijklmnopqrstuvwx" },
 	};
 	size_t i;
 	for (i = 0; i < sizeof(tbl) / sizeof(*tbl); i++) {
@@ -76,4 +76,5 @@ int main()
 	if (g_errNum == 0) {
 		printf("test ok %d\n", g_testNum);
 	}
+	return 0;
 }
