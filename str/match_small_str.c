@@ -105,8 +105,8 @@ int match_small_str(const char *text, const char *key, size_t keyLen)
 int main()
 {
 	const struct {
-		const char text[32];
-		const char key[32];
+		const char text[40];
+		const char key[40];
 		int expect;
 	} tbl[] = {
 		{ "abcdefgxxx", "abcdefg", 1 },
@@ -114,6 +114,8 @@ int main()
 		{ "bbcDefGxxx", "abcdefg", 0 },
 		{ "01234567890AbcDpqrsefg", "01234567890abcdpqrs", 1 },
 		{ "01234567890AbcDaqrsefg", "01234567890abcdpqrs", 0 },
+		{ "a0s9vnFA3wvfa38V4ran$#SVDFFSFSDFF", "a0s9vnfa3wvfa38v4ran$#svdffsfsdf", 1 },
+		{ "a0s9vnFA3wvfa38V4ran$#SVDFFSFxDFF", "a0s9vnfa3wvfa38v4ran$#svdffsfsdf", 0 },
 		{ "bxxxxx", "a", 0 },
 		{ "bxxxxx", "b", 1 },
 	};
@@ -121,6 +123,8 @@ int main()
 	int err = 0;
 #ifdef __AVX2__
 	puts("use AVX2");
+#else
+	puts("use SSE");
 #endif
 	for (i = 0; i < sizeof(tbl) / sizeof(*tbl); i++) {
 		const char *text = tbl[i].text;
