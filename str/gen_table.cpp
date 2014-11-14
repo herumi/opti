@@ -9,13 +9,17 @@ typedef std::vector<int> IntVec;
 
 uint32_t hash(const char *p, size_t n, int s, int mod)
 {
-	uint64_t v = 14695981039346656037ULL;
+	uint32_t buf[8] = {};
+	char *q = (char *)buf;
 	for (size_t i = 0; i < n; i++) {
-		v ^= (uint8_t)p[i];
-		v *= 1099511628211ULL;
+		q[i] = p[i];
+	}
+	uint32_t v = 0;
+	for (size_t i = 0; i < 8; i++) {
+		v += buf[i];
 	}
 	v ^= v >> s;
-	return uint32_t(v % mod);
+	return v % mod;
 }
 
 const char keyTbl[][64] = {
@@ -95,9 +99,11 @@ void put(int s, int mod)
 	for (int i = 0; i < mod; i++) {
 		iv[i] = -1;
 	}
+	size_t maxLen = 0;
 	for (int i = 0; i < N; i++) {
 		const char *p = keyTbl[i];
 		size_t len = strlen(p);
+		if (len > maxLen) maxLen = len;
 		uint32_t h = hash(p, len, s, mod);
 		printf("%d %s(%d) -> %d\n", i, p, (int)len, h);
 		iv[h] = i;
@@ -107,6 +113,7 @@ void put(int s, int mod)
 		if (((i + 1) % 10) == 0) printf("\n");
 	}
 	printf("\n");
+	printf("maxLen=%d\n", (int)maxLen);
 }
 
 int main()
@@ -114,8 +121,8 @@ int main()
 	for (int mod = 64; mod < 1000; mod++) {
 		for (int s = 1; s < 63; s++) {
 			if (count(s, mod)) {
-				printf("s=%d, mod=%d\n", s, mod);
 				put(s, mod);
+				printf("s=%d, mod=%d\n", s, mod);
 				return 0;
 			}
 		}
