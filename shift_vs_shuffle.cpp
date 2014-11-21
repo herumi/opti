@@ -68,8 +68,8 @@ void test(const char *p)
 	}
 }
 
-template<class F>
-void bench(const char *p, F f)
+template<bool fix, class F>
+void bench(const char *msg, const char *p, F f)
 {
 	const int N = 1000000;
 	cybozu::XorShift rg;
@@ -78,9 +78,14 @@ void bench(const char *p, F f)
 	clk.begin();
 	for (int i = 0; i < N; i++) {
 		uint32_t r = rg.get32();
-		x = _mm_add_epi8(x, f(p + (r & 15), (r >> 8) & 15));
+		if (fix) {
+			x = _mm_add_epi8(x, f(p + (r & 15), 1));
+		} else {
+			x = _mm_add_epi8(x, f(p + (r & 15), (r >> 8) & 15));
+		}
 	}
 	clk.end();
+	printf("%s %s", msg, fix ? "fixed" : "rand ");
 	put("ret", x);
 	printf("%.2f\n", clk.getClock() / double(N));
 }
@@ -88,6 +93,8 @@ int main()
 {
 	char buf[] = "abcdefghijklmnopqrstuvVerfasefaawxyzz01234234242424";
 	test(buf);
-	bench(buf, getByShuffle);
-	bench(buf, getByShift);
+	bench<false>("shuffle", buf, getByShuffle);
+	bench<true>("shuffle", buf, getByShuffle);
+	bench<false>("shift", buf, getByShift);
+	bench<true>("shift", buf, getByShift);
 }
