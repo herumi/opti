@@ -40,7 +40,11 @@ static inline __m128i getByShift(const char *p, size_t shift)
 	case 14: return _mm_srli_si128(v, 14);
 	case 15: return _mm_srli_si128(v, 15);
 	default:
+#ifdef _MSC_VER
+		__assume(0);
+#else
 		 __builtin_unreachable();
+#endif
 	}
 }
 
