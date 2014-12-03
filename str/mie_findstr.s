@@ -114,4 +114,22 @@ mie_findCaseStr:
 .exit1:
     pop    %r12
     ret
- 
+
+mie_findChar_range:
+    movdqu (%rdx), %xmm0
+    mov    %rcx, %rax
+    mov    %rsi, %rdx
+    sub    %rdi, %rdx
+    jmp    .lp2_1
+.lp2_0
+    add    $16, %rdi
+    sub    $16, %rdx
+.lp2_1:
+    pcmpestri $4,(%rdi), %xmm0
+    ja     .lp2_0
+    jae    .exit2:
+    lea    (%rdi, %rcx, 1), %rax
+    ret
+.exit2:
+    mov    %rsi, %rax
+    ret

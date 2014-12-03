@@ -9,6 +9,11 @@ typedef std::vector<int> IntVec;
 
 uint32_t hash(const char *p, size_t n, int s, int mod)
 {
+#if 1
+	uint32_t v = p[0] | (p[n - 1] << 8) | (n << 16);
+	v ^= v >> s;
+	return v % mod;
+#else
 	uint32_t buf[8] = {};
 	char *q = (char *)buf;
 	for (size_t i = 0; i < n; i++) {
@@ -20,6 +25,7 @@ uint32_t hash(const char *p, size_t n, int s, int mod)
 	}
 	v ^= v >> s;
 	return v % mod;
+#endif
 }
 
 const char keyTbl[][64] = {
