@@ -71,6 +71,7 @@ static inline uint64_t get8(const char *p)
 	return r;
 }
 static inline uint64_t mask(int x) { return (uint64_t(1) << x) - 1; }
+static inline uint64_t is_same4_memcmp(const char *p, const char *q) { return memcmp(p, q, 4); }
 static inline uint64_t is_same1(const char *p, const char *q) { return get1(p) ^ get1(q); }
 static inline uint64_t is_same2(const char *p, const char *q) { return get2(p) ^ get2(q); }
 static inline uint64_t is_same3(const char *p, const char *q) { return get3(p) ^ get3(q); }
@@ -239,5 +240,6 @@ int main()
 	CYBOZU_BENCH("15u", ++pos %= N; ret += !!is_same15u, &p[pos], str); pos = 0;
 	CYBOZU_BENCH("15s", ++pos %= N; ret += !!is_same15s, &p[pos], str); pos = 0;
 	CYBOZU_BENCH("16 ", ++pos %= N; ret += !!is_same16, &p[pos], str); pos = 0;
+	CYBOZU_BENCH("memcmp", ++pos %= N; ret += !!is_same4_memcmp, &p[pos], str); pos = 0;
 	printf("ret=%d\n", (int)ret);
 }
