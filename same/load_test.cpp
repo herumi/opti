@@ -62,10 +62,10 @@ struct Code : Xbyak::CodeGenerator {
 				add(ebx, edx);
 				break;
 			case 6:
-				mov(rdx, ptr [p + i + 2]);
+				mov(rdx, ptr [p + i]);
 				add(rbx, rdx);
-				mov(rdx, ptr [p + i + 3]);
-				add(rbx, rdx);
+				mov(edx, ptr [p + i + 7]);
+				add(ebx, edx);
 				break;
 			}
 		}
