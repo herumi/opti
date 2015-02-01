@@ -67,6 +67,12 @@ struct Code : Xbyak::CodeGenerator {
 				mov(edx, ptr [p + i + 7]);
 				add(ebx, edx);
 				break;
+			case 7:
+				movupd(xm0, ptr [p + i]);
+				paddd(xm1, xm0);
+				movupd(xm0, ptr [p + i + 14]);
+				paddd(xm1, xm0);
+				break;
 			}
 		}
 		dec(eax);
@@ -79,14 +85,15 @@ struct Code : Xbyak::CodeGenerator {
 void test0()
 {
 	puts("test0");
-	Code c0(0), c1(1), c2(2), c3(3), c4(4), c5(5), c6(6);
+	Code c0(0), c1(1), c2(2), c3(3), c4(4), c5(5), c6(6), c7(7);
 	void (*f0)() = c0.getCode<void (*)()>();
 	void (*f1)() = c1.getCode<void (*)()>();
 	void (*f2)() = c2.getCode<void (*)()>();
 	void (*f3)() = c3.getCode<void (*)()>();
 	void (*f4)() = c4.getCode<void (*)()>();
 	void (*f5)() = c5.getCode<void (*)()>();
-	void (*f6)() = c5.getCode<void (*)()>();
+	void (*f6)() = c6.getCode<void (*)()>();
+	void (*f7)() = c7.getCode<void (*)()>();
 	CYBOZU_BENCH("c0", f0);
 	CYBOZU_BENCH("c1", f1);
 	CYBOZU_BENCH("c2", f2);
@@ -94,6 +101,7 @@ void test0()
 	CYBOZU_BENCH("c4", f4);
 	CYBOZU_BENCH("c5", f5);
 	CYBOZU_BENCH("c6", f6);
+	CYBOZU_BENCH("c7", f7);
 }
 
 struct ShiftVsOr : Xbyak::CodeGenerator {
