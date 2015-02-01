@@ -91,26 +91,36 @@ void test0()
 struct ShiftVsOr : Xbyak::CodeGenerator {
 	ShiftVsOr(int b)
 	{
-		mov(r11, (size_t)str);
-		xor_(r10, r10);
+		mov(r8, (size_t)str);
+		xor_(r9, r9);
 		mov(ecx, N);
 	L("@@");
 		switch (b) {
 		case 0:
-			movzx(edx, word [r11]);
-			movzx(eax, byte [r11 + 2]);
+			movzx(edx, word [r8]);
+			movzx(eax, byte [r8 + 2]);
 			shl(eax, 16);
 			or_(edx, eax);
 			xor_(eax, 0x123456);
-			or_(r10d, eax);
+			or_(r9d, eax);
 			break;
 		case 1:
-			movzx(edx, word [r11]);
-			movzx(eax, byte [r11 + 2]);
+			movzx(edx, word [r8]);
+			movzx(eax, byte [r8 + 2]);
 			xor_(edx, 0x3456);
 			xor_(eax, 0x12);
-			or_(r10d, edx);
-			or_(r10d, eax);
+			or_(r9d, edx);
+			or_(r9d, eax);
+			break;
+		case 2:
+			mov(edx, r8);
+			and_(edx, 0xfff);
+			cmp(edx, 0xffd);
+			je("not implemented");
+			mov(edx, ptr [r8]);
+			and_(edx, 0xffffff);
+			xor_(edx, 0x123456);
+			or_(r9d, eax);
 			break;
 		}
 		dec(ecx);
@@ -124,12 +134,13 @@ void test1()
 	puts("test1");
 	ShiftVsOr c0(0);
 	ShiftVsOr c1(1);
+	ShiftVsOr c2(2);
 	void (*f0)() = c0.getCode<void (*)()>();
 	void (*f1)() = c1.getCode<void (*)()>();
+	void (*f2)() = c2.getCode<void (*)()>();
 	CYBOZU_BENCH("0", f0);
 	CYBOZU_BENCH("1", f1);
-	CYBOZU_BENCH("0", f0);
-	CYBOZU_BENCH("1", f1);
+	CYBOZU_BENCH("2", f2);
 }
 
 int main()
