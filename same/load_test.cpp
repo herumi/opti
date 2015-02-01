@@ -105,14 +105,12 @@ struct ShiftVsOr : Xbyak::CodeGenerator {
 			or_(r10d, eax);
 			break;
 		case 1:
-#if 1
 			movzx(edx, word [r11]);
 			movzx(eax, byte [r11 + 2]);
 			xor_(edx, 0x3456);
 			xor_(eax, 0x12);
 			or_(r10d, edx);
 			or_(r10d, eax);
-#endif
 			break;
 		}
 		dec(ecx);
