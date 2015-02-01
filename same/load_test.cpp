@@ -61,6 +61,12 @@ struct Code : Xbyak::CodeGenerator {
 				and_(edx, 0xffffff);
 				add(ebx, edx);
 				break;
+			case 6:
+				mov(rdx, ptr [p + i + 2]);
+				add(rbx, rdx);
+				mov(rdx, ptr [p + i + 3]);
+				add(rbx, rdx);
+				break;
 			}
 		}
 		dec(eax);
@@ -73,19 +79,21 @@ struct Code : Xbyak::CodeGenerator {
 void test0()
 {
 	puts("test0");
-	Code c0(0), c1(1), c2(2), c3(3), c4(4), c5(5);
+	Code c0(0), c1(1), c2(2), c3(3), c4(4), c5(5), c6(6);
 	void (*f0)() = c0.getCode<void (*)()>();
 	void (*f1)() = c1.getCode<void (*)()>();
 	void (*f2)() = c2.getCode<void (*)()>();
 	void (*f3)() = c3.getCode<void (*)()>();
 	void (*f4)() = c4.getCode<void (*)()>();
 	void (*f5)() = c5.getCode<void (*)()>();
+	void (*f6)() = c5.getCode<void (*)()>();
 	CYBOZU_BENCH("c0", f0);
 	CYBOZU_BENCH("c1", f1);
 	CYBOZU_BENCH("c2", f2);
 	CYBOZU_BENCH("c3", f3);
 	CYBOZU_BENCH("c4", f4);
 	CYBOZU_BENCH("c5", f5);
+	CYBOZU_BENCH("c6", f6);
 }
 
 struct ShiftVsOr : Xbyak::CodeGenerator {
