@@ -52,9 +52,15 @@ static inline uint64_t local_is_diff15(const char *p, char c0, char c1, char c2,
 
 static inline uint64_t local_is_diff16v(const char *p, uint64_t v0, uint64_t v1)
 {
+#ifdef __SSE4_1__
   __m128i x = _mm_loadu_si128((const __m128i*)p);
   __m128i y = _mm_setr_epi32(uint32_t(v0), uint32_t(v0 >> 32), uint32_t(v1), uint32_t(v1 >> 32));
   return _mm_testc_si128(x, y) == 0;
+#else
+  uint64_t x0 = local_get8(p);
+  uint64_t x1 = local_get8(p + 8);
+  return (x0 ^ v0) | (x1 ^ v1);
+#endif
 }
 static inline uint64_t local_is_diff16(const char *p, char c0, char c1, char c2, char c3, char c4, char c5, char c6, char c7, char c8, char c9, char c10, char c11, char c12, char c13, char c14, char c15) { return local_is_diff16v(p, local_cat8(c0, c1, c2, c3, c4, c5, c6, c7), local_cat8(c8, c9, c10, c11, c12, c13, c14, c15)); }
 static inline uint64_t local_is_diff17(const char *p, char c0, char c1, char c2, char c3, char c4, char c5, char c6, char c7, char c8, char c9, char c10, char c11, char c12, char c13, char c14, char c15, char c16) { return local_is_diff16(p, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) || local_is_diff1(p + 16, c16); }
