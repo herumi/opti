@@ -43,25 +43,26 @@ entry:
 	%y1 = call i64 @extract(i192 %y, i192 64)
 	%y2 = call i64 @extract(i192 %y, i192 128)
 
-	%xy0 = call i256 @mul192x64(i192 %x, i64 %y0)
+	%sum0 = call i256 @mul192x64(i192 %x, i64 %y0)
 
-	%t0 = trunc i256 %xy0 to i64
+	%t0 = trunc i256 %sum0 to i64
 	store i64 %t0, i64* %pz
 
-	%t1 = lshr i256 %xy0, 64
+	%s0 = lshr i256 %sum0, 64
 	%xy1 = call i256 @mul192x64(i192 %x, i64 %y1)
-	%t2 = add i256 %t1, %xy1
-	%t3 = trunc i256 %t2 to i64
+	%sum1 = add i256 %s0, %xy1
 	%z1 = getelementptr i64* %pz, i32 1
-	store i64 %t3, i64* %z1
 
-	%t4 = lshr i256 %t2, 64
+	%ts1 = trunc i256 %sum1 to i64
+	store i64 %ts1, i64* %z1
+
+	%s1 = lshr i256 %sum1, 64
 	%xy2 = call i256 @mul192x64(i192 %x, i64 %y2)
-	%t5 = add i256 %xy2, %t4
-
+	%sum2 = add i256 %s1, %xy2
 	%z2 = getelementptr i64* %pz, i32 2
+
 	%p = bitcast i64* %z2 to i256*
-	store i256 %t5, i256* %p
+	store i256 %sum2, i256* %p
 	ret void
 }
 

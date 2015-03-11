@@ -17,7 +17,7 @@ arm:
 	$(LLC) modp.ll -o - -march=arm
 
 test: modp_test.cpp modp.ll
-	clang++ -O3 modp_test.cpp modp.ll -o test -Wall -Wextra -I ../../cybozulib/include -I ../../mie/include -lgmp -lgmpxx -march=native
+	clang++$(VER) -O3 modp_test.cpp modp.ll -o test -Wall -Wextra -I ../../cybozulib/include -I ../../mie/include -lgmp -lgmpxx -march=native
 
 opt: modp.ll
 	cat modp.ll|$(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2
