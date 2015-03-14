@@ -49,7 +49,7 @@ exit:
 }
 
 
-define void @add128(i64* %pz, i64* %px, i64* %py) {
+define void @add128_carry(i64* %pz, i64* %px, i64* %py) {
 	%x0 = load i64* %px
 	%y0 = load i64* %py
 	%vc0 = call { i64, i1 } @add_with_carry(i64 %x0, i64 %y0, i1 0)
@@ -64,6 +64,44 @@ define void @add128(i64* %pz, i64* %px, i64* %py) {
 	%v1 = extractvalue { i64, i1 } %vc1, 0
 	%pz1 = getelementptr i64* %pz, i64 1
 	store i64 %v1, i64* %pz1
+	ret void
+}
+
+define void @add128zext(i64* %pz, i64* %px, i64* %py) {
+	%x0 = load i64* %px
+	%y0 = load i64* %py
+	%vc0 = call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %x0, i64 %y0)
+	%v0 = extractvalue { i64, i1 } %vc0, 0
+	%c0 = extractvalue { i64, i1 } %vc0, 1
+	store i64 %v0, i64* %pz
+    %c = zext i1 %c0 to i64
+	%px1 = getelementptr i64* %px, i64 1
+	%py1 = getelementptr i64* %py, i64 1
+	%x1 = load i64* %px1
+	%y1 = load i64* %py1
+	%z = add i64 %x1, %y1
+    %t = add i64 %z, %c
+	%pz1 = getelementptr i64* %pz, i64 1
+	store i64 %t, i64* %pz1
+	ret void
+}
+
+define void @add128zext2(i64* %pz, i64* %px, i64* %py) {
+	%x0 = load i64* %px
+	%y0 = load i64* %py
+	%vc0 = call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %x0, i64 %y0)
+	%v0 = extractvalue { i64, i1 } %vc0, 0
+	%c0 = extractvalue { i64, i1 } %vc0, 1
+	store i64 %v0, i64* %pz
+    %c = zext i1 %c0 to i64
+	%px1 = getelementptr i64* %px, i64 1
+	%py1 = getelementptr i64* %py, i64 1
+	%x1 = load i64* %px1
+	%y1 = load i64* %py1
+	%z = add i64 %x1, %c
+    %t = add i64 %z, %y1
+	%pz1 = getelementptr i64* %pz, i64 1
+	store i64 %t, i64* %pz1
 	ret void
 }
 
@@ -85,3 +123,36 @@ define void @add128select(i64* %pz, i64* %px, i64* %py) {
 	store i64 %t1, i64* %pz1
 	ret void
 }
+
+define void @add128jmp(i64* %pz, i64* %px, i64* %py) {
+	%x0 = load i64* %px
+	%y0 = load i64* %py
+	%px1 = getelementptr i64* %px, i64 1
+	%py1 = getelementptr i64* %py, i64 1
+	%x1 = load i64* %px1
+	%y1 = load i64* %py1
+	%vc0 = call { i64, i1 } @llvm.uadd.with.overflow.i64(i64 %x0, i64 %y0)
+	%v0 = extractvalue { i64, i1 } %vc0, 0
+	store i64 %v0, i64* %pz
+	%c0 = extractvalue { i64, i1 } %vc0, 1
+	%pz1 = getelementptr i64* %pz, i64 1
+	br i1 %c0, label %carry, label %nocarry
+carry:
+	%z1 = add i64 %x1, 1
+	%z = add i64 %z1, %y1
+	store i64 %z, i64* %pz1
+	ret void
+nocarry:
+	%z2 = add i64 %x1, %y1
+	store i64 %z2, i64* %pz1
+	ret void
+}
+
+define void @add128_i128(i128* %pz, i128* %px, i128* %py) {
+	%x = load i128* %px
+	%y = load i128* %py
+	%z = add i128 %x, %y
+	store i128 %z, i128* %pz
+	ret void
+}
+
