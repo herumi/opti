@@ -205,3 +205,72 @@ carry:
 	ret void
 }
 
+;define void @mul128(i256* %pz, i128* %px, i128* %py) {
+;	%x = load i128* %px
+;	%y = load i128* %py
+;	%x1 = zext i128 %x to i256
+;	%y1 = zext i128 %y to i256
+;	%z = mul i256 %x1, %y1
+;	store i256 %z, i256* %pz
+;	ret void
+;}
+define i128 @mul64x64(i64 %x, i64 %y) {
+    %x0 = zext i64 %x to i128
+    %y0 = zext i64 %y to i128
+    %z = mul i128 %x0, %y0
+    ret i128 %z
+}
+define private i192 @mul128x64(i128 %x, i64 %y)  {
+  %x0 = call i64 @extract128(i128 %x, i128 0)
+  %x0y = call i128 @mul64x64(i64 %x0, i64 %y)
+  %x0y0 = zext i128 %x0y to i192
+  %x1 = call i64 @extract128(i128 %x, i128 64)
+  %x1y = call i128 @mul64x64(i64 %x1, i64 %y)
+  %x1y0 = zext i128 %x1y to i192
+  %x1y1 = shl i192 %x1y0, 64
+  %t0 = add i192 %x0y0, %x1y1
+  ret i192 %t0
+}
+define void @mie_fp_mul128pre(i64* %pz, i128* %px, i128* %py) {
+  %x = load i128* %px
+  %y = load i128* %py
+  %y0 = call i64 @extract128(i128 %y, i128 0)
+  %y1 = call i64 @extract128(i128 %y, i128 64)
+  %sum0 = call i192 @mul128x64(i128 %x, i64 %y0)
+  %t0 = trunc i192 %sum0 to i64
+  store i64 %t0, i64* %pz
+
+  %s0 = lshr i192 %sum0, 64
+  %xy1 = call i192 @mul128x64(i128 %x, i64 %y1)
+  %sum1 = add i192 %s0, %xy1
+  %z1 = getelementptr i64* %pz, i32 1
+  %p = bitcast i64* %z1 to i192*
+  store i192 %sum1, i192* %p
+  ret void
+}
+
+define i64 @extract128(i128 %x, i128 %shift) {
+	%t0 = lshr i128 %x, %shift
+	%t1 = trunc i128 %t0 to i64
+	ret i64 %t1
+}
+
+
+define void @mie_fp_sqr(i64* %pz, i128* %px) {
+  %x = load i128* %px
+  %y = load i128* %px
+  %y0 = call i64 @extract128(i128 %y, i128 0)
+  %y1 = call i64 @extract128(i128 %y, i128 64)
+  %sum0 = call i192 @mul128x64(i128 %x, i64 %y0)
+  %t0 = trunc i192 %sum0 to i64
+  store i64 %t0, i64* %pz
+
+  %s0 = lshr i192 %sum0, 64
+  %xy1 = call i192 @mul128x64(i128 %x, i64 %y1)
+  %sum1 = add i192 %s0, %xy1
+  %z1 = getelementptr i64* %pz, i32 1
+  %p = bitcast i64* %z1 to i192*
+  store i192 %sum1, i192* %p
+  ret void
+}
+
