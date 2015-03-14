@@ -273,4 +273,43 @@ define void @mie_fp_sqr(i64* %pz, i128* %px) {
   store i192 %sum1, i192* %p
   ret void
 }
+define internal i64 @extract192to64(i192 %x, i192 %shift) {
+    %t0 = lshr i192 %x, %shift
+    %t1 = trunc i192 %t0 to i64
+    ret i64 %t1
+}
 
+define void @modNIST_P192(i192* %out, i192* %px) {
+    %L192 = load i192* %px
+    %L = zext i192 %L192 to i256
+
+    %pH = getelementptr i192* %px, i32 1
+    %H192 = load i192* %pH
+    %H = zext i192 %H192 to i256
+
+    %H10_ = shl i192 %H192, 64
+    %H10 = zext i192 %H10_ to i256
+
+    %H2_ = call i64 @extract192to64(i192 %H192, i192 128)
+    %H2 = zext i64 %H2_ to i256
+    %H102 = or i256 %H10, %H2
+
+    %H2s = shl i256 %H2, 64
+
+    %t0 = add i256 %L, %H
+    %t1 = add i256 %t0, %H102
+    %t2 = add i256 %t1, %H2s
+
+    %e = lshr i256 %t2, 192
+    %t3 = trunc i256 %t2 to i192
+    %e1 = trunc i256 %e to i192
+
+
+    %t4 = add i192 %t3, %e1
+    %e2 = shl i192 %e1, 64
+    %t5 = add i192 %t4, %e2
+
+    store i192 %t5, i192* %out
+
+    ret void
+}
