@@ -156,3 +156,52 @@ define void @add128_i128(i128* %pz, i128* %px, i128* %py) {
 	ret void
 }
 
+declare { i192, i1 } @llvm.usub.with.overflow.i192(i192, i192)
+declare { i128, i1 } @llvm.usub.with.overflow.i128(i128, i128)
+
+define void @addMod(i128* %pz, i128* %px, i128* %py, i128* %pp) {
+	%x = load i128* %px
+	%y = load i128* %py
+	%p = load i128* %pp
+	%x1 = zext i128 %x to i192
+	%y1 = zext i128 %y to i192
+	%p1 = zext i128 %p to i192
+	%t = add i192 %x1, %y1
+	%vc = call { i192, i1 } @llvm.usub.with.overflow.i192(i192 %t, i192 %p1)
+	%v = extractvalue { i192, i1 } %vc, 0
+	%c = extractvalue { i192, i1 } %vc, 1
+	%z = select i1 %c, i192 %t, i192 %v
+	%z1 = trunc i192 %z to i128
+	store i128 %z1, i128* %pz
+	ret void
+}
+define void @subMod(i128* %pz, i128* %px, i128* %py, i128* %pp) {
+	%x = load i128* %px
+	%y = load i128* %py
+	%p = load i128* %pp
+	%vc = call { i128, i1 } @llvm.usub.with.overflow.i128(i128 %x, i128 %y)
+	%v = extractvalue { i128, i1 } %vc, 0
+	%c = extractvalue { i128, i1 } %vc, 1
+	%a = select i1 %c, i128 %p, i128 0
+	%z = add i128 %v, %a
+	store i128 %z, i128* %pz
+	ret void
+}
+
+define void @subMod_jmp(i128* %pz, i128* %px, i128* %py, i128* %pp) {
+	%x = load i128* %px
+	%y = load i128* %py
+	%vc = call { i128, i1 } @llvm.usub.with.overflow.i128(i128 %x, i128 %y)
+	%v = extractvalue { i128, i1 } %vc, 0
+	%c = extractvalue { i128, i1 } %vc, 1
+	br i1 %c, label %carry, label %nocarry
+nocarry:
+	store i128 %v, i128* %pz
+	ret void
+carry:
+	%p = load i128* %pp
+	%z = add i128 %v, %p
+	store i128 %z, i128* %pz
+	ret void
+}
+
