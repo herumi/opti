@@ -49,3 +49,20 @@ exit:
 }
 
 
+define void @add128(i64* %pz, i64* %px, i64* %py) {
+	%x0 = load i64* %px
+	%y0 = load i64* %py
+	%vc0 = call { i64, i1 } @add_with_carry(i64 %x0, i64 %y0, i1 0)
+	%v0 = extractvalue { i64, i1 } %vc0, 0
+	store i64 %v0, i64* %pz
+	%c0 = extractvalue { i64, i1 } %vc0, 1
+	%px1 = getelementptr i64* %px, i64 1
+	%py1 = getelementptr i64* %py, i64 1
+	%x1 = load i64* %px1
+	%y1 = load i64* %py1
+	%vc1 = call { i64, i1 } @add_with_carry(i64 %x1, i64 %y1, i1 %c0)
+	%v1 = extractvalue { i64, i1 } %vc1, 0
+	%pz1 = getelementptr i64* %pz, i64 1
+	store i64 %v1, i64* %pz1
+	ret void
+}
