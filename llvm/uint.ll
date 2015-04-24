@@ -166,13 +166,13 @@ define void @addMod(i128* %pz, i128* %px, i128* %py, i128* %pp) {
 	%x1 = zext i128 %x to i192
 	%y1 = zext i128 %y to i192
 	%p1 = zext i128 %p to i192
-	%t = add i192 %x1, %y1
-	%vc = call { i192, i1 } @llvm.usub.with.overflow.i192(i192 %t, i192 %p1)
-	%v = extractvalue { i192, i1 } %vc, 0
-	%c = extractvalue { i192, i1 } %vc, 1
-	%z = select i1 %c, i192 %t, i192 %v
-	%z1 = trunc i192 %z to i128
-	store i128 %z1, i128* %pz
+	%t0 = add i192 %x1, %y1 ; x + y
+	%t1 = sub i192 %t0, %p1 ; x + y - p
+	%t2 = lshr i192 %t1, 128
+	%t3 = trunc i192 %t2 to i1
+	%t4 = select i1 %t3, i192 %t0, i192 %t1
+	%t5 = trunc i192 %t4 to i128
+	store i128 %t5, i128* %pz
 	ret void
 }
 define void @subMod(i128* %pz, i128* %px, i128* %py, i128* %pp) {
@@ -313,3 +313,32 @@ define void @modNIST_P192(i192* %out, i192* %px) {
 
     ret void
 }
+
+define internal i256 @get(i256 %x, i256 %shift) {
+	%t0 = lshr i256 %x, %shift
+	%t1 = trunc i256 %t0 to i64
+	%t2 = zext i64 %t1 to i256
+	ret i256 %t2
+}
+
+define void @mont128(i128* %out, i256 %z0, i64 %c1, i64 %_c2) {
+	%c2 = zext i64 %_c2 to i256
+	%tz0 = trunc i256 %z0 to i64
+	%q0 = mul i64 %tz0, %c1
+	%zq0 = zext i64 %q0 to i256
+	%t0 = mul i256 %zq0, %c2
+	%a0 = add i256 %z0, %t0
+	%z1 = lshr i256 %a0, 64
+
+	%tz1 = trunc i256 %z1 to i64
+	%q1 = mul i64 %tz1, %c1
+	%zq1 = zext i64 %q1 to i256
+	%t1 = mul i256 %zq1, %c2
+	%a1 = add i256 %z1, %t0
+	%s1 = lshr i256 %a1, 64
+
+	%x = trunc i256 %s1 to i128
+	store i128 %x, i128* %out
+	ret void
+}
+
