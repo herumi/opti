@@ -2,6 +2,13 @@
 	for only 64-bit mode
 
 1000 times loop
+i5-4310U@2.0GHz(on Windows)
+inline       5.509Kclk
+call rel32   5.173Kclk
+call [rip]   5.424Kclk
+call reg     4.981Kclk
+call [reg]   5.789Kclk
+
 i7-4770@3.4GHz(on Linux turbo boost off)
 inline       5.353Kclk
 call rel32   5.152Kclk
