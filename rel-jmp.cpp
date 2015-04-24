@@ -1,6 +1,7 @@
 /*
 	for only 64-bit mode
 
+1000 times loop
 i7-4770@3.4GHz(on Linux turbo boost off)
 inline       5.353Kclk
 call rel32   5.152Kclk
