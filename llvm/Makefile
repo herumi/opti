@@ -60,6 +60,8 @@ test1-3.s: test1-2.bc
 clean:
 	rm -rf *.s *.o *.bc uint.optimized.ll
 
+mul.ll: mul.txt
+	python gen_mul.py
 opt: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
 opt-arm: mul.ll
