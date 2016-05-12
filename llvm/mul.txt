@@ -17,12 +17,13 @@ define i$(unit*2) @mul$(unit)x$(unit)(i$(unit) %x, i$(unit) %y) {
 	ret i$(unit*2) %z
 }
 
-define i64 @mulp32x32(i32 *%px, i32 %y, i32 %i)
+@define u2 = unit*2
+define i$(u2) @mulp$(unit)x$(unit)(i$(unit) *%px, i$(unit) %y, i$(unit) %i)
 {
-	%p = getelementptr i32* %px, i32 %i
-	%x = load i32* %p
-	%xy = call i64 @mul32x32(i32 %x, i32 %y)
-	ret i64 %xy
+	%p = getelementptr i$(unit)* %px, i$(unit) %i
+	%x = load i$(unit)* %p
+	%xy = call i$(u2) @mul$(unit)x$(unit)(i$(unit) %x, i$(unit) %y)
+	ret i$(u2) %xy
 }
 
 define void @storePos$(unit)(i$(unit) *%p, i$(unit) %v, i$(unit) %i)
@@ -33,7 +34,7 @@ define void @storePos$(unit)(i$(unit) *%p, i$(unit) %v, i$(unit) %i)
 }
 
 @define u2 = unit*2
-define void @Xmul$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
+define void @mul$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
 {
 @for i, 0, N
 	%x$(i)y = call i$(u2) @mulp$(unit)x$(unit)(i$(unit) *%px, i$(unit) %y, i$(unit) $(i))
@@ -48,7 +49,9 @@ define void @Xmul$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
 	%L$(i)es = shl i$(bit) %L$(i)e, $(unit * i - unit)
 @endif
 @endfor
+@if N > 2
 	%Lt1 = or i$(bit) %L1e, %L2es
+@endif
 @for i, 1, N - 2
 	%Lt$(i+1) = or i$(bit) %Lt$(i), %L$(i+2)es
 @endfor
