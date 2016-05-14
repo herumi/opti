@@ -78,3 +78,16 @@ define void @mul$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
 	
 	ret void
 }
+
+@define bu = bit + unit
+define i$(bu) @mulP$(bit)x$(unit)(i$(bit) %x, i$(unit) %y)
+{
+	%px = alloca i$(bit), i$(bit) 1
+	%pz = alloca i$(bu), i$(bu) 1
+	%ppx = bitcast i$(bit)* %px to i$(unit)*
+	%ppz = bitcast i$(bu)* %pz to i$(unit)*
+	store i$(bit) %x, i$(bit)* %px
+	call void @mul$(bit)x$(unit)(i$(unit) *%ppz, i$(unit) *%ppx, i$(unit) %y)
+	%z = load i$(bu) *%pz
+	ret i$(bu) %z
+}
