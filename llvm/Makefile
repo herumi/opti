@@ -64,5 +64,7 @@ mul.ll: mul.txt
 	python gen_mul.py
 opt: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
+opt86: mul.ll
+	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
 opt-arm: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=arm
