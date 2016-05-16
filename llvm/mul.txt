@@ -34,7 +34,7 @@ define void @storePos$(unit)(i$(unit) *%p, i$(unit) %v, i$(unit) %i)
 }
 
 @define u2 = unit*2
-define void @mulIn$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
+define void @mcl_fp_mul_UnitPre$(bit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
 {
 @for i, 0, N
 	%x$(i)y = call i$(u2) @mulp$(unit)x$(unit)(i$(unit) *%px, i$(unit) %y, i$(unit) $(i))
@@ -80,19 +80,106 @@ define void @mulIn$(bit)x$(unit)(i$(unit) *%pz, i$(unit) *%px, i$(unit) %y)
 }
 
 @define bu = bit + unit
-define i$(bu) @mul$(bit)x$(unit)(i$(bit) %x, i$(unit) %y)
+define i$(bu) @mulPv$(bit)(i$(unit) *%px, i$(unit) %y)
+{
+@for i, 0, N
+	%x$(i)y = call i$(u2) @mulp$(unit)x$(unit)(i$(unit) *%px, i$(unit) %y, i$(unit) $(i))
+	%L$(i) = trunc i$(u2) %x$(i)y to i$(unit)
+	%H$(i) = call i$(unit) @extractLow$(unit)(i$(u2) %x$(i)y)
+@endfor
+
+@for i, 1, N
+	%L$(i)e = zext i$(unit) %L$(i) to i$(bit)
+@if i > 1
+	%L$(i)es = shl i$(bit) %L$(i)e, $(unit * i - unit)
+@endif
+@endfor
+@if N > 2
+	%Lt1 = or i$(bit) %L1e, %L2es
+@endif
+@for i, 1, N - 2
+	%Lt$(i+1) = or i$(bit) %Lt$(i), %L$(i+2)es
+@endfor
+
+	%H0e = zext i$(unit) %H0 to i$(bit)
+@for i, 1, N
+	%H$(i)e = zext i$(unit) %H$(i) to i$(bit)
+	%H$(i)es = shl i$(bit) %H$(i)e, $(unit * i)
+@endfor
+	%Ht1 = or i$(bit) %H0e, %H1es
+@for i, 2, N
+	%Ht$(i) = or i$(bit) %Ht$(i-1), %H$(i)es
+@endfor
+@if N == 2
+	%t = add i$(bit) %Ht$(N-1), %L1e
+@else
+	%t = add i$(bit) %Ht$(N-1), %Lt$(N-2)
+@endif
+
+	%t1 = zext i$(bit) %t to i$(bu)
+	%t2 = shl i$(bu) %t1, $(unit)
+	%t3 = zext i$(unit) %L0 to i$(bu)
+	%t4 = or i$(bu) %t2, %t3
+	ret i$(bu) %t4
+}
+
+@define bu = bit + unit
+define i$(bu) @mulOld$(bit)x$(unit)(i$(bit) %x, i$(unit) %y)
 {
 	%px = alloca i$(bit), i$(bit) 1
 	%pz = alloca i$(bu), i$(bu) 1
 	%ppx = bitcast i$(bit)* %px to i$(unit)*
 	%ppz = bitcast i$(bu)* %pz to i$(unit)*
 	store i$(bit) %x, i$(bit)* %px
-	call void @mulIn$(bit)x$(unit)(i$(unit) *%ppz, i$(unit) *%ppx, i$(unit) %y)
+	call void @mcl_fp_mul_UnitPre$(bit)(i$(unit) *%ppz, i$(unit) *%ppx, i$(unit) %y)
 	%z = load i$(bu) *%pz
 	ret i$(bu) %z
 }
 
-define void @mcl_fpDbl_mulPre$(bit)(i$(unit)* %pz, i$(bit)* %px, i$(bit)* %py) {
+define i$(bu) @mul$(bit)x$(unit)(i$(bit) %x, i$(unit) %y)
+{
+@for i, 0, N
+	%x$(i) = call i$(unit) @extract$(bit)(i$(bit) %x, i$(bit) $(i*unit))
+	%x$(i)y = call i$(u2) @mul$(unit)x$(unit)(i$(unit) %x$(i), i$(unit) %y)
+	%L$(i) = trunc i$(u2) %x$(i)y to i$(unit)
+	%H$(i) = call i$(unit) @extractLow$(unit)(i$(u2) %x$(i)y)
+@endfor
+
+@for i, 1, N
+	%L$(i)e = zext i$(unit) %L$(i) to i$(bit)
+@if i > 1
+	%L$(i)es = shl i$(bit) %L$(i)e, $(unit * i - unit)
+@endif
+@endfor
+@if N > 2
+	%Lt1 = or i$(bit) %L1e, %L2es
+@endif
+@for i, 1, N - 2
+	%Lt$(i+1) = or i$(bit) %Lt$(i), %L$(i+2)es
+@endfor
+
+	%H0e = zext i$(unit) %H0 to i$(bit)
+@for i, 1, N
+	%H$(i)e = zext i$(unit) %H$(i) to i$(bit)
+	%H$(i)es = shl i$(bit) %H$(i)e, $(unit * i)
+@endfor
+	%Ht1 = or i$(bit) %H0e, %H1es
+@for i, 2, N
+	%Ht$(i) = or i$(bit) %Ht$(i-1), %H$(i)es
+@endfor
+@if N == 2
+	%t = add i$(bit) %Ht$(N-1), %L1e
+@else
+	%t = add i$(bit) %Ht$(N-1), %Lt$(N-2)
+@endif
+	%t1 = zext i$(bit) %t to i$(bu)
+	%t2 = shl i$(bu) %t1, $(unit)
+	%t3 = zext i$(unit) %L0 to i$(bu)
+	%t4 = or i$(bu) %t2, %t3
+	ret i$(bu) %t4
+}
+
+define void @mcl_fpDbl_mulPreOld$(bit)(i$(unit)* %pz, i$(bit)* %px, i$(bit)* %py) {
   %x = load i$(bit)* %px
   %y = load i$(bit)* %py
 @for i, 0, N
@@ -114,6 +201,45 @@ define void @mcl_fpDbl_mulPre$(bit)(i$(unit)* %pz, i$(bit)* %px, i$(bit)* %py) {
 @endfor
   %p = bitcast i$(unit)* %z$(N-1) to i$(bu)*
   store i$(bu) %sum$(N-1), i$(bu)* %p
+  ret void
+}
+
+@define bu = bit + unit
+define void @mcl_fpDbl_mulPre$(bit)(i$(unit)* %pz, i$(unit)* %px, i$(unit)* %py) {
+  %y0 = load i$(unit)* %py
+  %xy0 = call i$(bu) @mulPv$(bit)(i$(unit) *%px, i$(unit) %y0)
+  %z0 = trunc i$(bu) %xy0 to i$(unit)
+  store i$(unit) %z0, i$(unit)* %pz
+  %t0 = lshr i$(bu) %xy0, $(unit)
+
+  %py1 = getelementptr i$(unit)* %py, i32 1
+  %y1 = load i$(unit)* %py1
+  %xy1 = call i$(bu) @mulPv$(bit)(i$(unit) *%px, i$(unit) %y1)
+  %a1 = add i$(bu) %t0, %xy1
+  %z1 = trunc i$(bu) %a1 to i$(unit)
+  %pz1 = getelementptr i$(unit)* %pz, i32 1
+  store i$(unit) %z1, i$(unit)* %pz1
+  %t1 = lshr i$(bu) %a1, $(unit)
+
+  %py2 = getelementptr i$(unit)* %py, i32 2
+  %y2 = load i$(unit)* %py2
+  %xy2 = call i$(bu) @mulPv$(bit)(i$(unit) *%px, i$(unit) %y2)
+  %a2 = add i$(bu) %t1, %xy2
+  %z2 = trunc i$(bu) %a2 to i$(unit)
+  %pz2 = getelementptr i$(unit)* %pz, i32 2
+  store i$(unit) %z2, i$(unit)* %pz2
+  %t2 = lshr i$(bu) %a2, $(unit)
+
+  %py3 = getelementptr i$(unit)* %py, i32 3
+  %y3 = load i$(unit)* %py3
+  %xy3 = call i$(bu) @mulPv$(bit)(i$(unit) *%px, i$(unit) %y3)
+  %a3 = add i$(bu) %t2, %xy3
+  %z3 = trunc i$(bu) %a3 to i$(unit)
+  %pz3 = getelementptr i$(unit)* %pz, i32 3
+
+  %pz3e = bitcast i$(unit)* %pz3 to i$(bu)*
+  store i$(bu) %a3, i$(bu)* %pz3e
+
   ret void
 }
 
