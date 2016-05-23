@@ -58,13 +58,15 @@ test1-3.s: test1-2.bc
 	llc -O3 -o test1-3.s test1-2.bc
 
 clean:
-	rm -rf *.s *.o *.bc uint.optimized.ll
+	rm -rf *.s *.o *.bc uint.optimized.ll mul.ll
 
 mul.ll: mul.txt
-	python gen_mul.py
+	python gen_mul.py mul.ll 64
+mul86.ll: mul.txt
+	python gen_mul.py mul86.ll 32
 opt: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
-opt86: mul.ll
-	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
+opt86: mul86.ll
+	cat mul86.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
 opt-arm: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=arm
