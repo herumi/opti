@@ -69,4 +69,9 @@ opt: mul.ll
 opt86: mul86.ll
 	cat mul86.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
 opt-arm: mul.ll
-	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=arm
+	cat mul.ll | $(OPT_LLC) -march=arm
+
+asm: gen.cpp
+	clang++ -I ../../mcl/src -I ../../cybozulib/include gen.cpp -o gen
+	./gen > t.ll
+	cat t.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
