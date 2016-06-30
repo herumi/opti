@@ -1,4 +1,9 @@
 /*
+	see Intel manual Sytem Programming Guide
+	Chapter 19 Performance-Monitoring Events
+	perf stat -e r08c1 ./a.out ; OTHER_ASSISTS.AVX_TO_SSE
+	perf stat -e r10c1 ./a.out ; OTHER_ASSISTS.SSE_TO_AVX
+
 	sde -ast -skl -- nonzero-upper-penalty.exe
 */
 #include <stdio.h>
