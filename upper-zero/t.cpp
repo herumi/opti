@@ -31,7 +31,7 @@ void f_vaddpd_k();
 void put(const double *p, int n)
 {
 	for (int i = 0; i < n; i++) {
-		printf("%.1f ", p[i]);
+		printf("%.1f ", p[n - 1 - i]);
 	}
 	printf("\n");
 }
@@ -49,10 +49,10 @@ int main()
 {
 	CALL(f_movsd);
 	CALL(f_movsd_mem);
-	CALL(f_addsd);
-	CALL(f_addpd);
 	CALL(f_vmovsd);
 	CALL(f_vmovsd_mem);
+	CALL(f_addsd);
+	CALL(f_addpd);
 	CALL(f_vaddsd);
 	CALL(f_vaddpd);
 	CALL(f_vaddpd_y);
