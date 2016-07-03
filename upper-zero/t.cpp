@@ -14,11 +14,17 @@ extern "C" {
 
 double dout[];
 
+void f_movsd();
+void f_movsd_mem();
+void f_addsd();
 void f_addpd();
+
+void f_vmovsd();
+void f_vmovsd_mem();
+void f_vaddsd();
 void f_vaddpd();
-void f_addpd512();
-void f_vaddpd512();
-void f_vaddpd512y();
+void f_vaddpd_y();
+void f_vaddpd_k();
 
 }
 
@@ -30,17 +36,24 @@ void put(const double *p, int n)
 	printf("\n");
 }
 
+void call(const char *msg, void f())
+{
+	puts(msg);
+	f();
+	put(dout, 8);
+}
+
+#define CALL(f) call(#f, f);
+
 int main()
 {
-	f_addpd();
-	put(dout, 4);
-	f_vaddpd();
-	put(dout, 4);
-
-	f_addpd512();
-	put(dout, 8);
-	f_vaddpd512();
-	put(dout, 8);
-	f_vaddpd512y();
-	put(dout, 8);
+	CALL(f_movsd);
+	CALL(f_movsd_mem);
+	CALL(f_addsd);
+	CALL(f_addpd);
+	CALL(f_vmovsd);
+	CALL(f_vmovsd_mem);
+	CALL(f_vaddsd);
+	CALL(f_vaddpd);
+	CALL(f_vaddpd_y);
 }
