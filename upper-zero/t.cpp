@@ -31,9 +31,11 @@ void f_movsd();
 void f_movsd_mem();
 void f_addsd();
 void f_addpd();
+void f_movlpd();
 
 void f_vmovsd();
 void f_vmovsd_mem();
+void f_vmovlpd();
 void f_vaddsd();
 void f_vaddpd();
 void f_vaddpd_y();
@@ -64,6 +66,8 @@ int main()
 	CALL(f_movsd_mem);
 	CALL(f_vmovsd);
 	CALL(f_vmovsd_mem);
+	CALL(f_movlpd);
+	CALL(f_vmovlpd);
 	CALL(f_addsd);
 	CALL(f_addpd);
 	CALL(f_vaddsd);

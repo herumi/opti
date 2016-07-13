@@ -4,6 +4,8 @@ global f_movsd
 global f_movsd_mem
 global f_vmovsd
 global f_vmovsd_mem
+global f_movlpd
+global f_vmovlpd
 global f_addsd
 global f_addpd
 global f_vaddsd
@@ -53,6 +55,26 @@ f_vmovsd_mem:
 	vmovupd	zmm0, [rax]
 
 	vmovsd	xmm0, [rax]
+
+	mov		rax, dout
+	vmovupd	[rax], zmm0
+	ret
+
+f_movlpd:
+	mov		rax, din
+	vmovupd	zmm0, [rax]
+
+	movlpd	xmm0, [rax]
+
+	mov		rax, dout
+	vmovupd	[rax], zmm0
+	ret
+
+f_vmovlpd:
+	mov		rax, din
+	vmovupd	zmm0, [rax]
+
+	vmovlpd	xmm0, xmm0, [rax]
 
 	mov		rax, dout
 	vmovupd	[rax], zmm0
