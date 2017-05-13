@@ -41,6 +41,9 @@ void f_vaddpd();
 void f_vaddpd_y();
 void f_vaddpd_k();
 
+void f_movupd();
+void f_vmovupd();
+
 }
 
 void put(const double *p, int n)
@@ -73,4 +76,6 @@ int main()
 	CALL(f_vaddsd);
 	CALL(f_vaddpd);
 	CALL(f_vaddpd_y);
+	CALL(f_movupd);
+	CALL(f_vmovupd);
 }

@@ -12,6 +12,8 @@ global f_vaddsd
 global f_vaddpd
 global f_vaddpd_y
 global f_vaddpd_k
+global f_movupd
+global f_vmovupd
 
 segment .data
 
@@ -135,6 +137,26 @@ f_vaddpd_k:
 	vmovupd	zmm0, [rax]
 
 	vaddpd	zmm0, zmm0, zmm0
+
+	mov		rax, dout
+	vmovupd	[rax], zmm0
+	ret
+
+f_movupd:
+	mov		rax, din
+	vmovupd	zmm0, [rax]
+
+	movupd xmm0, [rax]
+
+	mov		rax, dout
+	vmovupd	[rax], zmm0
+	ret
+
+f_vmovupd:
+	mov		rax, din
+	vmovupd	zmm0, [rax]
+
+	vmovupd xmm0, [rax]
 
 	mov		rax, dout
 	vmovupd	[rax], zmm0

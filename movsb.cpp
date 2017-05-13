@@ -4,6 +4,7 @@
 #include <cybozu/benchmark.hpp>
 #include <cybozu/inttype.hpp>
 #include <stdio.h>
+#include <memory.h>
 
 #ifdef XBYAK32
 	#error "64bit only"
@@ -13,6 +14,15 @@ typedef cybozu::AlignedArray<char, 32> Vec;
 
 void (*copy_movsb)(void *dst, const void *src, size_t n);
 void (*copy_xmm)(void *dst, const void *src, size_t n);
+
+void memcpyC(void *dst, const void *src, size_t n)
+{
+	char *q = (char*)dst;
+	const char *p = (const char*)src;
+	for (size_t i = 0; i < n; i++) {
+		q[i] = p[i];
+	}
+}
 
 struct Code : Xbyak::CodeGenerator {
 	Code()
@@ -42,7 +52,7 @@ struct Code : Xbyak::CodeGenerator {
 #else
 		// (rdi, rsi, rdx)
 		mov(rcx, rdx);
-		rep_movsb();
+		rep(); movsb();
 		ret();
 #endif
 #else
@@ -55,7 +65,7 @@ struct Code : Xbyak::CodeGenerator {
 		mov(rdi, dst);
 		mov(rsi, src);
 		mov(rcx, n);
-		rep_movsb();
+		rep(); movsb();
 		pop(rdi);
 		pop(rsi);
 #endif
@@ -75,10 +85,6 @@ struct Code : Xbyak::CodeGenerator {
 		add(dst, 64);
 		sub(n, 64);
 		jnz("@b");
-	}
-	void rep_movsb()
-	{
-		db(0xf3); db(0xa4);
 	}
 } s_code;
 
@@ -108,6 +114,11 @@ int main()
 		printf("buf2=%s\n", buf2);
 	}
 	const int tbl[] = {
+		64,
+		128,
+		256,
+		512,
+		1024,
 		1024 * 2,
 		1024 * 4,
 		1024 * 16,
@@ -122,6 +133,8 @@ int main()
 		printf("size %d byte\n", n);
 		CYBOZU_BENCH("", copy_movsb, x, y, n); putResult("movsb", n);
 		CYBOZU_BENCH("", copy_xmm, x, y, n); putResult("xmm  ", n);
+		CYBOZU_BENCH("", memcpyC, x, y, n); putResult("memcpyC  ", n);
+		CYBOZU_BENCH("", memcpy, x, y, n); putResult("memcpy  ", n);
 	}
 	const int tbl2[] = {
 		1024 * 2,
