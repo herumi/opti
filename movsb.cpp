@@ -24,6 +24,17 @@ void memcpyC(void *dst, const void *src, size_t n)
 	}
 }
 
+#ifdef __GNUC__
+	#define USE_INLINE_ASM
+#endif
+
+#ifdef USE_INLINE_ASM
+void asm_movsb(void *dst, const void *src, size_t n)
+{
+	__asm__ volatile(".byte 0xf3, 0xa4" :: "S"(src), "D"(dst), "c"(n));
+}
+#endif
+
 struct Code : Xbyak::CodeGenerator {
 	Code()
 	{
@@ -45,7 +56,7 @@ struct Code : Xbyak::CodeGenerator {
 		mov(rdi, rcx);
 		mov(rsi, rdx);
 		mov(rcx, r8);
-		rep_movsb();
+		rep(); movsb();
 		pop(rdi);
 		pop(rsi);
 		ret();
@@ -135,6 +146,9 @@ int main()
 		CYBOZU_BENCH("", copy_xmm, x, y, n); putResult("xmm  ", n);
 		CYBOZU_BENCH("", memcpyC, x, y, n); putResult("memcpyC  ", n);
 		CYBOZU_BENCH("", memcpy, x, y, n); putResult("memcpy  ", n);
+#ifdef USE_INLINE_ASM
+		CYBOZU_BENCH("", asm_movsb, x, y, n); putResult("asm_movsb  ", n);
+#endif
 	}
 	const int tbl2[] = {
 		1024 * 2,
