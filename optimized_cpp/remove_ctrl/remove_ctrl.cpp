@@ -72,9 +72,9 @@ inline const char *findCharRangeCopyAVX(char *dst, const char *p, size_t size)
 		if (idx < 32) {
 			return p + idx;
 		}
-		dst += 16;
-		p += 16;
-		size -= 16;
+		dst += 32;
+		p += 32;
+		size -= 32;
 	}
 #else
 	const __m256i max = _mm256_loadu_si256((const __m256i*)c);
@@ -89,9 +89,9 @@ inline const char *findCharRangeCopyAVX(char *dst, const char *p, size_t size)
 		if (idx < 64) {
 			return p + idx;
 		}
-		dst += 32;
-		p += 32;
-		size -= 32;
+		dst += 64;
+		p += 64;
+		size -= 64;
 	}
 #endif
 	while (size > 0) {
