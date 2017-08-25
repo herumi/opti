@@ -1,13 +1,15 @@
 #include <stdint.h>
-#define MCL_SIZEOF_UNIT 4
-#include <mcl/vint.hpp>
+//#define MCL_SIZEOF_UNIT 4
+//#include <mcl/vint.hpp>
 
 extern "C" {
 
+#if 0
 void add128(uint32_t *z, const uint32_t *x, const uint32_t *y)
 {
 	mcl::vint::addN(z, x, y, 4);
 }
+#endif
 
 uint32_t add(uint32_t x, uint32_t y)
 {
