@@ -19,14 +19,20 @@ function setupWasm(fileName,  fct, setup) {
 			}
 			console.log('start')
 			module = Module(moduleArgs)
+			console.log('module=' + module)
 		})
 }
 
+/*
 setupWasm('add.wasm', mcl, function setup(fct) {
 	fct.add = module.cwrap('add', 'number', ['number', 'number'])
 	fct.str2int = module.cwrap('str2int', 'number', ['number'])
 })
-
+*/
+setupWasm('mclbn.wasm', mcl, function setup(fct) {
+	mclBn_Init = module.cwrap('mclBn_init', 'number', ['number', 'number'])
+	mclBn_getOpUnitSize = module.cwrap('mclBn_getOpUnitSize', 'number', [])
+})
 
 function test_add() {
 	var x = getValue('ret1')
@@ -61,4 +67,11 @@ function test_str2int() {
 	var y = str2int(a)
 	console.log('y=' + y)
 	setStrValue('ret2', y)
+}
+
+function test_mcl() {
+	var r = mclBn_Init(0, 4)
+	console.log('r=' + r)
+	r = mclBn_getOpUnitSize()
+	console.log('r=' + r)
 }
