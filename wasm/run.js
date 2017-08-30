@@ -2,9 +2,8 @@ function getValue(name) { return document.getElementsByName(name)[0].value }
 function setStrValue(name, val) { document.getElementsByName(name)[0].value = val }
 
 var module
-var mcl = {}
 
-function setupWasm(fileName,  fct, setup) {
+function setupWasm(fileName) {
 	console.log('setupWasm:' + fileName)
 	fetch(fileName)
 		.then(response => response.arrayBuffer())
@@ -14,7 +13,8 @@ function setupWasm(fileName,  fct, setup) {
 				wasmBinary: binary,
 				onRuntimeInitialized: function () {
 					console.log('initialized')
-					setup(fct)
+					define_exported_functions(module)
+					console.log('initialized end')
 				}
 			}
 			console.log('start')
@@ -29,10 +29,7 @@ setupWasm('add.wasm', mcl, function setup(fct) {
 	fct.str2int = module.cwrap('str2int', 'number', ['number'])
 })
 */
-setupWasm('mclbn.wasm', mcl, function setup(fct) {
-	mclBn_Init = module.cwrap('mclBn_init', 'number', ['number', 'number'])
-	mclBn_getOpUnitSize = module.cwrap('mclBn_getOpUnitSize', 'number', [])
-})
+setupWasm('mclbn.wasm')
 
 function test_add() {
 	var x = getValue('ret1')
@@ -70,7 +67,7 @@ function test_str2int() {
 }
 
 function test_mcl() {
-	var r = mclBn_Init(0, 4)
+	var r = mclBn_init(0, 4)
 	console.log('r=' + r)
 	r = mclBn_getOpUnitSize()
 	console.log('r=' + r)

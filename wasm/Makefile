@@ -1,4 +1,4 @@
-all: add.wasm mclbn.wasm
+all: add.wasm mclbn.wasm exported_functions.txt exported_functions.js
 EMCC=emcc
 WABT_PATH=~/soft/wabt/out/clang/Debug/
 MCL_PATH=../../mcl/
@@ -12,10 +12,18 @@ add.wasm: add.cpp
 	emcc add.cpp $(CFLAGS) -o add.js -s WASM=1 -s "MODULARIZE=1" -s "EXPORTED_FUNCTIONS=['_add', '_str2int']"
 #	emcc add.cpp $(CFLAGS) -o add.js -s WASM=1 -s SIDE_MODULE=1 -o add.wasm
 
-mclbn.wasm: $(MCL_PATH)src/fp.cpp $(MCL_PATH)src/bn_c256.cpp
-	emcc $(MCL_PATH)src/fp.cpp -o mclbn.js $(MCL_PATH)src/bn_c256.cpp $(CFLAGS) -o mclbn.js -s WASM=1 -s "MODULARIZE=1" -s "EXPORTED_FUNCTIONS=['_mclBn_init', '_mclBn_getOpUnitSize']" -DMCLBN_FP_UNIT_SIZE=4
+exported_functions.txt: $(MCL_PATH)/include/mcl/bn.h
+	python export_functions.py $< > $@
 
-run_server:
+exported_functions.js: $(MCL_PATH)/include/mcl/bn.h
+	python export_functions.py $< -js > $@
+
+EXPORTED_FUNCTIONS=$(shell cat exported_functions.txt)
+
+mclbn.wasm: $(MCL_PATH)src/fp.cpp $(MCL_PATH)src/bn_c256.cpp
+	emcc $(MCL_PATH)src/fp.cpp -o mclbn.js $(MCL_PATH)src/bn_c256.cpp $(CFLAGS) -o mclbn.js -s WASM=1 -s "MODULARIZE=1" -s "EXPORTED_FUNCTIONS=[$(EXPORTED_FUNCTIONS)]" -DMCLBN_FP_UNIT_SIZE=4
+
+run-server:
 	python -m SimpleHTTPServer
 
 clean:
