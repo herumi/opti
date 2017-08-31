@@ -1,71 +1,75 @@
 function getValue(name) { return document.getElementsByName(name)[0].value }
 function setStrValue(name, val) { document.getElementsByName(name)[0].value = val }
 
-var module
-
-function setupWasm(fileName) {
-	console.log('setupWasm:' + fileName)
+function setupWasm(fileName, nameSpace, setupFct) {
+	console.log('setupWasm ' + fileName)
+	var mod = {}
 	fetch(fileName)
 		.then(response => response.arrayBuffer())
 		.then(buffer => new Uint8Array(buffer))
 		.then(binary => {
-			var moduleArgs = {
-				wasmBinary: binary,
-				onRuntimeInitialized: function () {
-					define_exported_functions(module)
-					console.log('setup end')
-				}
+			mod['wasmBinary'] = binary
+			mod['onRuntimeInitialized'] = function() {
+				setupFct(mod, nameSpace)
+				console.log('setupWasm end')
 			}
-			module = Module(moduleArgs)
+			Module(mod)
 		})
+	return mod
 }
 
-/*
-setupWasm('add.wasm', mcl, function setup(fct) {
-	fct.add = module.cwrap('add', 'number', ['number', 'number'])
-	fct.str2int = module.cwrap('str2int', 'number', ['number'])
+var module = setupWasm('mclbn.wasm', null, function(mod, ns) {
+	define_exported_mcl(mod)
+	define_extra_functions(mod)
+	var r = mclBn_init(0, 4)
+	console.log('mclBn_init=' + r)
 })
-*/
-setupWasm('mclbn.wasm')
 
-function test_add() {
-	var x = getValue('ret1')
-	var y = mcl.add(x, 5)
-	setStrValue('ret1', y)
-}
-
-function str2uint8array(s) {
-	a = new Uint8Array(s.length)
-	for (var i = 0; i < s.length; i++) {
-		a[i] = s.charCodeAt(i)
+function define_extra_functions(mod) {
+	Fr_create = function() {
+		return mod._malloc(32)
 	}
-	return a
-}
-
-function str2int(d) {
-	var p = module._malloc(d.length)
-	console.log('d=' + d)
-	module.HEAPU8.set(d, p)
-	console.log('p=' + p)
-	var v = mcl.str2int(p)
-	console.log('v=' + v)
-	module._free(p)
-	return v
-}
-
-function test_str2int() {
-	var s = getValue('inp1')
-	console.log('s=' + s)
-	var a = str2uint8array(s)
-	console.log('a=' + a)
-	var y = str2int(a)
-	console.log('y=' + y)
-	setStrValue('ret2', y)
+	Fr_destroy = function(x) {
+		mod._free(x)
+	}
+	Fr_setStr = function(x, buf, ioMode) {
+		if (ioMode == null) { ioMode = 10 }
+		var stack = mod.Runtime.stackSave()
+		var pos = mod.Runtime.stackAlloc(buf.length)
+		for (var i = 0; i < buf.length; i++) {
+			mod.HEAP8[pos + i] = buf.charCodeAt(i)
+		}
+		r = mclBnFr_setStr(x, pos, buf.length, ioMode)
+		mod.Runtime.stackRestore(stack)
+		if (r) console.log('mclBnFr_setStr err ' + r)
+	}
+	Fr_getStr = function(x, ioMode) {
+		if (ioMode == null) { ioMode = 10 }
+		var maxBufSize = 512
+		var stack = mod.Runtime.stackSave()
+		var pos = mod.Runtime.stackAlloc(maxBufSize)
+		var n = mclBnFr_getStr(pos, maxBufSize, x, ioMode)
+		var s = ''
+		for (var i = 0; i < n; i++) {
+			s += String.fromCharCode(mod.HEAP8[pos + i])
+		}
+		mod.Runtime.stackRestore(stack)
+		return s
+	}
+	Fr_add = function(z, x, y) {
+		mclBnFr_add(z, x, y)
+	}
 }
 
 function test_mcl() {
-	var r = mclBn_init(0, 4)
-	console.log('r=' + r)
-	r = mclBn_getOpUnitSize()
-	console.log('r=' + r)
+	var x = Fr_create()
+	var y = Fr_create()
+	var z = Fr_create()
+	Fr_setStr(x, getValue('x'))
+	Fr_setStr(y, getValue('y'))
+	mclBnFr_add(z, x, y)
+	setStrValue('z', Fr_getStr(z))
+	Fr_destroy(x)
+	Fr_destroy(y)
+	Fr_destroy(z)
 }

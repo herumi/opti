@@ -2,10 +2,10 @@ import sys, re
 
 #RE_PROTOTYPE = re.compile(r'MCLBN_DLL_API\s\w\s\w\([^)]*\);')
 RE_PROTOTYPE = re.compile(r'MCLBN_DLL_API\s(\w*)\s(\w*)\(([^)]*)\);')
-def export_functions(fileName, mode):
+def export_functions(fileName, modName):
 	with open(fileName, 'rb') as f:
-		if mode == 'js':
-			print 'function define_exported_functions(mod) {'
+		if modName:
+			print 'function define_exported_' + modName + '(mod) {'
 		comma = ''
 		for line in f.readlines():
 			p = RE_PROTOTYPE.search(line)
@@ -13,7 +13,7 @@ def export_functions(fileName, mode):
 				ret = p.group(1)
 				name = p.group(2)
 				arg = p.group(3)
-				if mode == 'js':
+				if modName:
 					retType = 'null' if ret == 'void' else 'number'
 					if arg == '' or arg == 'void':
 						paramType = '[]'
@@ -24,18 +24,18 @@ def export_functions(fileName, mode):
 					print comma + "'_" + name + "'",
 					if comma == '':
 						comma = ','
-		if mode == 'js':
+		if modName:
 			print '}'
 
 def main():
 	args = len(sys.argv)
-	mode = ''
+	modName = ''
 	if args <= 1:
-		print('export_functions header [-js]')
+		print 'export_functions header [-js <modName>]'
 		sys.exit(1)
-	if args == 3 and sys.argv[2] == '-js':
-		mode = 'js'
-	export_functions(sys.argv[1], mode)
+	if args == 4 and sys.argv[2] == '-js':
+		modName = sys.argv[3]
+	export_functions(sys.argv[1], modName)
 
 if __name__ == '__main__':
     main()
