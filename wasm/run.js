@@ -12,14 +12,11 @@ function setupWasm(fileName) {
 			var moduleArgs = {
 				wasmBinary: binary,
 				onRuntimeInitialized: function () {
-					console.log('initialized')
 					define_exported_functions(module)
-					console.log('initialized end')
+					console.log('setup end')
 				}
 			}
-			console.log('start')
 			module = Module(moduleArgs)
-			console.log('module=' + module)
 		})
 }
 

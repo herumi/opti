@@ -4,7 +4,7 @@ function setStrValue(name, val) { document.getElementsByName(name)[0].value = va
 var module
 var mcl = []
 
-function setupWasm(fileName, setup) {
+function setupWasm(fileName, nameSpace, setupFct) {
 	console.log('setupWasm:' + fileName)
 	fetch(fileName)
 		.then(response => response.arrayBuffer())
@@ -13,7 +13,7 @@ function setupWasm(fileName, setup) {
 			var moduleArgs = {
 				wasmBinary: binary,
 				onRuntimeInitialized: function () {
-					setup()
+					setupFct(nameSpace)
 					console.log('setup end')
 				}
 			}
@@ -21,9 +21,11 @@ function setupWasm(fileName, setup) {
 		})
 }
 
-setupWasm('add.wasm', function setup(fct) {
-	mcl.add = module.cwrap('add', 'number', ['number', 'number'])
-	mcl.str2int = module.cwrap('str2int', 'number', ['number'])
+setupWasm('add.wasm', mcl, function(ns) {
+	ns.add = module.cwrap('add', 'number', ['number', 'number'])
+	ns.str2int = module.cwrap('str2int', 'number', ['number'])
+	ns.str2int2 = module.cwrap('str2int', 'number', ['string'])
+	ns.int2str = module.cwrap('int2str', 'number', ['number', 'number', 'number'])
 })
 
 function test_add() {
@@ -52,7 +54,7 @@ function str2int(d) {
 }
 
 function test_str2int() {
-	var s = getValue('inp1')
+	var s = getValue('inp2')
 	console.log('s=' + s)
 	var a = str2uint8array(s)
 	console.log('a=' + a)
@@ -60,3 +62,42 @@ function test_str2int() {
 	console.log('y=' + y)
 	setStrValue('ret2', y)
 }
+
+function test_str2int2() {
+	var s = getValue('inp3')
+	console.log('s=' + s)
+	var y = 0
+	if (0) {
+		y = mcl.str2int2(s)
+	} else {
+		var stack = module.Runtime.stackSave()
+		var pos = module.Runtime.stackAlloc(s.length)
+		for (var i = 0; i < s.length; i++) {
+			module.HEAP8[pos + i] = s.charCodeAt(i)
+		}
+		y = mcl.str2int(pos)
+		module.Runtime.stackRestore(stack)
+	}
+	console.log('y=' + y)
+	setStrValue('ret3', y)
+}
+
+function test_int2str() {
+	var v = getValue('inp4') | 0
+	console.log('v=' + v)
+	var maxBufSize = 10
+	var s = ''
+	{
+		var stack = module.Runtime.stackSave()
+		var pos = module.Runtime.stackAlloc(maxBufSize)
+		console.log('pos=' + pos)
+		var n = mcl.int2str(pos, maxBufSize, v)
+		console.log('n=' + n)
+		for (var i = 0; i < n; i++) {
+			s += String.fromCharCode(module.HEAP8[pos + i])
+		}
+		module.Runtime.stackRestore(stack)
+	}
+	setStrValue('ret4', s)
+}
+
