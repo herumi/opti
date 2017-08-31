@@ -1,31 +1,29 @@
 function getValue(name) { return document.getElementsByName(name)[0].value }
 function setStrValue(name, val) { document.getElementsByName(name)[0].value = val }
 
-var module
-var mcl = []
-
 function setupWasm(fileName, nameSpace, setupFct) {
-	console.log('setupWasm:' + fileName)
+	console.log('setupWasm ' + fileName)
+	var mod = {}
 	fetch(fileName)
 		.then(response => response.arrayBuffer())
 		.then(buffer => new Uint8Array(buffer))
 		.then(binary => {
-			var moduleArgs = {
-				wasmBinary: binary,
-				onRuntimeInitialized: function () {
-					setupFct(nameSpace)
-					console.log('setup end')
-				}
+			mod['wasmBinary'] = binary
+			mod['onRuntimeInitialized'] = function() {
+				setupFct(mod, nameSpace)
+				console.log('setupWasm end')
 			}
-			module = Module(moduleArgs)
+			Module(mod)
 		})
+	return mod
 }
 
-setupWasm('add.wasm', mcl, function(ns) {
-	ns.add = module.cwrap('add', 'number', ['number', 'number'])
-	ns.str2int = module.cwrap('str2int', 'number', ['number'])
-	ns.str2int2 = module.cwrap('str2int', 'number', ['string'])
-	ns.int2str = module.cwrap('int2str', 'number', ['number', 'number', 'number'])
+var mcl = []
+var module = setupWasm('add.wasm', mcl, function(mod, ns) {
+	ns.add = mod.cwrap('add', 'number', ['number', 'number'])
+	ns.str2int = mod.cwrap('str2int', 'number', ['number'])
+	ns.str2int2 = mod.cwrap('str2int', 'number', ['string'])
+	ns.int2str = mod.cwrap('int2str', 'number', ['number', 'number', 'number'])
 })
 
 function test_add() {
