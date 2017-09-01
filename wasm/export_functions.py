@@ -2,6 +2,7 @@ import sys, re
 
 #RE_PROTOTYPE = re.compile(r'MCLBN_DLL_API\s\w\s\w\([^)]*\);')
 RE_PROTOTYPE = re.compile(r'MCLBN_DLL_API\s(\w*)\s(\w*)\(([^)]*)\);')
+RE_SPECIAL_FUNCTION_NAME = re.compile(r'(setStr|getStr|serialize|setLittleEndian|setHashOf)')
 def export_functions(fileName, modName):
 	with open(fileName, 'rb') as f:
 		if modName:
@@ -19,7 +20,11 @@ def export_functions(fileName, modName):
 						paramType = '[]'
 					else:
 						paramType = '[' + ("'number', " * len(arg.split(','))) + ']'
-					print "{0} = mod.cwrap('{1}', '{2}', {3})".format(name, name, retType, paramType)
+					if RE_SPECIAL_FUNCTION_NAME.search(name):
+						exportName = '_' + name # to wrap function
+					else:
+						exportName = name
+					print "{0} = mod.cwrap('{1}', '{2}', {3})".format(exportName, name, retType, paramType)
 				else:
 					print comma + "'_" + name + "'",
 					if comma == '':

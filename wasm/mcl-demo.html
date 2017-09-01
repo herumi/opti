@@ -1,15 +1,29 @@
-<!DOCTYPE html><html>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja">
 <head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <script type='text/javascript' src="./mclbn.js"></script>
 <script type='text/javascript' src="./exported-mcl.js"></script>
 <script type='text/javascript' src="./run.js"></script>
 </script>
 </head>
 <body>
-<button type="text" onclick="test_mcl()">mcl</button>
 <div>
-x : <input type="text" name="x" value="0">
-y : <input type="text" name="y" value="0">
-z : <input type="text" name="z" value="0">
+status : <span name="status">initializing...</span>
 </div>
-</body></html>
+<button type="text" onclick="test_mcl()">add, sub</button>
+<div>
+x = <input type="text" name="x" value="0" size="100"><br>
+y = <input type="text" name="y" value="0" size="100">
+</div>
+<div>
+x + y = <input type="text" name="ret_add" value="0" size="100"><br>
+x - y = <input type="text" name="ret_sub" value="0" size="100"><br>
+x * y = <input type="text" name="ret_mul" value="0" size="100"><br>
+x / y = <input type="text" name="ret_div" value="0" size="100">
+</div>
+<div>
+hash(<input type="text" name="hash_str" value="">) = <input type="text" name="ret_hash" value="0" size="100">
+</div>
+</body>
+</html>
