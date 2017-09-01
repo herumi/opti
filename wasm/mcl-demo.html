@@ -9,21 +9,48 @@
 </head>
 <body>
 <div>
-status : <span name="status">initializing...</span>
+library status <span name="status">initializing...</span>
 </div>
-<button type="text" onclick="test_mcl()">add, sub</button>
+<h2>Fr</h2>
+<button type="text" onclick="TestFr()">test Fr</button>
 <div>
-x = <input type="text" name="x" value="0" size="100"><br>
+x = <input type="text" name="x" value="0" size="100">
+<button type="text" onclick="rand('x')">rand x</button><br>
 y = <input type="text" name="y" value="0" size="100">
+<button type="text" onclick="rand('y')">rand y</button>
 </div>
 <div>
-x + y = <input type="text" name="ret_add" value="0" size="100"><br>
-x - y = <input type="text" name="ret_sub" value="0" size="100"><br>
-x * y = <input type="text" name="ret_mul" value="0" size="100"><br>
-x / y = <input type="text" name="ret_div" value="0" size="100">
+x + y = <span name="ret_add"></span><br>
+x - y = <span name="ret_sub"></span><br>
+x * y = <span name="ret_mul"></span><br>
+x / y = <span name="ret_div"></span><br>
 </div>
 <div>
-hash(<input type="text" name="hash_str" value="">) = <input type="text" name="ret_hash" value="0" size="100">
+hash(<input type="text" name="hash_x" value="">) = <span name="ret_hash_x"></span>
+</div>
+<h2>G1</h2>
+<button type="text" onclick="TestG1()">test G1</button>
+<div>
+P1 = hash(<input type="text" name="hash_P1" value="a">) = <span name="P1">0</span><br>
+P2 = hash(<input type="text" name="hash_P2" value="b">) = <span name="P2">0</span><br>
+</div>
+<hr>
+<div>
+P1 + P2 = <span name="P1addP2"></span><br>
+P1 - P2 = <span name="P1subP2"></span><br>
+P1 * x = <span name="P1mulx"></span><br>
+</div>
+<h2>G2</h2>
+<button type="text" onclick="TestG2()">test G2</button>
+<div>
+Q1 = hash(<input type="text" name="hash_Q1" value="a">) = <span name="Q1">0</span><br>
+Q2 = hash(<input type="text" name="hash_Q2" value="b">) = <span name="Q2">0</span><br>
+</div>
+<hr>
+<div>
+Q1 + Q2 = <span name="Q1addQ2"></span><br>
+Q1 - Q2 = <span name="Q1subQ2"></span><br>
+Q1 * x = <span name="Q1mulx"></span><br>
 </div>
 </body>
 </html>

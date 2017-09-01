@@ -111,28 +111,53 @@ function define_extra_functions(mod) {
 	mclBnFr_getStr = gen_getStr(_mclBnFr_getStr)
 	mclBnFr_setHashOf = gen_deserialize(_mclBnFr_setHashOf)
 
-
+	///////////////////////////////////////////////////////////////
 	mclBnG1_create = function() {
 		return mod._malloc(MCLBN_FP_UNIT_SIZE * 8 * 3)
-	}
-	mclBnG2_create = function() {
-		return mod._malloc(MCLBN_FP_UNIT_SIZE * 8 * 2 * 3)
-	}
-	mclBnGT_create = function() {
-		return mod._malloc(MCLBN_FP_UNIT_SIZE * 8 * 12)
 	}
 	mclBnG1_destroy = function(x) {
 		mod._free(x)
 	}
+	mclBnG1_setStr = gen_setStr(_mclBnG1_setStr)
+	mclBnG1_getStr = gen_getStr(_mclBnG1_getStr)
+	mclBnG1_deserialize = gen_deserialize(_mclBnG1_deserialize)
+	mclBnG1_serialize = gen_serialize(_mclBnG1_serialize)
+	mclBnG1_hashAndMapTo = gen_deserialize(_mclBnG1_hashAndMapTo)
+
+	///////////////////////////////////////////////////////////////
+	mclBnG2_create = function() {
+		return mod._malloc(MCLBN_FP_UNIT_SIZE * 8 * 2 * 3)
+	}
 	mclBnG2_destroy = function(x) {
 		mod._free(x)
+	}
+	mclBnG2_setStr = gen_setStr(_mclBnG2_setStr)
+	mclBnG2_getStr = gen_getStr(_mclBnG2_getStr)
+	mclBnG2_deserialize = gen_deserialize(_mclBnG2_deserialize)
+	mclBnG2_serialize = gen_serialize(_mclBnG2_serialize)
+	mclBnG2_hashAndMapTo = gen_deserialize(_mclBnG2_hashAndMapTo)
+
+	///////////////////////////////////////////////////////////////
+	mclBnGT_create = function() {
+		return mod._malloc(MCLBN_FP_UNIT_SIZE * 8 * 12)
 	}
 	mclBnGT_destroy = function(x) {
 		mod._free(x)
 	}
+	mclBnGT_deserialize = gen_deserialize(_mclBnGT_deserialize)
+	mclBnGT_serialize = gen_serialize(_mclBnGT_serialize)
+	mclBnGT_setStr = gen_setStr(_mclBnGT_setStr)
+	mclBnGT_getStr = gen_getStr(_mclBnGT_getStr)
 }
 
-function test_mcl() {
+function rand(val) {
+	var x = mclBnFr_create()
+	mclBnFr_setByCSPRNG(x)
+	setValue(val, mclBnFr_getStr(x))
+	mclBnFr_destroy(x)
+}
+
+function TestFr() {
 	var x = mclBnFr_create()
 	var y = mclBnFr_create()
 	var z = mclBnFr_create()
@@ -142,22 +167,81 @@ function test_mcl() {
 //	mclBnFr_setInt(x, getValue('x') | 0)
 	mclBnFr_setStr(y, getValue('y'))
 	mclBnFr_add(z, x, y)
-	setValue('ret_add', mclBnFr_getStr(z))
+	setText('ret_add', mclBnFr_getStr(z))
 	mclBnFr_sub(z, x, y)
-	setValue('ret_sub', mclBnFr_getStr(z))
+	setText('ret_sub', mclBnFr_getStr(z))
 	mclBnFr_mul(z, x, y)
-	setValue('ret_mul', mclBnFr_getStr(z))
+	setText('ret_mul', mclBnFr_getStr(z))
 	if (!mclBnFr_isZero(y)) {
 		mclBnFr_div(z, x, y)
-		setValue('ret_div', mclBnFr_getStr(z))
+		setText('ret_div', mclBnFr_getStr(z))
 	} else {
-		setValue('ret_div', 'err : y is zero')
+		setText('ret_div', 'err : y is zero')
 	}
-	mclBnFr_setHashOf(x, getValue('hash_str'))
-	setValue('ret_hash', mclBnFr_getStr(x))
+	mclBnFr_setHashOf(x, getValue('hash_x'))
+	setText('ret_hash_x', mclBnFr_getStr(x))
 
 
 	mclBnFr_destroy(x)
 	mclBnFr_destroy(y)
 	mclBnFr_destroy(z)
+}
+
+function TestG1() {
+	var P1 = mclBnG1_create()
+	var P2 = mclBnG1_create()
+	var P3 = mclBnG1_create()
+	var x = mclBnFr_create()
+
+	mclBnG1_hashAndMapTo(P1, getValue('hash_P1'))
+	setText('P1', mclBnG1_getStr(P1))
+
+	mclBnG1_hashAndMapTo(P2, getValue('hash_P2'))
+	setText('P2', mclBnG1_getStr(P2))
+
+	mclBnG1_add(P3, P1, P2)
+	setText('P1addP2', mclBnG1_getStr(P3))
+
+	mclBnG1_sub(P3, P1, P2)
+	setText('P1subP2', mclBnG1_getStr(P3))
+
+	mclBnFr_setStr(x, getValue('x'))
+	mclBnG1_mul(P3, P1, x)
+	setText('P1mulx', mclBnG1_getStr(P3))
+
+	mclBnFr_destroy(x)
+	mclBnG1_destroy(P1)
+	mclBnG1_destroy(P2)
+	mclBnG1_destroy(P3)
+}
+
+function TestG2() {
+	var Q1 = mclBnG2_create()
+	var Q2 = mclBnG2_create()
+	var Q3 = mclBnG2_create()
+	var x = mclBnFr_create()
+
+	mclBnG2_hashAndMapTo(Q1, getValue('hash_Q1'))
+	setText('Q1', mclBnG2_getStr(Q1))
+
+	mclBnG2_hashAndMapTo(Q2, getValue('hash_Q2'))
+	setText('Q2', mclBnG2_getStr(Q2))
+
+	mclBnG2_add(Q3, Q1, Q2)
+	setText('Q1addQ2', mclBnG2_getStr(Q3))
+
+	mclBnG2_sub(Q3, Q1, Q2)
+	setText('Q1subQ2', mclBnG2_getStr(Q3))
+
+	mclBnFr_setStr(x, getValue('x'))
+	mclBnG2_mul(Q3, Q1, x)
+	setText('Q1mulx', mclBnG2_getStr(Q3))
+
+	mclBnFr_destroy(x)
+	mclBnG2_destroy(Q1)
+	mclBnG2_destroy(Q2)
+	mclBnG2_destroy(Q3)
+}
+
+function TestPairing() {
 }
