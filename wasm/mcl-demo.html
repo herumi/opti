@@ -31,8 +31,8 @@ hash(<input type="text" name="hash_x" value="">) = <span name="ret_hash_x"></spa
 <h2>G1</h2>
 <button type="text" onclick="TestG1()">test G1</button>
 <div>
-P1 = hash(<input type="text" name="hash_P1" value="a">) = <span name="P1">0</span><br>
-P2 = hash(<input type="text" name="hash_P2" value="b">) = <span name="P2">0</span><br>
+P1 = hashAndMapToG1(<input type="text" name="hash_P1" value="a">) = <span name="P1">0</span><br>
+P2 = hashAndMapToG1(<input type="text" name="hash_P2" value="b">) = <span name="P2">0</span><br>
 </div>
 <hr>
 <div>
@@ -43,8 +43,8 @@ P1 * x = <span name="P1mulx"></span><br>
 <h2>G2</h2>
 <button type="text" onclick="TestG2()">test G2</button>
 <div>
-Q1 = hash(<input type="text" name="hash_Q1" value="a">) = <span name="Q1">0</span><br>
-Q2 = hash(<input type="text" name="hash_Q2" value="b">) = <span name="Q2">0</span><br>
+Q1 = hashAndMapToG2(<input type="text" name="hash_Q1" value="a">) = <span name="Q1">0</span><br>
+Q2 = hashAndMapToG2(<input type="text" name="hash_Q2" value="b">) = <span name="Q2">0</span><br>
 </div>
 <hr>
 <div>
@@ -52,5 +52,30 @@ Q1 + Q2 = <span name="Q1addQ2"></span><br>
 Q1 - Q2 = <span name="Q1subQ2"></span><br>
 Q1 * x = <span name="Q1mulx"></span><br>
 </div>
+<h2>pairing</h2>
+<button type="text" onclick="TestPairing()">test Pairing</button>
+<div>
+a = <input type="text" name="a" value="3"><br>
+b = <input type="text" name="b" value="4"><br>
+ab = <span name="ab">0</span><br>
+</div>
+<div>
+P = hashAndMapToG1(<input type="text" name="hash_P" value="abc">) = <span name="P">0</span><br>
+Q = hashAndMapToG2(<input type="text" name="hash_Q" value="def">) = <span name="Q">0</span><br>
+aP = <span name="aP">0</span><br>
+bQ = <span name="bQ">0</span><br>
+</div>
+<hr>
+<div>
+e(P, Q) = <span name="ePQ">0</span><br>
+e(aP, bQ) = <span name="eaPbQ">0</span><br>
+e(P, Q)^ab = <span name="ePQab">0</span><br>
+</div>
+<hr>
+<div>
+e(aP, bQ) == e(P, Q)^ab = <span name="verify_pairing"></span>
+</div>
+<hr>
+pairing time : <span name="time_pairing">0</span>msec
 </body>
 </html>

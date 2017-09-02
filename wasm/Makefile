@@ -2,7 +2,7 @@ all: mclbn.wasm exported-mcl.txt exported-mcl.js
 EMCC=emcc
 MCL_PATH=../../mcl/
 
-CFLAGS+=-O3 -I ../../mcl/include -I ../../cybozulib/include
+CFLAGS+=-O3 -I ../../mcl/include -I ../../cybozulib/include -DNDEBUG
 
 exported-mcl.txt: $(MCL_PATH)/include/mcl/bn.h
 	python export_functions.py $< > $@
