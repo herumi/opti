@@ -10,7 +10,7 @@ int (*func5)(int);
 
 int main()
 {
-	const int N = 100000000;
+	const int N = 10000000;
 	func5 = func1;
 	printf("%d\n", func1(5));
 	printf("%d\n", func2(5));
