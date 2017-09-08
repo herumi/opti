@@ -1,0 +1,25 @@
+<html>
+<head>
+<script>
+fetch('square.wasm')
+	.then(response => response.arrayBuffer())
+	.then(buffer => WebAssembly.compile(buffer))
+	.then(module => new WebAssembly.Instance(module))
+	.then(instance => {
+		let square = instance.exports.square
+		let button = document.getElementById('run')
+		let x = 15
+		button.value = 'square of ' + x + ' ='
+		button.addEventListener('click', function() {
+			document.getElementById('result').innerText = square(x)
+		})
+	})
+</script>
+</head>
+
+<body>
+<input type="button" id="run" value="loading WebAssembly"/>
+<span id="result">0</span>
+</body>
+
+</html>
