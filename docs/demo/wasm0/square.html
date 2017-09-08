@@ -11,7 +11,8 @@ fetch('square.wasm')
 		let x = 15
 		button.value = 'square of ' + x + ' ='
 		button.addEventListener('click', function() {
-			document.getElementById('result').innerText = square(x)
+			let xx = square(x)
+			document.getElementById('result').innerText = xx
 		})
 	})
 </script>
