@@ -9,7 +9,7 @@ extern "C" int func4(void *, size_t c);
 
 int main()
 {
-	const int N = 1000;//00;
+	const int N = 1000;
 	uint64_t x = 0;
 	CYBOZU_BENCH_C("func1", N, func1, &x, N);
 	CYBOZU_BENCH_C("func2", N, func2, &x, N);
