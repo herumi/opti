@@ -24,6 +24,8 @@ var module = setupWasm('add.wasm', mcl, function(mod, ns) {
 	ns.str2int = mod.cwrap('str2int', 'number', ['number'])
 	ns.str2int2 = mod.cwrap('str2int', 'number', ['string'])
 	ns.int2str = mod.cwrap('int2str', 'number', ['number', 'number', 'number'])
+	ns.int64_t2str = mod.cwrap('int64_t2str', 'number', ['number', 'number', 'number'])
+	ns.str2int64_t = mod.cwrap('str2int64_t', 'number', ['number', 'number'])
 })
 
 function test_add() {
@@ -83,7 +85,7 @@ function test_str2int2() {
 function test_int2str() {
 	var v = getValue('inp4') | 0
 	console.log('v=' + v)
-	var maxBufSize = 10
+	var maxBufSize = 30
 	var s = ''
 	{
 		var stack = module.Runtime.stackSave()
@@ -98,4 +100,39 @@ function test_int2str() {
 	}
 	setStrValue('ret4', s)
 }
+
+function test_int64_t2str() {
+	var v = getValue('inp5')
+	console.log('v=' + v)
+	var maxBufSize = 30
+	var s = ''
+	{
+		var stack = module.Runtime.stackSave()
+		var pos = module.Runtime.stackAlloc(maxBufSize)
+		console.log('pos=' + pos)
+		var n = mcl.int64_t2str(pos, maxBufSize, v)
+		console.log('n=' + n)
+		for (var i = 0; i < n; i++) {
+			s += String.fromCharCode(module.HEAP8[pos + i])
+		}
+		module.Runtime.stackRestore(stack)
+	}
+	setStrValue('ret5', s)
+}
+
+function test_str2int64_t() {
+	var s = getValue('inp6')
+	console.log('s=' + s)
+	var stack = module.Runtime.stackSave()
+	var pos = module.Runtime.stackAlloc(s.length)
+	console.log('pos=' + pos)
+	for (var i = 0; i < s.length; i++) {
+		module.HEAP8[pos + i] = s.charCodeAt(i)
+	}
+	var y = mcl.str2int64_t(pos, s.length)
+	module.Runtime.stackRestore(stack)
+	console.log('y=' + y)
+	setStrValue('ret6', y)
+}
+
 

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 extern "C" {
 
@@ -17,5 +18,22 @@ int int2str(char *buf, size_t maxBufSize, int v)
 {
 	return snprintf(buf, maxBufSize, "%d", v);
 }
+
+int int64_t2str(char *buf, size_t maxBufSize, int64_t v)
+{
+	return snprintf(buf, maxBufSize, "%lld", v);
+}
+
+int64_t str2int64_t(const char *s, size_t n)
+{
+	int64_t x = 0;
+	while (n > 0) {
+		x *= 10;
+		x += *s++ - '0';
+		n--;
+	}
+	return x;
+}
+
 
 } // extern "C"
