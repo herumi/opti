@@ -15,7 +15,7 @@ void fill1(uint8_t *p, size_t n)
 
 void fill2(uint8_t *p, size_t n)
 {
-	EM_ASM((mod.fillJS($0, $1)), p, n);
+	EM_ASM({mod.fillJS($0, $1)}, p, n);
 }
 
 int call0(int x, int y)
@@ -25,7 +25,7 @@ int call0(int x, int y)
 
 int call1(int x, int y)
 {
-	return EM_ASM_INT((return $0 + $1), x, y);
+	return EM_ASM_INT({return $0 + $1}, x, y);
 }
 
 int call2(int x, int y)
