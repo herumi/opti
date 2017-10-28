@@ -24,7 +24,7 @@ function bench(msg, count, func) {
 	}
 	let end = Date.now()
 	let t = (end - start) / count
-	setText(msg, t)
+	setText(msg, (t * 1e6) + 'usec')
 }
 
 function setupWasm(fileName, setupFct) {
@@ -65,8 +65,9 @@ function test_fill() {
 	for (let i = 0; i < n; i++) {
 		console.log(i + ':' + mod.HEAP8[pos + i])
 	}
-	bench('bench_fill1', 10000, () => { fill1(pos, n) })
-	bench('bench_fill2', 10000, () => { fill2(pos, n) })
+	const C = 100000
+	bench('bench_fill1', C, () => { fill1(pos, n) })
+	bench('bench_fill2', C, () => { fill2(pos, n) })
 	mod.Runtime.stackRestore(stack)
 	console.log('a=' + a)
 }
@@ -87,8 +88,8 @@ function test_bench() {
 	var x = 3
 	var y = 4
 	const C = 1000000
-	bench('bench_testJS', C, () => { x = x + y })
 	bench('bench_test0', C, () => { x = call0(x, y) })
 	bench('bench_test1', C, () => { x = call1(x, y) })
 	bench('bench_test2', C, () => { x = call2(x, y) })
+	bench('bench_testJS', C, () => { x = x + y })
 }
