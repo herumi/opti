@@ -7,6 +7,11 @@ fetch('func.wasm')
   .then(buffer => new Uint8Array(buffer))
   .then(binary => { Module(mod) })
 
+fetch('data.bin')
+  .then(res => res.arrayBuffer())
+  .then(buf => new Uint8Array(buf))
+  .then(a => console.log(`a=${a}`))
+
 function test_itos() {
   const x = -1
   const bufSize = 20

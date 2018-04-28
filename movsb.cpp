@@ -14,6 +14,7 @@ typedef cybozu::AlignedArray<char, 32> Vec;
 
 void (*copy_movsb)(void *dst, const void *src, size_t n);
 void (*copy_xmm)(void *dst, const void *src, size_t n);
+void (*copy_movsq)(void *dst, const void *src, size_t n);
 
 void memcpyC(void *dst, const void *src, size_t n)
 {
@@ -25,7 +26,7 @@ void memcpyC(void *dst, const void *src, size_t n)
 }
 
 #ifdef __GNUC__
-	#define USE_INLINE_ASM
+//	#define USE_INLINE_ASM
 #endif
 
 #ifdef USE_INLINE_ASM
@@ -44,6 +45,10 @@ struct Code : Xbyak::CodeGenerator {
 		align(16);
 		copy_xmm = getCurr<void (*)(void*, const void*, size_t)>();
 		gen_copy_xmm();
+
+		align(16);
+		copy_movsq = getCurr<void (*)(void*, const void*, size_t)>();
+		gen_copy_movsq();
 	}
 	void gen_copy_movsb()
 	{
@@ -77,6 +82,45 @@ struct Code : Xbyak::CodeGenerator {
 		mov(rsi, src);
 		mov(rcx, n);
 		rep(); movsb();
+		pop(rdi);
+		pop(rsi);
+#endif
+	}
+	void gen_copy_movsq()
+	{
+		// use rcx, rsi, rdi
+#if 1
+#ifdef XBYAK64_WIN
+		// (rcx, rdx, r8)
+		push(rsi);
+		push(rdi);
+		mov(rdi, rcx);
+		mov(rsi, rdx);
+		mov(rcx, r8);
+		shr(rcx, 3);
+		rep(); movsq();
+		pop(rdi);
+		pop(rsi);
+		ret();
+#else
+		// (rdi, rsi, rdx)
+		mov(rcx, rdx);
+		shr(rcx, 3);
+		rep(); movsq();
+		ret();
+#endif
+#else
+		Xbyak::util::StackFrame sf(this, 3, Xbyak::util::UseRCX);
+		const Xbyak::Reg64& dst = sf.p[0];
+		const Xbyak::Reg64& src = sf.p[1];
+		const Xbyak::Reg64& n = sf.p[2];
+		push(rsi);
+		push(rdi);
+		mov(rdi, dst);
+		mov(rsi, src);
+		mov(rcx, n);
+		shr(rcx, 3);
+		rep(); movsq();
 		pop(rdi);
 		pop(rsi);
 #endif
@@ -143,6 +187,7 @@ int main()
 		const int n = tbl[i];
 		printf("size %d byte\n", n);
 		CYBOZU_BENCH("", copy_movsb, x, y, n); putResult("movsb", n);
+		CYBOZU_BENCH("", copy_movsq, x, y, n); putResult("movsq", n);
 		CYBOZU_BENCH("", copy_xmm, x, y, n); putResult("xmm  ", n);
 		CYBOZU_BENCH("", memcpyC, x, y, n); putResult("memcpyC  ", n);
 		CYBOZU_BENCH("", memcpy, x, y, n); putResult("memcpy  ", n);
