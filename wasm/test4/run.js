@@ -3,17 +3,25 @@ function setStrValue(name, val) { document.getElementsByName(name)[0].value = va
 
 const mod = {}
 
-fetch('add.wasm')
-  .then(response => response.arrayBuffer())
-  .then(mod => {
-    const imports = {
-      env : {
-        addJS : (x, y) => { return x + y }
-      }
+async function init() {
+  const response = await fetch('./add.wasm')
+  const buf = await response.arrayBuffer()
+  const memory = await new WebAssembly.Memory({initial:1})
+  const imports = {
+    env : {
+      addJS : (x, y) => { return x + y },
+      memory: memory,
     }
-    return WebAssembly.instantiate(mod, imports)
-  })
-  .then(ret => mod.exports = ret.instance.exports)
+  }
+  const ret = await WebAssembly.instantiate(buf, imports)
+  return ret.instance.exports
+}
+
+(async () => {
+  mod.exports = await init()
+  mod.u32 = new Uint32Array(mod.exports.memory.buffer)
+  mod.u8 = new Uint8Array(mod.exports.memory.buffer)
+})()
 
 function test_add() {
   const x = getValue('ret1')
