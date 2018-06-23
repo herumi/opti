@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include "func.h"
 
 //#define API __attribute__((used))
 #define API __attribute__((visibility("default")))
@@ -6,9 +6,6 @@ extern "C" API uint32_t add(uint32_t x, uint32_t y)
 {
 	return x + y;
 }
-extern "C" uint32_t sub(uint32_t x, uint32_t y);
-//extern "C" void set(uint32_t *x, uint32_t y);
-
 extern "C" uint32_t addJS(uint32_t x, uint32_t y);
 
 extern "C" API uint32_t subsub(uint32_t x, uint32_t y)
@@ -54,4 +51,9 @@ static Counter s_c(9);
 extern "C" API int getCount2()
 {
 	return s_c.inc();
+}
+
+extern "C" API void setn(void *p, int n)
+{
+	mymemset(p, 1, n);
 }

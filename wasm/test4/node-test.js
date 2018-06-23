@@ -33,4 +33,24 @@ async function init () {
     console.log(`counter1=${exports.getCount1()}`)
     console.log(`counter2=${exports.getCount2()}`)
   }
+  console.log('before')
+  for (let i = 0; i < 10; i++) {
+    console.log(`mod.u8[${i}]=${mod.u8[i]}`)
+  }
+  const memPos = 2
+  exports.setn(memPos, 3)
+  console.log('after')
+  for (let i = 0; i < 10; i++) {
+    console.log(`mod.u8[${i}]=${mod.u8[i]}`)
+  }
+  console.log('aaa')
+  {
+    const m = new Uint32Array(exports.memory.buffer, 4, 2)
+    m[0] = 0x01020304
+    m[1] = 0x0a0b0c0d
+    m[2] = 0x99999999 // not written
+  }
+  for (let i = 0; i < 20; i++) {
+    console.log(`mod.u8[${i}]=${mod.u8[i]}`)
+  }
 })()
