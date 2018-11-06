@@ -4,7 +4,7 @@ CC=clang
 COPTS=-O3 -Wall -Wextra
 LLVM_OPT_OPTS=-std-compile-opts
 
-VER=-3.6
+VER=-6.0
 LLVM_AS=llvm-as$(VER)
 LLVM_LINK=llvm-link$(VER)
 LLVM_LLC=llc$(VER)
@@ -66,6 +66,8 @@ mul86.ll: mul.txt
 	python gen_mul.py mul86.ll 32
 opt: mul.ll
 	cat mul.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
+add: add1024.ll
+	cat add1024.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
 opt86: mul86.ll
 	cat mul86.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86
 opt-arm: mul.ll
@@ -75,3 +77,6 @@ asm: gen.cpp
 	clang++ -I ../../mcl/src -I ../../cybozulib/include gen.cpp -o gen
 	./gen > t.ll
 	cat t.ll | $(OPT_LLC) -x86-asm-syntax=intel -mattr=bmi2 -march=x86-64
+
+muladd: muladd.ll
+	opt-6.0 -O3 -o - muladd.ll -march=native | llc-6.0 -O3 -march=x86-64 -mattr=skylake

@@ -43,6 +43,7 @@ async function init () {
   for (let i = 0; i < 10; i++) {
     console.log(`mod.u8[${i}]=${mod.u8[i]}`)
   }
+/*
   console.log('aaa')
   {
     const m = new Uint32Array(exports.memory.buffer, 4, 2)
@@ -53,4 +54,5 @@ async function init () {
   for (let i = 0; i < 20; i++) {
     console.log(`mod.u8[${i}]=${mod.u8[i]}`)
   }
+*/
 })()

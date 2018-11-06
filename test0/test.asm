@@ -92,3 +92,7 @@ call_cmpxchg8b3:
 	cmp [rel flag1], byte 0
 	jnz call_cmpxchg8b
 	ret
+
+	align 16
+do_nothing:
+	ret
