@@ -46,6 +46,8 @@
 
 ## 基礎体のx64最適化
 
+実装は[fp_generator.hpp](https://github.com/herumi/mcl/blob/master/src/fp_generator.hpp)
+
 ### 256/382bit整数の表現
 * N = 4 or 6
 * 64bit整数をUnitと呼ぶことにする(ここだけの表現)
