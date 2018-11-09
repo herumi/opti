@@ -14,7 +14,7 @@
 ## 実装
 * ペアリング, 楕円曲線, 有限体はC++のtemplateクラスや関数
 * 基本演算のC apiを提供
-    * vector, string, exception, malloc, freeなどのを使わない
+    * vector, string, exception, malloc, freeなどを使わない
     * メモリ管理は呼び出し側で行う形
     * JavaScript, Go, C#などから利用可能
 * 有限体の基本演算(add/sub/mul/sqr/invなど)は以下を切り替え可能
