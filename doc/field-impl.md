@@ -13,14 +13,15 @@
     * サーバはx64最適化 + OpenMP
 
 ## 実装
-* L2準同型, ペアリング, 楕円曲線, 有限体はC++のtemplateクラスや関数
-    * L2準同型[she.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/she.hpp)
-    * ペアリングやGLVメソッドなど [bn.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/bn.hpp)
-    * 楕円曲線[ec.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/ec.hpp)
-    * 拡大体[fp_tower.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/fp_tower.hpp)
-    * 素体[fp.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/fp.hpp)
-    * 各種operator[operator.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/operator.hpp)
+* L2準同型暗号, ペアリング, 楕円曲線, 有限体はC++のtemplateクラスや関数
+    * L2準同型暗号 - [she.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/she.hpp)
+    * ペアリングやGLVメソッドなど - [bn.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/bn.hpp)
+    * 楕円曲線 - [ec.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/ec.hpp)
+    * 拡大体 - [fp_tower.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/fp_tower.hpp)
+    * 素体 - [fp.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/fp.hpp)
+    * 各種operator - [operator.hpp](https://github.com/herumi/mcl/blob/master/include/mcl/operator.hpp)
 * 基本演算のC apiを提供
+    * [bn.h](https://github.com/herumi/mcl/blob/master/include/mcl/bn.h)
     * vector, string, exception, malloc, freeなどを使わない
     * メモリ管理は呼び出し側で行う形
     * JavaScript, Go, C#などから利用可能
