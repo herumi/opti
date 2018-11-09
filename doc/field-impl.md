@@ -493,7 +493,7 @@ return xy;
 ### montSqr(x) = montMul(x, x)
 * montMul(x, y)はx == yのときの最適化が難しい
 * montSqr(x) = red(mulPre(x, x)) = red(sqrPre(x))
-* sqrPre()の最適化はKaratsuba的な可能
+* sqrPre()の最適化は可能
 
 ### montMul(x, x) vs. red(sqrPre(x))
 
