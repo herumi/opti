@@ -18,15 +18,18 @@
 #endif
 
 #ifdef USE_VTUNE
-#include "jitprofiling.h"
+#include <jitprofiling.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "libittnotify.lib")
-#pragma comment(lib, "jitprofiling.lib")
+//#pragma comment(lib, "jitprofiling.lib")
+#endif
 #endif
 
+const int N = 3000000;
 struct Code : public Xbyak::CodeGenerator {
 	Code()
 	{
-		mov(eax, 1000000);
+		mov(eax, N);
 	L("@@");
 		for (int i = 0; i < 10; i++) {
 			sub(eax, 1);
@@ -40,7 +43,7 @@ struct Code : public Xbyak::CodeGenerator {
 struct Code2 : public Xbyak::CodeGenerator {
 	Code2()
 	{
-		mov(eax, 1000000);
+		mov(eax, N);
 	L("@@");
 		for (int i = 0; i < 10; i++) {
 			xorps(xm0, xm0);
@@ -73,10 +76,12 @@ double s2(int n)
 #ifdef USE_VTUNE
 void SetJitCode(void *ptr, size_t size, const char *name)
 {
-	iJIT_Method_Load jmethod = {0};
+	static char className[] = "xbyak";
+	static char fileName[] = __FILE__;
+	iJIT_Method_Load jmethod = {};
 	jmethod.method_id = iJIT_GetNewMethodID();
-	jmethod.class_file_name = "";
-	jmethod.source_file_name = __FILE__;
+	jmethod.class_file_name = className;
+	jmethod.source_file_name = fileName;
 
 	jmethod.method_load_address = ptr;
 	jmethod.method_size = size;
@@ -110,10 +115,13 @@ int main()
 #endif
 #ifdef USE_VTUNE
 	puts("use VTune API");
-	iJIT_IsProfilingActiveFlags agent = iJIT_IsProfilingActive();
-	fprintf(stderr, "iJIT_IsProfilingActive ret=%d\n", agent);
-	SetJitCode((void*)f, c.getSize(), "f");
-	SetJitCode((void*)g, c2.getSize(), "g");
+	if (iJIT_IsProfilingActive() == iJIT_SAMPLING_ON) {
+		puts("JIT profiling is active");
+		SetJitCode((void*)f, c.getSize(), "f");
+		SetJitCode((void*)g, c2.getSize(), "g");
+	} else {
+		puts("JIT profiling is not active");
+	}
 #endif
 
 	double sum = 0;

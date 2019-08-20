@@ -74,7 +74,7 @@ intsort_test: intsort_test.o
 	$(CXX) -c $< -o $@ $(CFLAGS)
 
 clean:
-	$(RM) *.o $(TARGET)
+	$(RM) *.o $(TARGET) prof-vtune
 
 rank_test: rank_test.o $(MARISA_LIB) $(SUX_LIB) $(SDSL_LIB) $(WAT_LIB) $(SHELLINFORD_LIB) ../cybozulib/include/cybozu/sucvector.hpp
 	$(CXX) $< -o $@ $(LDFLAGS) $(RANK_LDFLAGS) $(WAT_LDFLAGS) $(SHELLINFORD_LDFLAGS) $(MARISA_LIB)
@@ -118,3 +118,5 @@ comp/shellinford/src/shellinford_bit_vector.cc:
 intsort_test.o: intsort_test.cpp intsort.hpp v128.h
 rank_test.o: rank_test.cpp rank.hpp ../cybozulib/include/cybozu/sucvector.hpp
 
+prof-vtune: prof.cpp
+	$(CXX) -O3 -Wall -Wextra -o prof-vtune prof.cpp -DUSE_VTUNE -ljitprofiling -I ../xbyak -I /opt/intel/vtune_amplifier/include/ -L /opt/intel/vtune_amplifier/lib64/
