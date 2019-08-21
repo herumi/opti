@@ -8,6 +8,7 @@
 #include <math.h>
 #define XBYAK_NO_OP_NAMES
 #include <xbyak/xbyak.h>
+#include <dlfcn.h>
 
 #ifdef USE_CODEANALYST
 #ifdef _WIN64
@@ -17,6 +18,9 @@
 #pragma comment(lib, "CAJitNtfyLib.lib")
 #endif
 
+/*
+	see https://software.intel.com/en-us/vtune-amplifier-help-jit-profiling-api-reference
+*/
 #ifdef USE_VTUNE
 #include <jitprofiling.h>
 #ifdef _MSC_VER
@@ -115,6 +119,7 @@ int main()
 #endif
 #ifdef USE_VTUNE
 	puts("use VTune API");
+	dlopen("dummy", RTLD_LAZY); // force to load dlopen
 	if (iJIT_IsProfilingActive() == iJIT_SAMPLING_ON) {
 		puts("JIT profiling is active");
 		SetJitCode((void*)f, c.getSize(), "f");
