@@ -124,7 +124,8 @@ test-prof-vtune: prof-vtune
 	amplxe-cl -collect hotspots -result-dir r001hs -quiet ./prof-vtune
 prof-test: prof-test.cpp
 	$(RM) -r r001hs
-	$(CXX) -g -Wall -Wextra -o prof-test prof-test.cpp -ljitprofiling -I /opt/intel/vtune_amplifier/include/ -L /opt/intel/vtune_amplifier/lib64/ -ldl
+#	$(CXX) -g -Wall -Wextra -o prof-test prof-test.cpp -ljitprofiling -I /opt/intel/vtune_amplifier/include/ -L /opt/intel/vtune_amplifier/lib64/ -ldl
+	$(CXX) -g -Wall -Wextra -o prof-test prof-test.cpp -ljitprofiling -I /opt/intel/vtune_amplifier/include/ -L /opt/intel/vtune_amplifier/lib64/ -Wl,-no-as-needed -ldl
 test-prof-test: prof-test
 	$(RM) -r r001hs
 	amplxe-cl -collect hotspots -result-dir r001hs -quiet ./prof-test
