@@ -44,7 +44,7 @@ struct Code : Xbyak::CodeGenerator {
 
 void dump(const uint8_t *p, size_t n = 16)
 {
-	for (int i = 0; i < n; i++) {
+	for (size_t i = 0; i < n; i++) {
 		printf("%02x ", p[i]);
 	}
 	printf("\n");
