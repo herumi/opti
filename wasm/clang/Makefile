@@ -16,7 +16,7 @@ dis: addsub.wasm
 	llvm-objdump-8 -disassemble addsub.wasm
 
 test: addsub.wasm
-	node run.js
+	node test.js
 
 clean:
 	rm -rf *.o *.wasm
