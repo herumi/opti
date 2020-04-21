@@ -4,7 +4,7 @@ CLANG_WASM_OPT=-O3 -DNDEBUG -fPIC -DMCL_SIZEOF_UNIT=8 -DMCL_MAX_BIT_SIZE=384 -DM
 
 addsub.wasm: add.o sub.o
 #	wasm-ld-8 --no-entry --export-dynamic --initial-memory=131072 -o $@ $?
-	wasm-ld-8 --no-entry --export-dynamic -o $@ $?
+	wasm-ld-8 --no-entry --export-dynamic -o $@ $? --allow-undefined
 #	wasm-ld-8 --no-entry --export-dynamic -o $@ $? --stack-first
 	chmod 644 $@
 

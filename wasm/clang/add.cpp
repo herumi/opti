@@ -1,5 +1,7 @@
 #include "api.h"
 
+extern "C" int mulJS(int x, int y);
+
 extern "C" {
 
 API int add(int x, int y)
@@ -7,18 +9,10 @@ API int add(int x, int y)
 	return x + y;
 }
 
-API const char *get()
+API int callJS(int x, int y)
 {
-	static const char *s = "abcdefg";
-	return s;
+	return mulJS(x, y);
 }
-
-API const char *get2()
-{
-	static const char *s = "XYZW";
-	return s;
-}
-
 
 }
 

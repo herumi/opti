@@ -10,26 +10,23 @@
   console.log(`memory=${memory}`)
   const imports = {
     env : {
+      mulJS : (x, y) => { return x * y },
       memory: memory,
     }
   }
   WebAssembly.instantiate(buf, imports).then(
     ret => {
+      exports.ret = ret
       exports.mod = ret.instance.exports
       const mem = exports.mod.memory.buffer
       exports.mem = mem
       const u8 = new Uint8Array(mem)
       console.log(`add=${exports.mod.add(12, 34)}`)
       console.log(`sub=${exports.mod.sub(12, 34)}`)
-      const p = exports.mod.get()
-      const p2 = exports.mod.get2()
-      console.log(`p=${p} p2=${p2}`)
+      console.log(`callJS=${exports.mod.callJS(3, 5)}`)
       exports.mod.setMem(u8, 10)
       for (let i = 0; i < 10; i++) {
         console.log(`mem[${i}]=${u8[i]}`)
-      }
-      for (let i = 0; i < 10; i++) {
-        console.log(`mem[p+${i}]=${u8[p+i]}`)
       }
       console.log(`mem length=${mem.byteLength}`)
     }
