@@ -29,6 +29,9 @@
         console.log(`mem[${i}]=${u8[i]}`)
       }
       console.log(`mem length=${mem.byteLength}`)
+      console.log(`getPtr=${exports.mod.getPtr(4)}`)
+      console.log(`getPtr=${exports.mod.getPtr(32)}`)
+      console.log(`getPtr=${exports.mod.getPtr(64)}`)
     }
   )
   return exports

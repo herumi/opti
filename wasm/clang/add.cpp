@@ -14,5 +14,11 @@ API int callJS(int x, int y)
 	return mulJS(x, y);
 }
 
+API int getPtr(int x)
+{
+	char buf[x];
+	return (int)buf;
+}
+
 }
 
