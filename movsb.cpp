@@ -132,14 +132,15 @@ struct Code : Xbyak::CodeGenerator {
 		const Xbyak::Reg64& src = sf.p[1];
 		const Xbyak::Reg64& n = sf.p[2];
 	L("@@");
-		vmovaps(ym0, ptr [src]);
-		vmovaps(ym1, ptr [src + 32]);
-		vmovaps(ptr [dst], ym0);
-		vmovaps(ptr [dst + 32], ym1);
+		vmovupd(ym0, ptr [src]);
+		vmovupd(ym1, ptr [src + 32]);
+		vmovupd(ptr [dst], ym0);
+		vmovupd(ptr [dst + 32], ym1);
 		add(src, 64);
 		add(dst, 64);
 		sub(n, 64);
 		jnz("@b");
+		vzeroupper();
 	}
 } s_code;
 
@@ -199,12 +200,14 @@ int main()
 		1024 * 2,
 		1024 * 1024 * 4,
 	};
-	puts("non align");
+	puts("\nnon align");
 	for (size_t i = 0; i < CYBOZU_NUM_OF_ARRAY(tbl2); i++) {
 		const int n = tbl2[i];
 		for (int j = 0; j < 4; j++) {
-			printf("n=%d ", n - j);
-			CYBOZU_BENCH("", copy_movsb, x + j, y, n - j); putResult("", n - j);
+			int roundN = (n - j) & ~63;
+			printf("offset=%d, roundN=%d\n", j, roundN);
+			CYBOZU_BENCH("", copy_xmm, x + j, y, roundN); putResult("xmm  ", roundN);
+			CYBOZU_BENCH("", copy_movsb, x + j, y, roundN); putResult("movsb", roundN);
 		}
 	}
 }
