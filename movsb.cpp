@@ -12,9 +12,12 @@
 
 typedef cybozu::AlignedArray<char, 32> Vec;
 
-void (*copy_movsb)(void *dst, const void *src, size_t n);
-void (*copy_xmm)(void *dst, const void *src, size_t n);
-void (*copy_movsq)(void *dst, const void *src, size_t n);
+typedef void (*CopyFunc)(void *dst, const void *src, size_t n);
+
+CopyFunc copy_movsb;
+CopyFunc copy_ymm64;
+CopyFunc copy_xmm16;
+CopyFunc copy_movsq;
 
 void memcpyC(void *dst, const void *src, size_t n)
 {
@@ -43,8 +46,12 @@ struct Code : Xbyak::CodeGenerator {
 		gen_copy_movsb();
 
 		align(16);
-		copy_xmm = getCurr<void (*)(void*, const void*, size_t)>();
-		gen_copy_xmm();
+		copy_ymm64 = getCurr<void (*)(void*, const void*, size_t)>();
+		gen_copy_ymm64();
+
+		align(16);
+		copy_xmm16 = getCurr<void (*)(void*, const void*, size_t)>();
+		gen_copy_xmm16();
 
 		align(16);
 		copy_movsq = getCurr<void (*)(void*, const void*, size_t)>();
@@ -125,13 +132,14 @@ struct Code : Xbyak::CodeGenerator {
 		pop(rsi);
 #endif
 	}
-	void gen_copy_xmm()
+	void gen_copy_ymm64()
 	{
 		Xbyak::util::StackFrame sf(this, 3);
 		const Xbyak::Reg64& dst = sf.p[0];
 		const Xbyak::Reg64& src = sf.p[1];
 		const Xbyak::Reg64& n = sf.p[2];
-	L("@@");
+		Xbyak::Label lp;
+	L(lp);
 		vmovupd(ym0, ptr [src]);
 		vmovupd(ym1, ptr [src + 32]);
 		vmovupd(ptr [dst], ym0);
@@ -139,8 +147,23 @@ struct Code : Xbyak::CodeGenerator {
 		add(src, 64);
 		add(dst, 64);
 		sub(n, 64);
-		jnz("@b");
+		jnz(lp);
 		vzeroupper();
+	}
+	void gen_copy_xmm16()
+	{
+		Xbyak::util::StackFrame sf(this, 3);
+		const Xbyak::Reg64& dst = sf.p[0];
+		const Xbyak::Reg64& src = sf.p[1];
+		const Xbyak::Reg64& n = sf.p[2];
+		Xbyak::Label lp;
+	L(lp);
+		vmovupd(xm0, ptr [src]);
+		vmovupd(ptr [dst], ym0);
+		add(src, 16);
+		add(dst, 16);
+		sub(n, 16);
+		jnz(lp);
 	}
 } s_code;
 
@@ -189,7 +212,8 @@ int main()
 		printf("size %d byte\n", n);
 		CYBOZU_BENCH("", copy_movsb, x, y, n); putResult("movsb", n);
 		CYBOZU_BENCH("", copy_movsq, x, y, n); putResult("movsq", n);
-		CYBOZU_BENCH("", copy_xmm, x, y, n); putResult("xmm  ", n);
+		CYBOZU_BENCH("", copy_xmm16, x, y, n); putResult("xmm16", n);
+		CYBOZU_BENCH("", copy_ymm64, x, y, n); putResult("ymm64", n);
 		CYBOZU_BENCH("", memcpyC, x, y, n); putResult("memcpyC  ", n);
 		CYBOZU_BENCH("", memcpy, x, y, n); putResult("memcpy  ", n);
 #ifdef USE_INLINE_ASM
@@ -206,7 +230,7 @@ int main()
 		for (int j = 0; j < 4; j++) {
 			int roundN = (n - j) & ~63;
 			printf("offset=%d, roundN=%d\n", j, roundN);
-			CYBOZU_BENCH("", copy_xmm, x + j, y, roundN); putResult("xmm  ", roundN);
+			CYBOZU_BENCH("", copy_ymm64, x + j, y, roundN); putResult("xmm  ", roundN);
 			CYBOZU_BENCH("", copy_movsb, x + j, y, roundN); putResult("movsb", roundN);
 		}
 	}

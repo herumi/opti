@@ -1,0 +1,119 @@
+enhanced rep(ermsb) on
+buf2=hello this
+size 64 byte
+movsb 2.20 byte/clk
+movsq 2.13 byte/clk
+xmm16 5.61 byte/clk
+ymm64 10.49 byte/clk
+memcpyC   0.67 byte/clk
+memcpy   8.54 byte/clk
+size 128 byte
+movsb 3.46 byte/clk
+movsq 3.33 byte/clk
+xmm16 7.28 byte/clk
+ymm64 12.55 byte/clk
+memcpyC   12.11 byte/clk
+memcpy   7.96 byte/clk
+size 256 byte
+movsb 6.23 byte/clk
+movsq 6.09 byte/clk
+xmm16 10.00 byte/clk
+ymm64 16.11 byte/clk
+memcpyC   15.41 byte/clk
+memcpy   20.09 byte/clk
+size 512 byte
+movsb 2.96 byte/clk
+movsq 9.83 byte/clk
+xmm16 7.31 byte/clk
+ymm64 25.54 byte/clk
+memcpyC   20.81 byte/clk
+memcpy   20.33 byte/clk
+size 1024 byte
+movsb 15.66 byte/clk
+movsq 15.49 byte/clk
+xmm16 9.01 byte/clk
+ymm64 28.13 byte/clk
+memcpyC   25.26 byte/clk
+memcpy   24.18 byte/clk
+size 2048 byte
+movsb 22.66 byte/clk
+movsq 22.65 byte/clk
+xmm16 10.31 byte/clk
+ymm64 22.22 byte/clk
+memcpyC   25.00 byte/clk
+memcpy   30.03 byte/clk
+size 4096 byte
+movsb 26.84 byte/clk
+movsq 33.78 byte/clk
+xmm16 10.64 byte/clk
+ymm64 26.17 byte/clk
+memcpyC   32.72 byte/clk
+memcpy   28.64 byte/clk
+size 16384 byte
+movsb 28.95 byte/clk
+movsq 30.79 byte/clk
+xmm16 9.77 byte/clk
+ymm64 25.93 byte/clk
+memcpyC   42.06 byte/clk
+memcpy   46.96 byte/clk
+size 262144 byte
+movsb 9.84 byte/clk
+movsq 11.20 byte/clk
+xmm16 8.10 byte/clk
+ymm64 13.68 byte/clk
+memcpyC   14.47 byte/clk
+memcpy   14.57 byte/clk
+size 1048576 byte
+movsb 6.86 byte/clk
+movsq 7.50 byte/clk
+xmm16 5.05 byte/clk
+ymm64 5.13 byte/clk
+memcpyC   5.13 byte/clk
+memcpy   7.12 byte/clk
+size 2097152 byte
+movsb 5.16 byte/clk
+movsq 5.12 byte/clk
+xmm16 5.01 byte/clk
+ymm64 5.11 byte/clk
+memcpyC   5.07 byte/clk
+memcpy   5.16 byte/clk
+size 4194304 byte
+movsb 5.12 byte/clk
+movsq 5.08 byte/clk
+xmm16 4.94 byte/clk
+ymm64 5.12 byte/clk
+memcpyC   5.00 byte/clk
+memcpy   5.10 byte/clk
+size 16777216 byte
+movsb 4.99 byte/clk
+movsq 5.00 byte/clk
+xmm16 4.54 byte/clk
+ymm64 4.91 byte/clk
+memcpyC   4.85 byte/clk
+memcpy   4.99 byte/clk
+
+non align
+offset=0, roundN=2048
+xmm   22.21 byte/clk
+movsb 23.25 byte/clk
+offset=1, roundN=1984
+xmm   14.89 byte/clk
+movsb 18.52 byte/clk
+offset=2, roundN=1984
+xmm   19.84 byte/clk
+movsb 18.79 byte/clk
+offset=3, roundN=1984
+xmm   19.90 byte/clk
+movsb 16.44 byte/clk
+offset=0, roundN=4194304
+xmm   5.11 byte/clk
+movsb 5.12 byte/clk
+offset=1, roundN=4194240
+xmm   4.81 byte/clk
+movsb 5.06 byte/clk
+offset=2, roundN=4194240
+xmm   4.88 byte/clk
+movsb 5.07 byte/clk
+offset=3, roundN=4194240
+xmm   4.88 byte/clk
+movsb 5.04 byte/clk
