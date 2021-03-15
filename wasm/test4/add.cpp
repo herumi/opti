@@ -1,7 +1,13 @@
 #include "func.h"
 
-//#define API __attribute__((used))
-#define API __attribute__((visibility("default")))
+#if defined(__EMSCRIPTEN__) || defined(__clang__)
+  #define API __attribute__((used))
+#elif defined(__wasm__)
+  #define API __attribute__((visibility("default")))
+#else
+  #define API
+#endif
+
 extern "C" API uint32_t add(uint32_t x, uint32_t y)
 {
 	return x + y;

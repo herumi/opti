@@ -5,7 +5,7 @@ const mod = {}
 async function init () {
   const fs = require('fs')
   const buf = fs.readFileSync('./add.wasm')
-  const memory = await new WebAssembly.Memory({initial:1})
+  const memory = await new WebAssembly.Memory({initial:100})
   const imports = {
     env : {
       addJS : (x, y) => { return x + y },
