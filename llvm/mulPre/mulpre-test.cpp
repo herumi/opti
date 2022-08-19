@@ -81,8 +81,10 @@ void testMul()
 	void_ppp f = get_llvm_mulPre(N);
 	printf("  ");
 	CYBOZU_BENCH_C("llvm", CC, f, z, x, y);
+#if MCL_BINT_ASM_X64 == 1
 	printf("  ");
 	CYBOZU_BENCH_C("asm ", CC, mulT<N>, z, x, y);
+#endif
 #endif
 }
 

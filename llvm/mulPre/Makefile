@@ -1,11 +1,26 @@
 MCL_DIR?=../../../mcl
-all: gen-mulpre-test.exe
+ARCH?=$(shell uname -m)
+UNAME_S=$(shell uname -s)
+
+all: mulpre-test.exe
 
 LLVM_VER?=-12
 CFLAGS=-I $(MCL_DIR) -I $(MCL_DIR)/include -I $(MCL_DIR)/src -DNDEBUG -O2
 LDFLAGS=-lgmp -lgmpxx -lstdc++
 
-OBJS=mulpre-test.o mulpre.o bint-x64-amd64.o
+ifeq ($(UNAME_S),Darwin)
+GMP_DIR?=/opt/homebrew/
+CFLAGS+= -I $(GMP_DIR)/include
+LDFLAGS+= -L $(GMP_DIR)/lib
+endif
+
+OBJS=mulpre-test.o mulpre.o
+ifeq ($(ARCH),x86_64)
+OBJS+=bint-x64-amd64.o
+else
+OBJS+=bint64.o
+endif
+
 
 gen-mulpre.exe: gen-mulpre.o
 	$(CXX) -o $@ $<
@@ -19,6 +34,9 @@ mulpre.o: mulpre.ll
 
 bint-x64-amd64.o:
 	as -o $@ $(MCL_DIR)/src/asm/bint-x64-amd64.s
+
+bint64.o:
+	clang++$(LLVM_VER) -c -o $@ $(MCL_DIR)/src/bint64.ll $(CLANG_OPT)
 
 %.o: %.cpp
 	$(CXX) $(CFLAGS) -c $< -o $@ -MMD -MP -MF $(@:.o=.d)
