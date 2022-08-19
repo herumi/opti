@@ -75,7 +75,7 @@ void testMul()
 		CYBOZU_TEST_EQUAL(mx * my, mz);
 	}
 #ifdef NDEBUG
-	const int CC = 100000;
+	const int CC = 1000000;
 	printf("%zd ", N);
 	CYBOZU_BENCH_C("gmp ", CC, mpn_mul_n, (mp_limb_t*)z, (const mp_limb_t*)x, (const mp_limb_t*)y, (int)N);
 	void_ppp f = get_llvm_mulPre(N);
