@@ -47,8 +47,10 @@ mulpre-test.exe: $(OBJS)
 test: mulpre-test.exe
 	./mulpre-test.exe
 
+asm:
+	clang++$(LLVM_VER) -S -O2 -mbmi2 -masm=intel mulpre.ll
 
 clean:
-	$(RM) $(OBJS) *.exe *.o *.ll *.d
+	$(RM) $(OBJS) *.exe *.o *.ll *.d *.asm
 
 .PHONY: clean
