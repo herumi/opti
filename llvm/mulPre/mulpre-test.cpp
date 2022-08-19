@@ -45,6 +45,16 @@ void_ppp get_llvm_mulPre(size_t n)
 	}
 }
 
+// z[2N] = x[N] * y[N]
+template<size_t N>
+void mulT2(Unit *pz, const Unit *px, const Unit *py)
+{
+	pz[N] = mulUnitT<N>(pz, px, py[0]);
+	for (size_t i = 1; i < N; i++) {
+		pz[N + i] = mulUnitAddT<N>(&pz[i], px, py[i]);
+	}
+}
+
 template<class RG>
 void setRand(Unit *x, size_t n, RG& rg)
 {
@@ -85,6 +95,8 @@ void testMul()
 	printf("  ");
 	CYBOZU_BENCH_C("asm ", CC, mulT<N>, z, x, y);
 #endif
+	printf("  ");
+	CYBOZU_BENCH_C("mulT", CC, mulT2<N>, z, x, y);
 #endif
 }
 
