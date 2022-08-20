@@ -1,4 +1,5 @@
 #include <stdint.h>
+#define CYBOZU_BENCH_USE_GETTIMEOFDAY
 #include <cybozu/benchmark.hpp>
 #include <gmpxx.h>
 #include <cybozu/xorshift.hpp>
