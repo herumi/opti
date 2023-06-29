@@ -73,15 +73,9 @@ _class: title
 
 # 概要
 ## 目次
-1. 背景
-1. 自作アセンブラ
-1. SIMD
-1. x64 CPU
-1. レイテンシとスループット
-1. FMA
-1. exp(x)
-1. log(x)
-1. マスクレジスタ
+1. x64アセンブラとSIMDの基本
+1. AVX-512
+1. exp/logの実装例
 
 # 背景
 ## 優れたライブラリやツールは沢山ある
@@ -153,7 +147,7 @@ void addc(float *z, const float *x, const float *y, size_t n) {
 - nは正で16の倍数とする
 - x[0..n], y[0..n], z[0..n]は互いにオーバーラップしていない
   - restrictとする
-- 64バイト境界にアラインされている（ことが望ましい）
+- x, y, zは64バイト境界にアラインされている（ことが望ましい）
 
 # SIMD(AVX-512)での実装例
 ## s_xbyakによる実装例
@@ -164,9 +158,9 @@ with FuncProc('add_avx512'): # add_avx512という関数を作る
     px = sf.p[1] # 2番目の引数はxへのポインタ
     py = sf.p[2] # 3番目の引数はyへのポインタ
     n = sf.p[3]  # 4番目の引数はn
-    lpL = Label() # ループ用ラベル
+    lp = Label() # ループ用ラベル
 
-    L(lpL) # ループ用ラベルの定義
+    L(lp) # ループ用ラベルの定義
     vmovups(zmm0, ptr(px)) # zmm0 = *px
     vaddps(zmm0, zmm0, ptr(py)) # zmm0 += *py as float
     vmovups(ptr(pz), zmm0) # *pz = zmm0
@@ -174,7 +168,7 @@ with FuncProc('add_avx512'): # add_avx512という関数を作る
     add(py, 64) # py += 64
     add(pz, 64) # pz += 64
     sub(n, 16) # n -= 16
-    jnz(lpL) # n != 0 ならlpLに戻って繰り返す
+    jnz(lp) # n != 0 ならlpに戻って繰り返す
 ```
 # x64 CPUの基礎
 ## 汎用レジスタ
@@ -190,17 +184,18 @@ with FuncProc('add_avx512'): # add_avx512という関数を作る
 ```
 - スタックレジスタ : rsp（ローカル変数など保持するスタック領域を指す）
 ## その他のレジスタ
-- フラグレジスタEFLAGS（cmpなどの比較結果が入るレジスタ - 後述）
-- 浮動小数点数型のFPUもあるが略
+- フラグレジスタEFLAGS（ZF, CFなどのフラグの集合 - 後述）
+- SIMDでない浮動小数点数型もあるが略
 
 # 基本命令
 ## Intel ASMの基本の形
 - op x, y # x ← op(x, y)
   - xやyはレジスタやメモリを指す
   - xとyのopの操作結果がxに代入される
+  - 殆どの命令はEFLAGSを実行ごとに更新する
 ## mov x, y # x ← y
 - mov(x, ptr(y)) は `x = *(uint64_t*)y;`の意味（xが64ビットの場合）
-- xがSIMDレジスタのときはmovupsなどを使う
+- xがSIMDレジスタのときはvmovupsなどを使う
 ## 算術演算(add, sub, ...)や論理演算(and, xor, or, ...)
 - add x, y # x ← x + y
 - and x, y # x ← x & y
@@ -235,19 +230,21 @@ with FuncProc('add_avx512'): # add_avx512という関数を作る
 _text$x segment align(64) execute # 64バイト境界アライン可能な実行可能なセグメント指定
 add_avx512 proc export # 関数の始まり
 @L1:
-vmovups zmm0, zmmword ptr [rdx] # 2番目の引数はrdx
-vaddps zmm0, zmm0, zmmword ptr [r8] # 3番目の引数はr8
-vmovups zmmword ptr [rcx], zmm0 # 1番目の引数はrcx
+vmovups zmm0, zmmword ptr [rdx] # 関数の2番目の引数xはrdx
+vaddps zmm0, zmm0, zmmword ptr [r8] # 3番目の引数yはr8
+vmovups zmmword ptr [rcx], zmm0 # 1番目の引数zはrcx
 add rdx, 64
 add r8, 64
 add rcx, 64
-sub r9, 16
+sub r9, 16  # 4番目の引数nはr9
 jnz @L1
 ret
 add_avx512 endp # 関数の終わり
 _text$x ends # セグメントの終わり
 end # ファイルの終わり
 ```
+- Visual Studio付属のml64.exeでアセンブルしてobjファイルを作る
+- C（や他の言語）から呼び出して使う
 # 呼び出し規約
 ## CからASMを呼び出す場合
 - 引数に割り当てられるレジスタや保存すべきレジスタがある
@@ -295,7 +292,7 @@ SIZE(add_avx512) # Linux用GASで関数のサイズを設定する
 
 # スループットの例
 ## FMA(Fused Multiply -Add)
-- $x \rightarrow x + yz$ を計算する命令（Intelではvfmadd231ps）
+- $x \leftarrow x + yz$ を計算する命令
 - レイテンシ4 スループット0.5で命令同士が依存関係がない場合
  ![width:1000px](images/20230613-175628.png)
 - スループット0.5なので1clkごとに2命令発行できる
@@ -303,23 +300,35 @@ SIZE(add_avx512) # Linux用GASで関数のサイズを設定する
   - 結果を利用できるのは4clk後になる
 - cf. [第1回 計算科学技術特論A（2023）](https://www.docswell.com/s/2300203199/KJLL2G-2023-04-12-102338#p41)
 
+# x64のFMA
+## 命名規則
+- FMAは入力が3個なので組み合わせが名前に入っている
+- vfmadd132ps($x_1$, $x_2$, $x_3$)
+  - $x_1 \leftarrow x_1 \times x_3 + x_2.$
+- vfmadd213ps($x_1$, $x_2$, $x_3$)
+  - $x_1 \leftarrow x_2 \times x_1 + x_3.$
+- vfmadd231ps($x_1$, $x_2$, $x_3$)
+  - $x_1 \leftarrow x_2 \times x_3 + x_1.$
+## ±や加算・減算によるバリエーション
+- vfmsub(xy-z), vfnmadd(-xy+z), vfnmsub(-xy-z)などがある
+
 # FMAのスループットを確認する実験
 ## 実験コード
 - ループ内に互いに依存関係の無いFMAを複数個並べて速度評価する
 ```python
-def gen_func(n):
-  with FuncProc(f'func{n}'):
-    with StackFrame(1, vNum=n+1, vType=T_ZMM) as sf:
-      c = sf.p[0]
-      lp = Label()
-      for i in range(n):
-        vxorps(Zmm(i), Zmm(i), Zmm(i)) # ZMMレジスタクリア
-      align(32)
-      L(lp)
-      for i in range(n):
-        vfmadd231ps(Zmm(i), Zmm(i), Zmm(i)) # n個のFMAを発行
-      sub(c, 1)
-      jnz(lp) # c回ループする
+# func{n}(int c); // n個のFMAをc回ループする
+with FuncProc(f'func{n}'):
+  with StackFrame(1, vNum=n+1, vType=T_ZMM) as sf:
+    c = sf.p[0]
+    lp = Label()
+    for i in range(n):
+      vxorps(Zmm(i), Zmm(i), Zmm(i)) # ZMMレジスタクリア
+    align(32)
+    L(lp)
+    for i in range(n):
+      vfmadd231ps(Zmm(i), Zmm(i), Zmm(i)) # n個のFMAを発行
+    sub(c, 1)
+    jnz(lp) # c回ループする
 ```
 - コード全体は[fma](https://github.com/herumi/misc/tree/main/fma)
 - Xeon Platinum 8280 Turbo Boost offで測定
@@ -333,7 +342,7 @@ sub rcx, 1
 jnz @L1
 ```
 
-## n=4 のループアンロール
+## n=4
 ```asm
 @L4:
 vfmadd231ps zmm0, zmm0, zmm0
@@ -350,9 +359,10 @@ jnz @L4
 n|1|2|3|4|5|6|7|8|9|10
 -|-|-|-|-|-|-|-|-|-|-
 clk|4.1|4.0|4.0|4.0|4.0|4.0|4.0|4.0|4.5|5.0|5.50
-- n=8までのループアンロールは時間が変化しない（スループット0.5で処理できている）
+- n=8まで互いに独立なFMAを発行しても時間が変化しない（レイテンシ4で処理できている）
+  - ループアンロールが重要
 - FMAの連続発行の流れ
- ![width:1000px](images/20230614-095612.png)
+ ![width:850px](images/20230614-095612.png)
 
 # FMAの利用例
 ## 多項式の評価
@@ -369,8 +379,8 @@ $t \leftarrow a_4$ として後ろから求める
 
 # 係数の保持方法
 ## 係数を全てレジスタに保持する
-- レジスタが足りなくなる可能性がある
 - 余裕があるならレジスタに置いておくのがよい
+- ループアンロールするとレジスタが足りなくなる可能性がある
 ## 係数をメモリに保持する
 - メモリにSIMD分並べておいて読む
 - メモリに1個分だけおいてSIMDレジスタに個数分だけ展開する（ブロードキャスト）
@@ -394,6 +404,7 @@ vfmadd231ps(zmm0, zmm1, zmm2)
 ```python
 vfmadd231ps(zmm0, zmm1, ptr_b(coeff)) # coeffから1個分のfloatを読み込み展開してFMA
 ```
+- ptr_bはxbyakの記法. MASMはdword bcstでGASは{1to16}など
 
 # 実験結果
 ## ループ展開したときのそれぞれの処理時間
@@ -442,8 +453,8 @@ ptr_b|4.14|4.01|4.00|4.00|4.00|4.00|4.06|4.38|4.97
 - 出力 : exp(x)
 - 事前準備 : c[i] : 多項式の係数
 1. $y \leftarrow x \times \log_2(e).$
-1. $n \leftarrow {\tt round}(x).$  ここで ${\tt round}$ は四捨五入関数。
-1. $a \leftarrow x - n.$
+1. $n \leftarrow {\tt round}(y).$  ここで ${\tt round}$ は四捨五入関数。
+1. $a \leftarrow y - n.$
 1. $w=2^a \leftarrow 1 + a(c[1] + a(c[2] + a(c[3] + a(c[4] + a c[5])))).$
 1. $z \leftarrow 2^n.$
 1. return $zw$.
@@ -464,15 +475,16 @@ floatのビット表現|符号s|指数部e|仮数部f
 
 # 四捨五入
 ## cvtps2dq
-- float→int変換 : AVX-512で丸めモードを制定できる
+- float→int型変換 : AVX-512で丸めモードを指定できる
 - 丸めモード(ctrl)
-  - round-to-nearest-even : 丸めモードのデフォルト
+  - round-to-nearest-even : 一番近い整数(0.5は偶数に)に丸める
   - round-toward-zero : 0に近い方向に丸める
-  - round-down : 0に遠い方向に丸める
-  - round-up : 0に遠い方向に丸める
+  - round-down : -∞方向に丸める
+  - round-up : +∞方向に丸める
 - 結果はint型なのでfloat型への変換が必要
 ## vrndscaleps
 - ${\tt ROUND}(x) = 2^{-M} {\tt round}(x \times 2^M, {\tt ctrl}).$
+  - $0 \le M < 16.$
 - 結果はfloat型
 
 # vreduceps
@@ -595,11 +607,12 @@ un(vmulps)(z0, z0, log2_e)  → vmulps(zmm0, zmm0, log2_e)
 ## メモリ参照
 ```python
 v0=[zmm0, zmm1, zmm2]
-v1=[zmm2, zmm3, zmm4]
-un(vfmadd231ps)(v0, v1, ptr(rax)) → vfmadd231ps(zmm0, zmm2, ptr(rax))
-                                    vfmadd231ps(zmm1, zmm3, ptr(rax+64))
-                                    vfmadd231ps(zmm2, zmm4, ptr(rax+128))
+v1=[zmm3, zmm4, zmm5]
+un(vfmadd231ps)(v0, v1, ptr(rax)) → vfmadd231ps(zmm0, zmm3, ptr(rax))
+                                    vfmadd231ps(zmm1, zmm4, ptr(rax+64))
+                                    vfmadd231ps(zmm2, zmm5, ptr(rax+128))
 ```
+- ptrの代わりにptr_bを使うとオフセットは0のまま
 # exp(x)のベンチマーク
 ## アンロール回数Nを変えて測定
 
@@ -867,14 +880,15 @@ x|$m_0$|$0$|$0$|...|$m_{15}$
 ```
 - `(1<<n)-1`でn個の1が立つビットマスクを作る
 - `kmovd(k1, eax)`でマスクレジスタを設定
-- `zmm0|k1|T_z`を使ってメモリの読み書きをする
+- `zmm0|k1|T_z`を使ってメモリの読み込みをする
 
 # まとめ
 ## AVX-512
 - レジスタ数が多いのでループアンロールが有効
+  - スループットとレイテンシを考慮する
 - ブロードキャスト命令の代わりにブロードキャストフラグでメモリアクセスを減らす
 - マスクレジスタを使って分岐を避ける
-- AVX-512専用命令を利用する
+- AVX-512専用命令を活用する
   - 整数部や小数部を取り出す : vrndscaleps, vreduceps
   - 指数部や仮数部を取り出す : vgetexpss, vgetmantss
   - 小さいテーブルルックアップ : vpermps, vpermi2psなど
